@@ -26,6 +26,6 @@ jobs:
       - run: yarn lint
       - run: yarn build
       - run: yarn test
-      - run: yarn lerna publish -y --preid beta prerelease --force-publish
+      - run: yarn lerna publish -y prerelease --dist-tag="beta" --force-publish
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
