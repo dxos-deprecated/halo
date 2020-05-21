@@ -1,6 +1,6 @@
 {
   "name": "@dxos/party-manager",
-  "version": "1.0.1-beta.5",
+  "version": "1.0.1-beta.6",
   "description": "Party Manager",
   "homepage": "https://github.com/dxos/halo/tree/master/packages/party-manager#readme",
   "bugs": {
@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "@dxos/async": "^1.0.0-beta.1",
-    "@dxos/credentials": "^1.0.1-beta.5",
+    "@dxos/credentials": "^1.0.1-beta.6",
     "@dxos/crypto": "^1.0.0-beta.1",
     "@dxos/network-manager": "^1.0.0-beta.35",
     "@dxos/protocol": "^1.1.0-alpha.4",
