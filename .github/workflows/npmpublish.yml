@@ -20,12 +20,13 @@ jobs:
         with:
           node-version: 12
           registry-url: https://registry.npmjs.org/
-      - run: git config --global user.email "npm@dxos.network"
-      - run: git config --global user.name "DxOS"
-      - run: yarn
-      - run: yarn lint
-      - run: yarn build
-      - run: yarn test
-      - run: yarn lerna publish -y prerelease --dist-tag="beta" --force-publish
+      - run: |
+          git config --global user.email "npm@dxos.network"
+          git config --global user.name "DxOS"
+          yarn
+          yarn lint
+          yarn build
+          yarn test
+          yarn lerna publish -y prerelease --dist-tag="beta" --force-publish
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
