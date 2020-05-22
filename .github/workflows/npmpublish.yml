@@ -28,6 +28,5 @@ jobs:
           yarn build
           yarn test
           yarn lerna publish -y prerelease --dist-tag="beta" --force-publish
-          yarn config list
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
