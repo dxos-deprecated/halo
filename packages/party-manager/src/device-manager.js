@@ -64,9 +64,9 @@ export class DeviceManager {
     let keyChain;
 
     try {
-      const hub = this._partyManager.identityManager.identityHub;
-      if (hub) {
-        keyChain = Keyring.buildKeyChain(this.publicKey, hub.memberCredentials, hub.memberFeeds);
+      const halo = this._partyManager.identityManager.halo;
+      if (halo) {
+        keyChain = Keyring.buildKeyChain(this.publicKey, halo.memberCredentials, halo.memberFeeds);
       }
     } catch (err) {
       // It is not unexpected to have an error building the key chain, as we may not have all the messages loaded yet,

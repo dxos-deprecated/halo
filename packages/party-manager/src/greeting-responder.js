@@ -205,8 +205,8 @@ export class GreetingResponder extends EventEmitter {
 
     const deviceKey = this._keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE }));
     const deviceKeyChain = Keyring.buildKeyChain(deviceKey.publicKey,
-      this._partyManager.identityManager.identityHub.memberCredentials,
-      this._partyManager.identityManager.identityHub.memberFeeds);
+      this._partyManager.identityManager.halo.memberCredentials,
+      this._partyManager.identityManager.halo.memberFeeds);
 
     const writeFeed = await this._partyManager.getWritableFeed(this._party.publicKey);
 

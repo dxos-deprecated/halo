@@ -152,8 +152,8 @@ export class GreetingInitiator {
     const feedKey = await this._keyring.getKey(writeFeed.key);
 
     const credentialMessages = [];
-    if (this._partyManager.isIdentityHub(partyKey)) {
-      // For the IdentityHub, add the DEVICE directly.
+    if (this._partyManager.isHalo(partyKey)) {
+      // For the Halo, add the DEVICE directly.
       credentialMessages.push(
         createKeyAdmitMessage(this._keyring, partyKey,
           this._partyManager.identityManager.deviceManager.keyRecord,

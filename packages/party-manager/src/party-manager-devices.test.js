@@ -52,7 +52,7 @@ const createTwoDeviceIdentity = async () => {
     // nodeB is added to IdentityA as its second device.
     expect(nodeB.partyManager.identityManager.publicKey).toEqual(nodeA.partyManager.identityManager.publicKey);
 
-    // Expect that nodes A, B can replicate on IdentityA's Hub.
+    // Expect that nodes A, B can replicate on IdentityA's Halo.
     await checkReplication(identityKey.publicKey, nodes);
   }
 
@@ -63,11 +63,11 @@ const createTwoDeviceIdentity = async () => {
   // Both nodes should have the Identity and both Devices.
   await waitForExpect(() => {
     for (const node of nodes) {
-      const hub = node.partyManager.identityManager.identityHub;
+      const halo = node.partyManager.identityManager.halo;
       const identityKey = node.partyManager.identityManager.publicKey;
       const deviceKey = node.partyManager.identityManager.deviceManager.publicKey;
-      expect(hub.memberKeys.find(key => key.equals(identityKey)));
-      expect(hub.memberKeys.find(key => key.equals(deviceKey)));
+      expect(halo.memberKeys.find(key => key.equals(identityKey)));
+      expect(halo.memberKeys.find(key => key.equals(deviceKey)));
     }
   });
 
@@ -114,7 +114,7 @@ test('Identity having 2 devices in party with another identity having 2 devices'
 test.skip('Initial device with unauthorized device', async () => {
   // nodeA is initialized under IdentityA as its first device.
   // nodeB is initialized as un-owned.
-  // Expect that nodeB can't access IdentityA's Hub, even if it knows IdentityA's public key.
+  // Expect that nodeB can't access IdentityA's Halo, even if it knows IdentityA's public key.
   // nodeA creates and joins a new Party.
   // Expect that nodeB can not access that Party.
 });

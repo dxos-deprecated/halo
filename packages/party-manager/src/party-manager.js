@@ -58,11 +58,11 @@ const noop = () => {};
  * @event PartyManager#'party:info:update' fires when PartyInfo is updated
  * @type {PublicKey}
  *
- * @event PartyManager#'@package:device:info' fires when a DeviceInfo message has been processed on the IdentityHub
+ * @event PartyManager#'@package:device:info' fires when a DeviceInfo message has been processed on the Halo
  * @type {DeviceInfo}
  *
  * @event PartyManager#'@package:identity:info' fires when an IdentityInfo message has been processed
- * on the IdentityHub
+ * on the Halo
  * @type {IdentityInfo}
  *
  * @event PartyManager#'@package:identity:joinedparty' fires when a JoinedParty message has been processed
@@ -173,18 +173,18 @@ export class PartyManager extends EventEmitter {
     await this._loadKnownPartyInfo();
 
     const hasIdentity = this._identityManager.hasIdentity();
-    const hasHub = await this._identityManager.isInitialized();
+    const hasHalo = await this._identityManager.isInitialized();
 
-    // Check if we are in a valid state regarding our Identity key and its associated Hub in the FeedStore.
-    if (hasIdentity && !hasHub && !this._keyRing.hasSecretKey(this._identityManager.keyRecord)) {
-      throw new Error('IdentityHub uninitialized, and no Identity secret key is present to initialize it.');
+    // Check if we are in a valid state regarding our Identity key and its associated Halo in the FeedStore.
+    if (hasIdentity && !hasHalo && !this._keyRing.hasSecretKey(this._identityManager.keyRecord)) {
+      throw new Error('Halo uninitialized, and no Identity secret key is present to initialize it.');
     }
 
     // Begin reading from the FeedStore.
     await this._partyProcessor.start();
 
-    // If we have an IdentityHub, wait for it to be processed as part of initialization.
-    if (hasHub) {
+    // If we have an Halo, wait for it to be processed as part of initialization.
+    if (hasHalo) {
       await this._identityManager.waitForIdentity();
     }
   }
@@ -211,8 +211,8 @@ export class PartyManager extends EventEmitter {
    */
   async createParty () {
     this._assertValid();
-    const hasHub = await this._identityManager.isInitialized();
-    assert(hasHub, 'IdentityHub does not exist.');
+    const hasHalo = await this._identityManager.isInitialized();
+    assert(hasHalo, 'Halo does not exist.');
 
     // Make up a brand new key for the Party.
     const partyKey = await this._keyRing.createKeyRecord({ type: KeyType.PARTY });
@@ -249,8 +249,8 @@ export class PartyManager extends EventEmitter {
     const feedKey = this._keyRing.getKey(feed.key);
 
     let deviceKey;
-    if (this.isIdentityHub(party.publicKey)) {
-      // In the IdentityHub case, all we need is the Device's own key, so we can proceed immediately.
+    if (this.isHalo(party.publicKey)) {
+      // In the Halo case, all we need is the Device's own key, so we can proceed immediately.
       deviceKey = this._identityManager.deviceManager.keyRecord;
     } else {
       // For other parties, we need the whole keychain from the Device back to the Identity, so we may need to
@@ -342,7 +342,7 @@ export class PartyManager extends EventEmitter {
     const party = await initiator.redeemInvitation(secretProvider);
     await initiator.destroy();
 
-    if (!this.isIdentityHub(party.publicKey)) {
+    if (!this.isHalo(party.publicKey)) {
       await this._writeIdentityInfo(party);
       await this._recordPartyJoining(party);
     }
@@ -447,13 +447,13 @@ export class PartyManager extends EventEmitter {
   }
 
   /**
-   * Is the specified Party key for the IdentityHub?
+   * Is the specified Party key for the Halo?
    * Only intended to be used by code in this package, not part of the public interface.
    * @package
    * @param {PublicKey} partyKey
    * @return {boolean}
    */
-  isIdentityHub (partyKey) {
+  isHalo (partyKey) {
     return this._identityManager.keyRecord && this._identityManager.publicKey.equals(partyKey);
   }
 
@@ -464,7 +464,7 @@ export class PartyManager extends EventEmitter {
    * @param {KeyRecord} admitKeyRecord
    * @param {Object} props
    * TODO(telackey): Implement display name.
-   * @property props.deviceDisplayName {string} When creating an Identity hub party, supplies the Device display name.
+   * @property props.deviceDisplayName {string} When creating an Identity halo party, supplies the Device display name.
    * @return {Party}
    */
   // TODO(telackey): Move out of this file.
@@ -485,7 +485,7 @@ export class PartyManager extends EventEmitter {
     // Write the PARTY_GENESIS message to the feed.
     writeMessage(createPartyGenesisMessage, partyKeyRecord, feedKey, admitKeyRecord);
 
-    if (this.isIdentityHub(partyKeyRecord.publicKey)) {
+    if (this.isHalo(partyKeyRecord.publicKey)) {
       // 1. Write the IdentityGenesis message.
       writeMessage(createKeyAdmitMessage, this._identityManager.publicKey, this._identityManager.keyRecord);
       // 2. Write the IdentityInfo message.
@@ -498,7 +498,7 @@ export class PartyManager extends EventEmitter {
       writeMessage(createDeviceInfoMessage,
         deviceDisplayName || keyToString(this._identityManager.deviceManager.publicKey),
         this._identityManager.deviceManager.keyRecord);
-      log(`Created identity hub: ${partyKeyRecord.key}`);
+      log(`Created identity halo: ${partyKeyRecord.key}`);
     } else {
       // 1. Obtain the IdentityGenesis message (we should already have it...)
       assert(this._identityManager.identityGenesisMessage);
@@ -522,10 +522,10 @@ export class PartyManager extends EventEmitter {
     const party = this.getParty(partyKeyRecord.publicKey);
     assert(party);
 
-    if (!this.isIdentityHub(partyKeyRecord.publicKey)) {
+    if (!this.isHalo(partyKeyRecord.publicKey)) {
       // 4. If we have IdentityInfo, copy that over too.
       await this._writeIdentityInfo(party);
-      // 5. Write the JoinedParty message to the IdentityHub using the deviceKey.
+      // 5. Write the JoinedParty message to the Halo using the deviceKey.
       await this._recordPartyJoining(party);
     }
 
@@ -639,7 +639,7 @@ export class PartyManager extends EventEmitter {
   }
 
   /**
-   * Package private method for loading a party initiated by hub message.
+   * Package private method for loading a party initiated by halo message.
    * If writeFeedAdmitMessage is true, and the Feed is created, a signed FeedAdmit message will be written
    * to the Feed. This is needed when "auto-opening" a Party which was joined on another Device.
    * @package
@@ -660,7 +660,7 @@ export class PartyManager extends EventEmitter {
       });
     }
 
-    if (!this.hasPartyInfo(partyKey) && !this.isIdentityHub(partyKey)) {
+    if (!this.hasPartyInfo(partyKey) && !this.isHalo(partyKey)) {
       await this._initPartyInfo(partyKey);
     }
 
@@ -690,7 +690,7 @@ export class PartyManager extends EventEmitter {
     // At the least, we trust ourselves.
     // TODO(telackey): "Hints" are normally used in Greeting. We have a similar need here, but should these
     // still be called "hints", or something else?
-    if (!this.isIdentityHub(partyKey)) {
+    if (!this.isHalo(partyKey)) {
       await party.takeHints([
         { publicKey: this._identityManager.publicKey, type: KeyType.IDENTITY },
         { publicKey: feed.key, type: KeyType.FEED }
@@ -730,7 +730,7 @@ export class PartyManager extends EventEmitter {
    */
   async _initPartyInfo (partyKey) {
     assert(!this.hasPartyInfo(partyKey));
-    assert(!this.isIdentityHub(partyKey));
+    assert(!this.isHalo(partyKey));
 
     const info = new PartyInfo(partyKey, this);
     info.on('update', () => this.emit('party:info:update', partyKey));
@@ -755,7 +755,7 @@ export class PartyManager extends EventEmitter {
   }
 
   /**
-   * Writes the JoinedParty informational message to the IdenityHub.
+   * Writes the JoinedParty informational message to the Halo.
    * @param {Party} party
    * @returns {Promise<void>}
    * @private
@@ -764,7 +764,7 @@ export class PartyManager extends EventEmitter {
     assert(party);
     const feed = await this.getWritableFeed(party.publicKey);
     const feedKey = this._keyRing.getKey(feed.key);
-    const hubFeed = await this.getWritableFeed(this._identityManager.publicKey);
+    const haloFeed = await this.getWritableFeed(this._identityManager.publicKey);
 
     const memberKeys = party.memberKeys.map(publicKey => {
       return {
@@ -780,7 +780,7 @@ export class PartyManager extends EventEmitter {
       };
     });
 
-    hubFeed.append(createJoinedPartyMessage(
+    haloFeed.append(createJoinedPartyMessage(
       party.publicKey,
       this._identityManager.deviceManager.publicKey,
       feedKey.publicKey,
@@ -800,7 +800,7 @@ export class PartyManager extends EventEmitter {
       const { topic } = descriptor;
       if (topic && !this._partyInfoMap.has(topic)) {
         const partyKey = keyToBuffer(topic);
-        if (!this.isIdentityHub(partyKey)) {
+        if (!this.isHalo(partyKey)) {
           await this._initPartyInfo(partyKey);
         }
       }

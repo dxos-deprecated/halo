@@ -8,7 +8,7 @@ import get from 'lodash.get';
 import { createDateTimeString } from '../proto/datetime';
 
 /**
- * Creates a JoinedParty message for writing to the IdentityHub so that all devices belonging to
+ * Creates a JoinedParty message for writing to the Halo so that all devices belonging to
  * the Identity can know about the Party.
  * @param {PublicKey} partyKey
  * @param {PublicKey} deviceKey
