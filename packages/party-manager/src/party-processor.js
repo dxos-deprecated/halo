@@ -204,25 +204,25 @@ export class PartyProcessor extends EventEmitter {
   }
 
   /**
-   * Processes a single IdentityHub IdentityInfo or DeviceInfo message.
+   * Processes a single Halo IdentityInfo or DeviceInfo message.
    * @param {PublicKey} partyKey
    * @param {Message} message
    * @return {Promise<*>}
    * @private
    */
-  async _processIdentityHubMessage (partyKey, message) {
+  async _processHaloMessage (partyKey, message) {
     assert(isIdentityMessage(message));
     assert(isDeviceInfoMessage(message) || isIdentityInfoMessage(message));
-    assert(this._partyManager.isIdentityHub(partyKey));
+    assert(this._partyManager.isHalo(partyKey));
 
     const { payload: signedMessage, payload: { signed: { payload: info } } } = message;
 
     const processThisMessage = async () => {
-      const hub = this._partyManager.identityManager.identityHub;
-      if (!hub || !hub.isMemberKey(info.publicKey)) {
+      const halo = this._partyManager.identityManager.halo;
+      if (!halo || !halo.isMemberKey(info.publicKey)) {
         return false;
       }
-      const keyring = await hub.getKeyringForMembers();
+      const keyring = await halo.getKeyringForMembers();
       if (keyring.verify(signedMessage)) {
         if (isDeviceInfoMessage(message)) {
           this._partyManager.identityManager.deviceManager.setDeviceInfo(info);
@@ -241,9 +241,9 @@ export class PartyProcessor extends EventEmitter {
       this.emit('@private:identity:message', partyKey, message);
     } else {
       // Looks like an out-of-order message. Set a self-canceling listener to process it as soon as we are ready.
-      log('Not ready to process IdentityHub message yet, delaying:', JSON.stringify(message));
+      log('Not ready to process Halo message yet, delaying:', JSON.stringify(message));
       this.__processWhenReady(partyKey, processThisMessage).then(() => {
-        log('Processed delayed IdentityHub message:', JSON.stringify(message));
+        log('Processed delayed Halo message:', JSON.stringify(message));
         this.emit('@private:identity:message', partyKey, message);
       });
     }
@@ -259,7 +259,7 @@ export class PartyProcessor extends EventEmitter {
   async _processJoinedParty (partyKey, message) {
     assert(Buffer.isBuffer(partyKey));
     assert(isJoinedPartyMessage(message));
-    assert(this._partyManager.isIdentityHub(partyKey));
+    assert(this._partyManager.isHalo(partyKey));
 
     const { payload: { partyKey: targetParty, deviceKey, feedKey, hints = [] } } = message;
 
@@ -296,10 +296,10 @@ export class PartyProcessor extends EventEmitter {
   async _processIdentityMessage (partyKey, message) {
     assert(isIdentityMessage(message));
 
-    if (this._partyManager.isIdentityHub(partyKey)) {
+    if (this._partyManager.isHalo(partyKey)) {
       return isJoinedPartyMessage(message)
         ? this._processJoinedParty(partyKey, message)
-        : this._processIdentityHubMessage(partyKey, message);
+        : this._processHaloMessage(partyKey, message);
     }
     if (isIdentityInfoMessage(message)) {
       const { payload: signedMessage, payload: { signed: { payload: info } } } = message;
@@ -377,7 +377,7 @@ export class PartyProcessor extends EventEmitter {
           await party.processMessages([message]);
 
           // If this is a FEED, update the PartyMemberInfo of the owner to include it in their "feeds" list.
-          if (!this._partyManager.isIdentityHub(partyKey) && messageType === PartyCredential.Type.FEED_ADMIT) {
+          if (!this._partyManager.isHalo(partyKey) && messageType === PartyCredential.Type.FEED_ADMIT) {
             const [feedKey] = admitsKeys(message);
             const admittedBy = party.getAdmittedBy(feedKey);
             if (!admittedBy.equals(partyKey)) {

@@ -76,9 +76,9 @@ control of a device key subordinate to a member key it knows to belong to the pa
 
 //TODO(dboreham): reference auth messages .proto
 
-### Identity Hub
+### Halo
 
-A "private" party is created for each user, with their identity key as the party key called an Identity Hub.
+A "private" party is created for each user, with their identity key as the party key called an Halo.
 The members of a private party are only the user's devices.
 New devices are admitted via Greeting at an existing device.
 The purpose of the private party is to share among the user's devices the following:
@@ -91,7 +91,7 @@ The purpose of the private party is to share among the user's devices the follow
 
 ### New User New Party
 The diagram below shows the keys associated with a new user creating a new party along with
-the initial public party feed and initial Hub feed and the messages published on those feeds.
+the initial public party feed and initial Halo feed and the messages published on those feeds.
 In the credential messages the upper colored blocks denote the certified keys while the lower block denotes the signing key.
 
 ![Alt](./diagrams/party_bootstrap.png)

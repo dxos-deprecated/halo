@@ -85,31 +85,31 @@ const getIdentityKeyChainForDevice = (keyring, devicePublicKey, messages) => {
 };
 
 test('Chain of Keys', async () => {
-  const hubKeyring = new Keyring();
-  const identityKey = await hubKeyring.createKeyRecord({ type: KeyType.PARTY });
-  const deviceKeyA = await hubKeyring.createKeyRecord({ type: KeyType.DEVICE });
-  const deviceKeyB = await hubKeyring.createKeyRecord({ type: KeyType.DEVICE });
-  const deviceKeyC = await hubKeyring.createKeyRecord({ type: KeyType.DEVICE });
-  const feedKeyA = await hubKeyring.createKeyRecord({ type: KeyType.FEED });
+  const haloKeyring = new Keyring();
+  const identityKey = await haloKeyring.createKeyRecord({ type: KeyType.PARTY });
+  const deviceKeyA = await haloKeyring.createKeyRecord({ type: KeyType.DEVICE });
+  const deviceKeyB = await haloKeyring.createKeyRecord({ type: KeyType.DEVICE });
+  const deviceKeyC = await haloKeyring.createKeyRecord({ type: KeyType.DEVICE });
+  const feedKeyA = await haloKeyring.createKeyRecord({ type: KeyType.FEED });
 
   const messages = new Map();
 
-  // The first message in the chain in always a PartyGenesis for the IdentityHub.
-  messages.set(keyToString(identityKey.publicKey), createPartyGenesisMessage(hubKeyring, identityKey, feedKeyA, deviceKeyA));
+  // The first message in the chain in always a PartyGenesis for the Halo.
+  messages.set(keyToString(identityKey.publicKey), createPartyGenesisMessage(haloKeyring, identityKey, feedKeyA, deviceKeyA));
   messages.set(keyToString(deviceKeyA.publicKey), messages.get(keyToString(identityKey.publicKey)));
   messages.set(keyToString(feedKeyA.publicKey), messages.get(keyToString(identityKey.publicKey)));
 
   // Next is DeviceB greeted by DeviceA.
   messages.set(keyToString(deviceKeyB.publicKey),
-    createEnvelopeMessage(hubKeyring, identityKey.publicKey,
-      createKeyAdmitMessage(hubKeyring, identityKey.publicKey, deviceKeyB, [deviceKeyB]),
+    createEnvelopeMessage(haloKeyring, identityKey.publicKey,
+      createKeyAdmitMessage(haloKeyring, identityKey.publicKey, deviceKeyB, [deviceKeyB]),
       [deviceKeyA]
     ));
 
   // Next is DeviceC greeted by DeviceB.
   messages.set(keyToString(deviceKeyC.publicKey),
-    createEnvelopeMessage(hubKeyring, identityKey.publicKey,
-      createKeyAdmitMessage(hubKeyring, identityKey.publicKey, deviceKeyC, [deviceKeyC]),
+    createEnvelopeMessage(haloKeyring, identityKey.publicKey,
+      createKeyAdmitMessage(haloKeyring, identityKey.publicKey, deviceKeyC, [deviceKeyC]),
       [deviceKeyB]
     ));
 
@@ -126,8 +126,8 @@ test('Chain of Keys', async () => {
     const chain = Keyring.buildKeyChain(deviceKey.publicKey, messages);
     // In the target keyring, which only has the Identity, it should chase all the way back to the Identity.
     expect(identityKey.publicKey).toEqual((await targetKeyring.findTrusted(chain)).publicKey);
-    // And in the hub, which has all the keys, it should chase straight back to this key.
-    expect(deviceKey.publicKey).toEqual((await hubKeyring.findTrusted(chain)).publicKey);
+    // And in the halo, which has all the keys, it should chase straight back to this key.
+    expect(deviceKey.publicKey).toEqual((await haloKeyring.findTrusted(chain)).publicKey);
     // And in an empty Keyring, we should not get anything.
     expect(await emptyKeyring.findTrusted(chain)).toBeUndefined();
   }
