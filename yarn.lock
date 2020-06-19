@@ -899,14 +899,14 @@
   dependencies:
     debug "^4.1.1"
 
-"@dxos/echo-db@^1.0.0-beta.17":
-  version "1.0.0-beta.17"
-  resolved "https://registry.yarnpkg.com/@dxos/echo-db/-/echo-db-1.0.0-beta.17.tgz#ce3dd951f8eb1dc47b9bae9ce565a123df1cfeb5"
-  integrity sha512-QsyGsZZ+3GOGI8ubXtf85d6qWlMlzT+RbUkPokZh7EAtD9JcKpoulUEc3IvuKdqy+TTS+k/s0AjH80uRUO8b1A==
+"@dxos/echo-db@^1.0.0-beta.18":
+  version "1.0.0-beta.18"
+  resolved "https://registry.yarnpkg.com/@dxos/echo-db/-/echo-db-1.0.0-beta.18.tgz#f22feb733ae86820ddbae5411bab4d9db6376d5b"
+  integrity sha512-6Ja5pjhjmF9nQvXCBM2oyAS1xT5KFpnl/q5iciqI+H+DQhy7Tay5daHJTICXt5OO6QTCFu1FUUqxsGdA5uP6jA==
   dependencies:
     "@dxos/codec-protobuf" "^1.1.0-beta.0"
     "@dxos/crypto" "^0.0.1"
-    "@dxos/model-factory" "^1.0.0-beta.17"
+    "@dxos/model-factory" "^1.0.0-beta.18"
     "@types/debug" "^4.1.1"
     "@types/end-of-stream" "^1.4.0"
     "@types/node" "^14.0.9"
@@ -971,10 +971,10 @@
     lodash.set "^4.3.2"
     lodash.unset "^4.5.2"
 
-"@dxos/model-factory@^1.0.0-beta.17":
-  version "1.0.0-beta.17"
-  resolved "https://registry.yarnpkg.com/@dxos/model-factory/-/model-factory-1.0.0-beta.17.tgz#f06822a83dba45ec52351709458ade5bac963c60"
-  integrity sha512-tGsUYK3XveWgySvgMcaRcarMDbqXYxj4pMNe/ZOPBG7eFh72/0qeJ6TrBzAiXc4OGYzb94+xPDTbUOvI9gQT9g==
+"@dxos/model-factory@^1.0.0-beta.18":
+  version "1.0.0-beta.18"
+  resolved "https://registry.yarnpkg.com/@dxos/model-factory/-/model-factory-1.0.0-beta.18.tgz#171ec6ebc2e24cca8765e24b64e7585f922081a7"
+  integrity sha512-YXhXUvJNzW7F4LwoIAkEq1S7u+WJm97QbXE1piZdPeH+dDK/yobzn0E4P9JiVBgbzK1WczwFE9Eb6+/S8GL0Hw==
   dependencies:
     "@dxos/crypto" "^0.0.1"
     "@dxos/debug" "^1.0.0-beta.20"
