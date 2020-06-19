@@ -22,6 +22,8 @@ import {
   createIdentityInfoMessage,
   createDeviceInfoMessage
 } from '@dxos/credentials';
+import { EchoModel } from '@dxos/echo-db';
+import { ModelFactory } from '@dxos/model-factory';
 
 import { GreetingResponder } from './greeting-responder';
 import { GreetingInitiator } from './greeting-initiator';
@@ -34,6 +36,9 @@ import { waitForCondition } from './util';
 
 const log = debug('dxos:party-manager');
 const noop = () => {};
+
+// TODO(telackey): Figure out a better place to put this.
+const PARTY_PROPERTIES_TYPE = 'dxos.party.PartyProperties';
 
 /**
  * @typedef SecretProvider
@@ -61,8 +66,7 @@ const noop = () => {};
  * @event PartyManager#'@package:device:info' fires when a DeviceInfo message has been processed on the Halo
  * @type {DeviceInfo}
  *
- * @event PartyManager#'@package:identity:info' fires when an IdentityInfo message has been processed
- * on the Halo
+ * @event PartyManager#'@package:identity:info' fires when an IdentityInfo message has been processed on the Halo
  * @type {IdentityInfo}
  *
  * @event PartyManager#'@package:identity:joinedparty' fires when a JoinedParty message has been processed
@@ -95,6 +99,12 @@ export class PartyManager extends EventEmitter {
   /** @type {PartyProcessor} */
   _partyProcessor;
 
+  /** @type {ModelFactory} */
+  _modelFactory;
+
+  /** @type {Map<string, Model>} */
+  _partyPropertyModels;
+
   /**
    *
    * @param {FeedStore} feedStore configured Feed Store
@@ -118,6 +128,14 @@ export class PartyManager extends EventEmitter {
     this._partyInfoMap = new Map();
     this._partyProcessor = new PartyProcessor(this, this._feedStore, this._keyRing);
     this._identityManager = new IdentityManager(this);
+
+    this._modelFactory = new ModelFactory(this._feedStore, {
+      onAppend: async (message, { topic }) => {
+        const feed = await this.getWritableFeed(keyToBuffer(topic));
+        return feed.append(message);
+      }
+    });
+    this._partyPropertyModels = new Map();
   }
 
   /**
@@ -200,6 +218,10 @@ export class PartyManager extends EventEmitter {
 
     for await (const party of this._parties.values()) {
       await this.closeParty(party.publicKey);
+    }
+
+    for await (const model of this._partyPropertyModels.values()) {
+      await model.destroy();
     }
 
     this._destroyed = true;
@@ -350,6 +372,29 @@ export class PartyManager extends EventEmitter {
     log(`Joined party: ${keyToString(party.publicKey)}`);
 
     return party;
+  }
+
+  /**
+   * Set one or more properties on the specified Party as key/value pairs.
+   * Expected properties include:
+   *    {String} displayName
+   * @param {PublicKey} partyKey
+   * @param {Object} properties
+   * @returns {Promise<void>}
+   */
+  async setPartyProperty (partyKey, properties) {
+    this._assertValid();
+    assert(Buffer.isBuffer(partyKey));
+    assert(properties);
+
+    // Both of these are expected to exist for any properly constructed Party.
+    const model = this._partyPropertyModels.get(keyToString(partyKey));
+    assert(model);
+
+    const item = this._getPartyPropertiesItem(partyKey);
+    assert(item);
+
+    model.updateItem(item.id, properties);
   }
 
   /**
@@ -527,6 +572,8 @@ export class PartyManager extends EventEmitter {
       await this._writeIdentityInfo(party);
       // 5. Write the JoinedParty message to the Halo using the deviceKey.
       await this._recordPartyJoining(party);
+      // 6. Create and write the PartyProperties item for the Party.
+      await this._createPartyPropertiesItem(party);
     }
 
     return party;
@@ -715,9 +762,23 @@ export class PartyManager extends EventEmitter {
     party.on('update:key', partyUpdate);
     party.on('admit:feed', partyUpdate);
 
-    this._parties.set(keyToString(partyKey), party);
+    const partyStr = keyToString(partyKey);
+    this._parties.set(partyStr, party);
     this.emit('party', partyKey);
     this.emit('party:update', partyKey);
+
+    const partyPropertyModel = await this._modelFactory.createModel(EchoModel, {
+      type: PARTY_PROPERTIES_TYPE,
+      topic: partyStr
+    });
+
+    partyPropertyModel.on('update', async () => {
+      const partyInfo = this.getPartyInfo(partyKey);
+      const item = this._getPartyPropertiesItem(partyKey);
+      partyInfo.setProperties(item.properties);
+    });
+
+    this._partyPropertyModels.set(partyStr, partyPropertyModel);
 
     return party;
   }
@@ -741,7 +802,7 @@ export class PartyManager extends EventEmitter {
 
   /**
    * Copies the IdentityInfo message (if present) into the target Party.
-   * @param party
+   * @param {Party} party
    * @returns {Promise<void>}
    * @private
    */
@@ -752,6 +813,19 @@ export class PartyManager extends EventEmitter {
     if (this._identityManager.identityInfoMessage) {
       feed.append(this._identityManager.identityInfoMessage);
     }
+  }
+
+  /**
+   * Creates a PartyProperty object and writes it to the Party.
+   * @param {Party} party
+   * @param {Object} properties
+   * @returns {Promise<string>}
+   * @private
+   */
+  async _createPartyPropertiesItem (party, properties = {}) {
+    assert(party);
+    const model = await this._partyPropertyModels.get(keyToString(party.publicKey));
+    return model.createItem(PARTY_PROPERTIES_TYPE, properties);
   }
 
   /**
@@ -805,5 +879,32 @@ export class PartyManager extends EventEmitter {
         }
       }
     }
+  }
+
+  /**
+   * Get the PartyProperties item for the indicated Party.
+   * @param {PublicKey} partyKey
+   * @returns {undefined|{PartyProperties}}
+   * @private
+   */
+  _getPartyPropertiesItem (partyKey) {
+    this._assertValid();
+
+    const model = this._partyPropertyModels.get(keyToString(partyKey));
+    assert(model);
+
+    const objects = model.getObjectsByType(PARTY_PROPERTIES_TYPE);
+    if (!objects.length) {
+      log(`Expected one PartyProperties object, found ${objects.length}.`);
+      return undefined;
+    }
+
+    // TODO(telackey): There should only be one of these, but we will need to take steps to enforce that.
+    if (objects.length > 1) {
+      log(`Expected one PartyProperties object, found ${objects.length}.`);
+      objects.sort((a, b) => a.id.localeCompare(b.id));
+    }
+
+    return objects[0];
   }
 }

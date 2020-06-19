@@ -3,8 +3,10 @@
 //
 
 import debug from 'debug';
+import waitForExpect from 'wait-for-expect';
 
 import { waitForEvent } from '@dxos/async';
+import { createId } from '@dxos/crypto';
 
 import { checkPartyInfo, checkReplication, destroyNodes, createTestParty, addNodeToParty } from './testing/test-common';
 
@@ -49,6 +51,26 @@ test('Check the PartyInfo of a party with 3 identities', async () => {
     await waiter;
 
     expect(partyInfo.members.length).toBe(4);
+  }
+
+  await destroyNodes(nodes);
+});
+
+test('Check the PartyInfo displayName of a party with 3 identities', async () => {
+  const { party, nodes } = await createTestParty(3);
+  await checkReplication(party.publicKey, nodes);
+  await checkPartyInfo(party.publicKey, nodes);
+
+  for await (const writeNode of nodes) {
+    const displayName = createId();
+    await writeNode.partyManager.setPartyProperty(party.publicKey, { displayName });
+
+    await waitForExpect(() => {
+      for (const readNode of nodes) {
+        const info = readNode.partyManager.getPartyInfo(party.publicKey);
+        expect(info.displayName).toEqual(displayName);
+      }
+    });
   }
 
   await destroyNodes(nodes);
