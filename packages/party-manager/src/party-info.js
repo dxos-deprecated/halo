@@ -6,6 +6,7 @@ import assert from 'assert';
 import EventEmitter from 'events';
 
 import { humanize, keyToString } from '@dxos/crypto';
+
 import { PartyMemberInfo } from './party-member-info';
 
 /**
@@ -18,8 +19,8 @@ export class PartyInfo extends EventEmitter {
   /** @type {PublicKey} */
   _publicKey;
 
-  /** @type {string} */
-  _displayName;
+  /** @type {Object} */
+  _properties;
 
   /** @type {Map<string, PartyMemberInfo>} */
   _members = new Map();
@@ -51,7 +52,8 @@ export class PartyInfo extends EventEmitter {
   }
 
   get displayName () {
-    return this._displayName ? this._displayName : humanize(this._publicKey);
+    const { displayName } = this.getProperties();
+    return displayName || humanize(this._publicKey);
   }
 
   get members () {
@@ -59,13 +61,21 @@ export class PartyInfo extends EventEmitter {
   }
 
   /**
-   * Sets the displayName. (Called during message processing.)
+   * Sets the Party properties. (Called during message processing.)
    * @package
-   * @param value
+   * @param properties
    */
-  setDisplayName (value) {
-    this._displayName = value;
+  setProperties (properties) {
+    this._properties = properties;
     this.emit('update');
+  }
+
+  /**
+   * Returns the Party properties.
+   * @returns {Object}
+   */
+  getProperties () {
+    return this._properties ? { ...this._properties } : {};
   }
 
   /**
