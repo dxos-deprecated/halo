@@ -895,13 +895,13 @@ export class PartyManager extends EventEmitter {
 
     const objects = model.getObjectsByType(PARTY_PROPERTIES_TYPE);
     if (!objects.length) {
-      log(`Expected one PartyProperties object, found ${objects.length}.`);
+      log(`Expected one PartyProperties item, found ${objects.length}.`);
       return undefined;
     }
 
     // TODO(telackey): There should only be one of these, but we will need to take steps to enforce that.
     if (objects.length > 1) {
-      log(`Expected one PartyProperties object, found ${objects.length}.`);
+      log(`Expected one PartyProperties item, found ${objects.length}.`);
       objects.sort((a, b) => a.id.localeCompare(b.id));
     }
 
