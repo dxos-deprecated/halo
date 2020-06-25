@@ -13,6 +13,7 @@ import { PartyMemberInfo } from './party-member-info';
  * Party and Party-membership information.
  *
  * @event PartyInfo#'update' fires whenever PartyInfo is updated directly or a change is made to PartyMemberInfo.
+ * @event PartyInfo#'subscription' fires whenever the subscription status of the PartyInfo changes.
  * @type {PublicKey}
  */
 export class PartyInfo extends EventEmitter {
@@ -27,6 +28,9 @@ export class PartyInfo extends EventEmitter {
 
   /** @type {PartyManager} */
   __partyManager;
+
+  /** @type {Object} */
+  _settings;
 
   /**
    * @param {PublicKey} publicKey
@@ -60,8 +64,14 @@ export class PartyInfo extends EventEmitter {
     return Array.from(this._members.values());
   }
 
+  get subscribed () {
+    const { subscribed = true } = this.getSettings();
+    return subscribed;
+  }
+
   /**
    * Sets the Party properties. (Called during message processing.)
+   * Party properties are universal and replicated to all Party members.
    * @package
    * @param properties
    */
@@ -71,11 +81,33 @@ export class PartyInfo extends EventEmitter {
   }
 
   /**
+   * Sets the Party settings. (Called during message processing.)
+   * Party settings are specific to this Identity and replicated on the Halo.
+   * @package
+   * @param settings
+   */
+  setSettings (settings) {
+    const before = this._settings ? { ...this._settings } : {};
+    this._settings = settings;
+
+    this._emitSettingChangeEvents(before, this._settings);
+    this.emit('update');
+  }
+
+  /**
    * Returns the Party properties.
    * @returns {Object}
    */
   getProperties () {
     return this._properties ? { ...this._properties } : {};
+  }
+
+  /**
+   * Returns the Party settings.
+   * @returns {Object}
+   */
+  getSettings () {
+    return this._settings ? { ...this._settings } : {};
   }
 
   /**
@@ -97,5 +129,22 @@ export class PartyInfo extends EventEmitter {
         }
       }
     }
+  }
+
+  /**
+   * Emit events related to setting changes.
+   * @param {Object} before
+   * @param {Object} after
+   * @private
+   */
+  _emitSettingChangeEvents (before, after) {
+    const { subscribed: beforeSub = true } = before || {};
+    const { subscribed: afterSub = true } = after || {};
+
+    if (beforeSub !== afterSub) {
+      this.emit('subscription');
+    }
+
+    // TODO(telackey): other events go here.
   }
 }

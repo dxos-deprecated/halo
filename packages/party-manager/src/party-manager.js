@@ -35,10 +35,11 @@ import { partyProtocolProvider } from './party-protocol-provider';
 import { waitForCondition } from './util';
 
 const log = debug('dxos:party-manager');
-const noop = () => {};
+const noop = () => { };
 
 // TODO(telackey): Figure out a better place to put this.
 const PARTY_PROPERTIES_TYPE = 'dxos.party.PartyProperties';
+const PARTY_SETTINGS_TYPE = 'dxos.halo.PartySettings';
 
 /**
  * @typedef SecretProvider
@@ -104,6 +105,9 @@ export class PartyManager extends EventEmitter {
 
   /** @type {Map<string, Model>} */
   _partyPropertyModels;
+
+  /** @type {Model} */
+  _partySettingsModel;
 
   /**
    *
@@ -218,6 +222,11 @@ export class PartyManager extends EventEmitter {
 
     for await (const party of this._parties.values()) {
       await this.closeParty(party.publicKey);
+      party.removeAllListeners();
+    }
+
+    for await (const info of this._partyInfoMap.values()) {
+      info.removeAllListeners();
     }
 
     for await (const model of this._partyPropertyModels.values()) {
@@ -395,6 +404,34 @@ export class PartyManager extends EventEmitter {
     assert(item);
 
     model.updateItem(item.id, properties);
+  }
+
+  /**
+   * Unsubscribe to a Party (this Party must already exist and have previously been joined/created).
+   * @param partyKey
+   * @returns {Promise<void>}
+   */
+  async unsubscribe (partyKey) {
+    this._assertValid();
+
+    const item = this._getPartySettingsItem(partyKey);
+    assert(item);
+
+    this._partySettingsModel.updateItem(item.id, { subscribed: false });
+  }
+
+  /**
+   * Subscribe to a Party (this Party must already exist and have previously been joined/created).
+   * @param partyKey
+   * @returns {Promise<void>}
+   */
+  async subscribe (partyKey) {
+    this._assertValid();
+
+    const item = this._getPartySettingsItem(partyKey);
+    assert(item);
+
+    this._partySettingsModel.updateItem(item.id, { subscribed: true });
   }
 
   /**
@@ -780,6 +817,26 @@ export class PartyManager extends EventEmitter {
 
     this._partyPropertyModels.set(partyStr, partyPropertyModel);
 
+    if (this.isHalo(partyKey)) {
+      assert(!this._partySettingsModel);
+
+      this._partySettingsModel = await this._modelFactory.createModel(EchoModel, {
+        type: PARTY_SETTINGS_TYPE,
+        topic: partyStr
+      });
+
+      this._partySettingsModel.on('update', async (_, messages) => {
+        for (const message of messages) {
+          const item = this._partySettingsModel.getItem(message.objectId);
+          assert(item);
+
+          const { partyKey, ...settings } = item.properties;
+          const info = this.getPartyInfo(partyKey);
+          info.setSettings(settings);
+        }
+      });
+    }
+
     return party;
   }
 
@@ -795,6 +852,18 @@ export class PartyManager extends EventEmitter {
 
     const info = new PartyInfo(partyKey, this);
     info.on('update', () => this.emit('party:info:update', partyKey));
+
+    info.on('subscription', async () => {
+      const party = this.getParty(partyKey);
+      if (party) {
+        if (info.subscribed && !party.isOpen()) {
+          await this.openParty(partyKey);
+        } else if (!info.subscribed && party.isOpen()) {
+          await this.closeParty(partyKey);
+        }
+      }
+    });
+
     this._partyInfoMap.set(keyToString(partyKey), info);
     this.emit('party:info', partyKey);
     return info;
@@ -860,6 +929,11 @@ export class PartyManager extends EventEmitter {
       feedKey.publicKey,
       [...memberKeys, ...memberFeeds]
     ));
+
+    this._partySettingsModel.createItem(PARTY_SETTINGS_TYPE, {
+      partyKey: party.publicKey,
+      subscribed: true
+    });
   }
 
   /**
@@ -906,5 +980,18 @@ export class PartyManager extends EventEmitter {
     }
 
     return objects[0];
+  }
+
+  /**
+   * Get the PartySettings item for the indicated Party.
+   * @param {PublicKey} partyKey
+   * @returns {undefined|{PartySettings}}
+   * @private
+   */
+  _getPartySettingsItem (partyKey) {
+    this._assertValid();
+
+    return this._partySettingsModel.getObjectsByType(PARTY_SETTINGS_TYPE)
+      .find(item => partyKey.equals(item.properties.partyKey));
   }
 }

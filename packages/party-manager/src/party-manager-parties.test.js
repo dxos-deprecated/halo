@@ -3,6 +3,7 @@
 //
 
 import debug from 'debug';
+import waitForExpect from 'wait-for-expect';
 
 import { Keyring, KeyType } from '@dxos/credentials';
 import { createKeyPair, randomBytes, sign, verify, SIGNATURE_LENGTH } from '@dxos/crypto';
@@ -64,4 +65,41 @@ test('Create a party with 3 identities each having one device (secret invitation
   await checkReplication(party.publicKey, nodes);
   await checkPartyInfo(party.publicKey, nodes);
   await destroyNodes(nodes);
+});
+
+test('Check subscribe/unsubscribe', async (done) => {
+  const { party: { publicKey: partyKey }, nodes } = await createTestParty(3);
+  await checkReplication(partyKey, nodes);
+  await checkPartyInfo(partyKey, nodes);
+
+  const [nodeA, nodeB, nodeC] = nodes;
+  await nodeA.partyManager.unsubscribe(partyKey);
+  await waitForExpect(() => {
+    const party = nodeA.partyManager.getParty(partyKey);
+    expect(party.isOpen()).toBe(false);
+  }, 1000);
+
+  // Replication should keep working between B and C.
+  await checkReplication(partyKey, [nodeB, nodeC]);
+
+  // It should not work to and from A.
+  try {
+    await checkReplication(partyKey, nodes);
+    done.fail();
+  } catch (err) {
+    expect(err).toBeInstanceOf(Error);
+  }
+
+  // Re-subscribe.
+  await nodeA.partyManager.subscribe(partyKey);
+
+  // Now it should work again.
+  await waitForExpect(() => {
+    const party = nodeA.partyManager.getParty(partyKey);
+    expect(party.isOpen()).toBe(true);
+  }, 1000);
+  await checkReplication(partyKey, nodes);
+
+  await destroyNodes(nodes);
+  done();
 });
