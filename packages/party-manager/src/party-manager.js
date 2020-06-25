@@ -414,10 +414,11 @@ export class PartyManager extends EventEmitter {
   async unsubscribe (partyKey) {
     this._assertValid();
 
-    const settingsItem = this._partySettingsModel.getObjectsByType(PARTY_SETTINGS_TYPE)
+    const item = this._partySettingsModel.getObjectsByType(PARTY_SETTINGS_TYPE)
       .find(item => partyKey.equals(item.properties.partyKey));
-    assert(partyKey);
-    this._partySettingsModel.updateItem(settingsItem.id, { subscribed: false });
+    assert(item);
+
+    this._partySettingsModel.updateItem(item.id, { subscribed: false });
   }
 
   /**
@@ -428,10 +429,11 @@ export class PartyManager extends EventEmitter {
   async subscribe (partyKey) {
     this._assertValid();
 
-    const settingsItem = this._partySettingsModel.getObjectsByType(PARTY_SETTINGS_TYPE)
+    const item = this._partySettingsModel.getObjectsByType(PARTY_SETTINGS_TYPE)
       .find(item => partyKey.equals(item.properties.partyKey));
-    assert(partyKey);
-    this._partySettingsModel.updateItem(settingsItem.id, { subscribed: true });
+    assert(item);
+
+    this._partySettingsModel.updateItem(item.id, { subscribed: true });
   }
 
   /**
@@ -857,10 +859,8 @@ export class PartyManager extends EventEmitter {
       const party = this.getParty(partyKey);
       if (party) {
         if (info.subscribed && !party.isOpen()) {
-          console.log('OPEN');
           await this.openParty(partyKey);
         } else if (!info.subscribed && party.isOpen()) {
-          console.log('CLOSE');
           await this.closeParty(partyKey);
         }
       }
