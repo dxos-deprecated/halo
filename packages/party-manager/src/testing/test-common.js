@@ -37,18 +37,20 @@ export const checkReplication = async (partyKey, nodes) => {
   }
 
   // And then check that each one has every message.
-  for await (const model of models) {
-    await waitForExpect(() => {
-      const messages = model.messages.map(message => message.value);
-      for (const value of values) {
-        expect(messages).toContain(value);
-      }
-    }, 5000);
-  }
-
-  for await (const model of models) {
-    // TODO(dboreham): This call isn't async which seems odd: how do we know it is closed?
-    model.destroy();
+  try {
+    for await (const model of models) {
+      await waitForExpect(() => {
+        const messages = model.messages.map(message => message.value);
+        for (const value of values) {
+          expect(messages).toContain(value);
+        }
+      }, 2000);
+    }
+  } finally {
+    for await (const model of models) {
+      // TODO(dboreham): This call isn't async which seems odd: how do we know it is closed?
+      model.destroy();
+    }
   }
 };
 

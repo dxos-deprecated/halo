@@ -273,7 +273,7 @@ export class PartyProcessor extends EventEmitter {
         { publicKey: feedKey, type: KeyType.FEED }
       ]);
 
-      if (!party.isOpen()) {
+      if (this._needsOpen(party)) {
         // Opening the Party may require credential messages that are still in our queue to process,
         // so do not 'await' on the opening here.
         // TODO(telackey): This promise will need to be saved when we implement full party life cycle support.
@@ -353,7 +353,7 @@ export class PartyProcessor extends EventEmitter {
     }
 
     const party = await this._safeGetOrInitParty(partyKey);
-    if (!party.isOpen()) {
+    if (this._needsOpen(party)) {
       // Opening the Party may require credential messages that are still in our queue to process,
       // so do not 'await' on the opening here.
       // TODO(telackey): This promise will need to be saved when we implement full party life cycle support.
@@ -408,5 +408,21 @@ export class PartyProcessor extends EventEmitter {
         this.emit('@private:party:message', partyKey, message);
       });
     }
+  }
+
+  /**
+   * Does this Party need to be opened?
+   * @param {Party} party
+   * @returns {boolean}
+   * @private
+   */
+  _needsOpen (party) {
+    let needsOpen = !party.isOpen();
+    // Always open the Halo, but for everything else we can check the subscription status.
+    if (needsOpen && !this._partyManager.isHalo(party.publicKey)) {
+      const info = this._partyManager.getPartyInfo(party.publicKey);
+      needsOpen = info.subscribed;
+    }
+    return needsOpen;
   }
 }
