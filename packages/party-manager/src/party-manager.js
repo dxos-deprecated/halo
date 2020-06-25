@@ -414,8 +414,7 @@ export class PartyManager extends EventEmitter {
   async unsubscribe (partyKey) {
     this._assertValid();
 
-    const item = this._partySettingsModel.getObjectsByType(PARTY_SETTINGS_TYPE)
-      .find(item => partyKey.equals(item.properties.partyKey));
+    const item = this._getPartySettingsItem(partyKey);
     assert(item);
 
     this._partySettingsModel.updateItem(item.id, { subscribed: false });
@@ -429,8 +428,7 @@ export class PartyManager extends EventEmitter {
   async subscribe (partyKey) {
     this._assertValid();
 
-    const item = this._partySettingsModel.getObjectsByType(PARTY_SETTINGS_TYPE)
-      .find(item => partyKey.equals(item.properties.partyKey));
+    const item = this._getPartySettingsItem(partyKey);
     assert(item);
 
     this._partySettingsModel.updateItem(item.id, { subscribed: true });
@@ -982,5 +980,18 @@ export class PartyManager extends EventEmitter {
     }
 
     return objects[0];
+  }
+
+  /**
+   * Get the PartySettings item for the indicated Party.
+   * @param {PublicKey} partyKey
+   * @returns {undefined|{PartySettings}}
+   * @private
+   */
+  _getPartySettingsItem (partyKey) {
+    this._assertValid();
+
+    return this._partySettingsModel.getObjectsByType(PARTY_SETTINGS_TYPE)
+      .find(item => partyKey.equals(item.properties.partyKey));
   }
 }
