@@ -82,6 +82,7 @@ test('Check subscribe/unsubscribe', async (done) => {
   // Replication should keep working between B and C.
   await checkReplication(partyKey, [nodeB, nodeC]);
 
+  // It should not work to and from A.
   try {
     await checkReplication(partyKey, nodes);
     done.fail();
@@ -89,8 +90,10 @@ test('Check subscribe/unsubscribe', async (done) => {
     expect(err).toBeInstanceOf(Error);
   }
 
-  // But now it should work again.
+  // Re-subscribe.
   await nodeA.partyManager.subscribe(partyKey);
+
+  // Now it should work again.
   await waitForExpect(() => {
     const party = nodeA.partyManager.getParty(partyKey);
     expect(party.isOpen()).toBe(true);
