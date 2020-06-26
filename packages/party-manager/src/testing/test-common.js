@@ -84,6 +84,25 @@ export const checkPartyInfo = async (partyKey, nodes) => {
 };
 
 /**
+ * Makes sure the Contact details match what is expected across all nodes.
+ */
+export const checkContacts = async (nodes) => {
+  for await (const node of nodes) {
+    await waitForExpect(async () => {
+      const contacts = await node.partyManager.getContacts();
+      expect(contacts.length).toEqual(nodes.length - 1);
+      for (const other of nodes) {
+        if (other !== node) {
+          const match = contacts.find(contact => contact.publicKey.equals(other.partyManager.identityManager.publicKey));
+          expect(match).toBeTruthy();
+          expect(match.displayName).toEqual(other.partyManager.identityManager.displayName);
+        }
+      }
+    });
+  }
+};
+
+/**
  * Performs cleanup.
  * @param {TestNetworkNode[]} nodes
  */

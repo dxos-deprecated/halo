@@ -9,7 +9,7 @@ import { Keyring, KeyType } from '@dxos/credentials';
 import { createKeyPair, randomBytes, sign, verify, SIGNATURE_LENGTH } from '@dxos/crypto';
 
 import { TestNetworkNode } from './testing/test-network-node';
-import { checkReplication, checkPartyInfo, createTestParty, destroyNodes } from './testing/test-common';
+import { checkReplication, checkPartyInfo, createTestParty, destroyNodes, checkContacts } from './testing/test-common';
 
 // eslint-disable-next-line no-unused-vars
 const log = debug('dxos:party-manager:test');
@@ -57,6 +57,7 @@ test('Create a party with 2 Identities each having one device (signature invitat
 
   await checkReplication(party.publicKey, nodes);
   await checkPartyInfo(party.publicKey, nodes);
+  await checkContacts(nodes);
   await destroyNodes(nodes);
 });
 
@@ -64,6 +65,7 @@ test('Create a party with 3 identities each having one device (secret invitation
   const { party, nodes } = await createTestParty(3);
   await checkReplication(party.publicKey, nodes);
   await checkPartyInfo(party.publicKey, nodes);
+  await checkContacts(nodes);
   await destroyNodes(nodes);
 });
 
@@ -71,6 +73,7 @@ test('Check subscribe/unsubscribe', async (done) => {
   const { party: { publicKey: partyKey }, nodes } = await createTestParty(3);
   await checkReplication(partyKey, nodes);
   await checkPartyInfo(partyKey, nodes);
+  await checkContacts(nodes);
 
   const [nodeA, nodeB, nodeC] = nodes;
   await nodeA.partyManager.unsubscribe(partyKey);
