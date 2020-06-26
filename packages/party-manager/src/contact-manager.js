@@ -118,9 +118,16 @@ export class ContactManager {
 
     const buffer = Array.from(this._buffer.values());
     this._buffer.clear();
-    log('FLUSH', buffer.length);
+
+    const counts = {
+      buffer: buffer.length,
+      create: 0,
+      update: 0,
+      existing: 0
+    };
 
     const existing = this._model.getObjectsByType(CONTACT_TYPE);
+    counts.existing = existing.length;
 
     for (const contact of buffer) {
       const contactKey = keyToString(contact.publicKey);
@@ -129,6 +136,7 @@ export class ContactManager {
       if (!item) {
         log('CREATE', contactKey, contact);
         this._model.createItem(CONTACT_TYPE, contact);
+        counts.create++;
       } else {
         const differences = diff(item.properties, contact);
         if (differences) {
@@ -138,8 +146,11 @@ export class ContactManager {
           }
           log('UPDATE', contactKey, changedProperties);
           this._model.updateItem(item.id, changedProperties);
+          counts.update++;
         }
       }
     }
+
+    log('FLUSH', counts);
   }
 }
