@@ -44,6 +44,9 @@ const log = debug('dxos:party-manager:party-processor');
  * @event PartyProcessor#'@package:identity:joinedparty' fires when a JoinedParty message has been processed.
  * @type {PublicKey}
  *
+ * @event PartyProcessor#'@package:sync' fires whenever the underlying message stream fires a 'sync' event.
+ * @type {PublicKey}
+ *
  * @event PartyProcessor#'@private:party:message' fires when any PartyCredentialMessage has been processed.
  * @type {PublicKey, PartyCredentialMessage}
  *
@@ -100,6 +103,10 @@ export class PartyProcessor extends EventEmitter {
     // TODO(telackey): Would we ever need some start position other than 0?
     this._messageStream = this._feedStore.createReadStream(() => {
       return { live: true, start: 0, feedStoreInfo: true };
+    });
+
+    this._messageStream.on('sync', () => {
+      this.emit('@package:sync');
     });
 
     this._messageStream.on('data', async (streamData) => {

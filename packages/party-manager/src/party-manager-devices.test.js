@@ -19,16 +19,16 @@ const pinSecret = '0000';
 const pinSecretProvider = async () => Buffer.from(pinSecret);
 const pinSecretValidator = async (invitation, secret) => secret && secret.equals(invitation.secret);
 
-const createTwoDeviceIdentity = async () => {
+const createTwoDeviceIdentity = async (props) => {
   const keyringA = new Keyring();
   await keyringA.createKeyRecord({ type: KeyType.IDENTITY });
 
   const nodeA = new TestNetworkNode(keyringA);
-  await nodeA.initialize();
+  await nodeA.initialize(props);
 
   const keyringB = new Keyring();
   const nodeB = new TestNetworkNode(keyringB);
-  await nodeB.initialize();
+  await nodeB.initialize(props);
   const nodes = [nodeA, nodeB];
 
   // nodeA is initialized under IdentityA as its first device.
@@ -88,12 +88,12 @@ test('Initial device authorizes device which authorizes device', async () => {
 test('Identity having 2 devices in party with another identity having 2 devices', async () => {
   // nodeAA is initialized under IdentityA as its first device.
   // nodeAB is initialized under IdentityA as its second device.
-  const nodesA = await createTwoDeviceIdentity();
+  const nodesA = await createTwoDeviceIdentity({ identityDisplayName: 'Alice' });
   const [nodeAA] = nodesA;
 
   // nodeBA is initialized under IdentityB as its first device.
   // nodeBB is initialized under IdentityB as its second device.
-  const nodesB = await createTwoDeviceIdentity();
+  const nodesB = await createTwoDeviceIdentity({ identityDisplayName: 'Bob' });
   const [nodeBA] = nodesB;
   const allnodes = [...nodesA, ...nodesB];
 
@@ -106,6 +106,16 @@ test('Identity having 2 devices in party with another identity having 2 devices'
 
   // Expect that all the nodes can now replicate with each other.
   await checkReplication(party.publicKey, allnodes);
+
+  const contactsA = await nodeAA.partyManager.getContacts();
+  expect(contactsA.length).toBe(1);
+  expect(contactsA[0].publicKey).toEqual(nodeBA.partyManager.identityManager.publicKey);
+  expect(contactsA[0].displayName).toEqual(nodeBA.partyManager.identityManager.displayName);
+
+  const contactsB = await nodeBA.partyManager.getContacts();
+  expect(contactsB.length).toBe(1);
+  expect(contactsB[0].publicKey).toEqual(nodeAA.partyManager.identityManager.publicKey);
+  expect(contactsB[0].displayName).toEqual(nodeAA.partyManager.identityManager.displayName);
 
   // Expect that nodeC identifies messages posted by nodeA and nodeB as belonging to IdentityA
   await destroyNodes(allnodes);
