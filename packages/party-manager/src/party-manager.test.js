@@ -58,5 +58,6 @@ test('Create a PartyManager with an Identity', async () => {
     // expect(party.memberKeys).not.toContainEqual(deviceKey.publicKey);
   });
 
+  await partyManager.destroy();
   log('Created PartyManager');
 });

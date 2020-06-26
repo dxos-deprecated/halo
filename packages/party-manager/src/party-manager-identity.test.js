@@ -49,5 +49,7 @@ test('Create initial node with new Identity', async (done) => {
   const device = readDevices[0];
   expect(device).toHaveProperty('displayName');
   expect(device.displayName).toEqual(deviceDisplayName);
+
+  await node.destroy();
   done();
 });

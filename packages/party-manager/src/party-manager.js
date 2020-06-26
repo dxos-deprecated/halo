@@ -33,6 +33,7 @@ import { PartyInfo } from './party-info';
 import { PartyProcessor } from './party-processor';
 import { partyProtocolProvider } from './party-protocol-provider';
 import { waitForCondition } from './util';
+import { CONTACT_TYPE, ContactManager } from './contact-manager';
 
 const log = debug('dxos:party-manager');
 const noop = () => { };
@@ -132,6 +133,7 @@ export class PartyManager extends EventEmitter {
     this._partyInfoMap = new Map();
     this._partyProcessor = new PartyProcessor(this, this._feedStore, this._keyRing);
     this._identityManager = new IdentityManager(this);
+    this._contactManager = new ContactManager();
 
     this._modelFactory = new ModelFactory(this._feedStore, {
       onAppend: async (message, { topic }) => {
@@ -139,6 +141,7 @@ export class PartyManager extends EventEmitter {
         return feed.append(message);
       }
     });
+
     this._partyPropertyModels = new Map();
   }
 
@@ -183,6 +186,10 @@ export class PartyManager extends EventEmitter {
       }
     }
 
+    this._partyProcessor.once('@package:sync', () => {
+      this._contactManager.start();
+    });
+
     // Combine several events into a generic "update" event.
     {
       const eventNames = ['party', 'party:update', 'party:info', 'party:info:update'];
@@ -215,25 +222,32 @@ export class PartyManager extends EventEmitter {
    * Cleanup, release resources.
    */
   async destroy () {
+    await this._contactManager.destroy();
+
     if (this._partyProcessor) {
+      this._partyProcessor.removeAllListeners();
       this._partyProcessor.destroy();
       this._partyProcessor = undefined;
-    }
-
-    for await (const party of this._parties.values()) {
-      await this.closeParty(party.publicKey);
-      party.removeAllListeners();
     }
 
     for await (const info of this._partyInfoMap.values()) {
       info.removeAllListeners();
     }
 
+    for await (const party of this._parties.values()) {
+      party.removeAllListeners();
+      await this.closeParty(party.publicKey);
+    }
+
     for await (const model of this._partyPropertyModels.values()) {
       await model.destroy();
     }
 
+    await this._partySettingsModel.destroy();
+
     this._destroyed = true;
+    this.emit('destroyed');
+    this.removeAllListeners();
   }
 
   /**
@@ -540,6 +554,14 @@ export class PartyManager extends EventEmitter {
   }
 
   /**
+   * Returns an Array of all known Contacts across all Parties.
+   * @returns {Contact[]}
+   */
+  async getContacts () {
+    return this._contactManager.getContacts();
+  }
+
+  /**
    * Creates a Party and admits the initial member using the specified key pairs.
    * Waits until this node quiesces: the resulting Party object has been fully constructed.
    * @param {KeyRecord} partyKeyRecord
@@ -835,6 +857,11 @@ export class PartyManager extends EventEmitter {
           info.setSettings(settings);
         }
       });
+
+      this._contactManager.setModel(await this._modelFactory.createModel(EchoModel, {
+        type: CONTACT_TYPE,
+        topic: partyStr
+      }));
     }
 
     return party;
@@ -851,7 +878,12 @@ export class PartyManager extends EventEmitter {
     assert(!this.isHalo(partyKey));
 
     const info = new PartyInfo(partyKey, this);
-    info.on('update', () => this.emit('party:info:update', partyKey));
+    info.on('update', (member) => {
+      if (member && !member.isMe) {
+        this._contactManager.addContact(member);
+      }
+      this.emit('party:info:update', partyKey);
+    });
 
     info.on('subscription', async () => {
       const party = this.getParty(partyKey);
