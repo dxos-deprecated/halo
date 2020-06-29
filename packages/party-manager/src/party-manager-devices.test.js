@@ -107,15 +107,18 @@ test('Identity having 2 devices in party with another identity having 2 devices'
   // Expect that all the nodes can now replicate with each other.
   await checkReplication(party.publicKey, allnodes);
 
-  const contactsA = await nodeAA.partyManager.getContacts();
-  expect(contactsA.length).toBe(1);
-  expect(contactsA[0].publicKey).toEqual(nodeBA.partyManager.identityManager.publicKey);
-  expect(contactsA[0].displayName).toEqual(nodeBA.partyManager.identityManager.displayName);
+  // Check contact info.
+  await waitForExpect(async () => {
+    const contactsA = await nodeAA.partyManager.getContacts();
+    expect(contactsA.length).toBe(1);
+    expect(contactsA[0].publicKey).toEqual(nodeBA.partyManager.identityManager.publicKey);
+    expect(contactsA[0].displayName).toEqual(nodeBA.partyManager.identityManager.displayName);
 
-  const contactsB = await nodeBA.partyManager.getContacts();
-  expect(contactsB.length).toBe(1);
-  expect(contactsB[0].publicKey).toEqual(nodeAA.partyManager.identityManager.publicKey);
-  expect(contactsB[0].displayName).toEqual(nodeAA.partyManager.identityManager.displayName);
+    const contactsB = await nodeBA.partyManager.getContacts();
+    expect(contactsB.length).toBe(1);
+    expect(contactsB[0].publicKey).toEqual(nodeAA.partyManager.identityManager.publicKey);
+    expect(contactsB[0].displayName).toEqual(nodeAA.partyManager.identityManager.displayName);
+  });
 
   // Expect that nodeC identifies messages posted by nodeA and nodeB as belonging to IdentityA
   await destroyNodes(allnodes);
