@@ -853,6 +853,7 @@ export class PartyManager extends EventEmitter {
           assert(item);
 
           const { partyKey, ...settings } = item.properties;
+          await waitForCondition(() => this.getPartyInfo(partyKey));
           const info = this.getPartyInfo(partyKey);
           info.setSettings(settings);
         }
