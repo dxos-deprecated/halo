@@ -36,11 +36,21 @@ import { waitForCondition } from './util';
 import { CONTACT_TYPE, ContactManager } from './contact-manager';
 
 const log = debug('dxos:party-manager');
-const noop = () => { };
+const noop = () => {};
 
 // TODO(telackey): Figure out a better place to put this.
 const PARTY_PROPERTIES_TYPE = 'dxos.party.PartyProperties';
 const PARTY_SETTINGS_TYPE = 'dxos.halo.PartySettings';
+
+/**
+ * Flags representing the current state of a Party. Used to prevent things like double opens, double closes, etc.
+ */
+const PartyState = Object.freeze({
+  OPEN: 'OPEN',
+  OPENING: 'OPENING',
+  CLOSED: 'CLOSED',
+  CLOSING: 'CLOSING'
+});
 
 /**
  * @typedef SecretProvider
@@ -78,6 +88,10 @@ export class PartyManager extends EventEmitter {
   // The key is the hexlified PublicKey of the party.
   /** @type {Map<string, Party>} */
   _parties;
+
+  // The key is the hexlified PublicKey of the party.
+  /** @type {Map<string, PartyState>} */
+  _partyState;
 
   // The key is the hexlified PublicKey of the party.
   /** @type {Map<string, PartyInfo>} */
@@ -130,6 +144,7 @@ export class PartyManager extends EventEmitter {
     this._destroyed = false;
     this._initialized = false;
     this._parties = new Map();
+    this._partyState = new Map();
     this._partyInfoMap = new Map();
     this._partyProcessor = new PartyProcessor(this, this._feedStore, this._keyRing);
     this._identityManager = new IdentityManager(this);
@@ -282,13 +297,11 @@ export class PartyManager extends EventEmitter {
       throw new Error(`Unknown party: ${keyToString(partyKey)}`);
     }
 
-    if (party.isOpen()) {
-      log(`Opened party (already open): ${keyToString(partyKey)}`);
+    if ([PartyState.OPEN, PartyState.OPENING].find(state => state === this._getPartyState(party))) {
+      log(`openParty (already open or opening): ${keyToString(partyKey)}`);
       return;
     }
-
-    log(`Opened party: ${keyToString(partyKey)}`);
-    party.open();
+    this._setPartyState(party, PartyState.OPENING);
 
     const feed = await this.getWritableFeed(partyKey);
     const feedKey = this._keyRing.getKey(feed.key);
@@ -319,7 +332,7 @@ export class PartyManager extends EventEmitter {
         party
       ));
 
-    this.emit('party:open', partyKey);
+    this._setPartyState(party, PartyState.OPEN);
   }
 
   /**
@@ -332,16 +345,14 @@ export class PartyManager extends EventEmitter {
     const party = this.getParty(partyKey);
     assert(party);
 
-    if (!party.isOpen()) {
-      log('Close party (already closed):', keyToString(partyKey));
+    if ([PartyState.CLOSED, PartyState.CLOSING].find(state => state === this._getPartyState(party))) {
+      log(`closeParty (already closed or closing): ${keyToString(partyKey)}`);
       return;
     }
 
-    log('Close party:', keyToString(partyKey));
-    party.close();
-
+    this._setPartyState(party, PartyState.CLOSING);
     await this._networkManager.leaveProtocolSwarm(partyKey);
-    this.emit('party:close', partyKey);
+    this._setPartyState(party, PartyState.CLOSED);
   }
 
   /**
@@ -853,8 +864,10 @@ export class PartyManager extends EventEmitter {
           assert(item);
 
           const { partyKey, ...settings } = item.properties;
+          log('WAIT', keyToString(partyKey));
           await waitForCondition(() => this.getPartyInfo(partyKey));
           const info = this.getPartyInfo(partyKey);
+          log('SET', keyToString(partyKey), settings);
           info.setSettings(settings);
         }
       });
@@ -1026,5 +1039,55 @@ export class PartyManager extends EventEmitter {
 
     return this._partySettingsModel.getObjectsByType(PARTY_SETTINGS_TYPE)
       .find(item => partyKey.equals(item.properties.partyKey));
+  }
+
+  /**
+   * Retrieve the PartyState of the indicated Party.
+   * @param {Party} party
+   * @returns {PartyState}
+   * @private
+   */
+  _getPartyState (party) {
+    this._assertValid();
+    assert(party);
+
+    return this._partyState.get(keyToString(party.publicKey)) || PartyState.CLOSED;
+  }
+
+  /**
+   * Set the PartyState of the indicated Party.
+   * @param {Party} party
+   * @param {PartyState} state
+   * @returns {{before: PartyState, after: PartyState}}
+   * @private
+   */
+  _setPartyState (party, state) {
+    this._assertValid();
+    assert(party);
+    assert(state);
+
+    const partyKey = party.publicKey;
+    const partyKeyStr = keyToString(partyKey);
+
+    const before = this._partyState.get(partyKeyStr) || PartyState.CLOSED;
+    this._partyState.set(partyKeyStr, state);
+
+    switch (state) {
+      case PartyState.OPEN:
+        party.open();
+        this.emit('party:open', partyKey);
+        break;
+      case PartyState.CLOSED:
+        party.close();
+        this.emit('party:close', partyKey);
+        break;
+    }
+
+    log(`Party ${partyKeyStr} ${state} (${before})`);
+
+    return {
+      before,
+      after: state
+    };
   }
 }
