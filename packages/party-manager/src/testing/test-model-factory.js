@@ -37,9 +37,9 @@ const createMatcher = filter => message => {
 const createFilteredStream = (filter = {}) => {
   const matcher = createMatcher(filter);
 
-  return through.obj((message, encoding, next) => {
-    if (matcher(message)) {
-      return next(null, message);
+  return through.obj(({ data }, encoding, next) => {
+    if (matcher(data)) {
+      return next(null, data);
     }
 
     next();
