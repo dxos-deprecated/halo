@@ -19,7 +19,7 @@
     "lint": "semistandard",
     "lint:fix": "semistandard --fix",
     "prepublishOnly": "npm run test && npm run build",
-    "test": "jest --rootDir ./src --verbose",
+    "test": "jest --rootDir ./src --verbose --forceExit",
     "watch": "babel-watch ./src --out-dir ./dist --source-maps=both"
   },
   "browserslist": [
