@@ -1043,7 +1043,7 @@
     debug "^4.1.1"
     wrtc "^0.4.3"
 
-"@dxos/protocol-plugin-replicator@^1.1.0-beta.10":
+"@dxos/protocol-plugin-replicator@^1.1.0-beta.1":
   version "1.1.0-beta.10"
   resolved "https://registry.yarnpkg.com/@dxos/protocol-plugin-replicator/-/protocol-plugin-replicator-1.1.0-beta.10.tgz#8f37158b2d796e9841cd3d6bfa6ede204bb860f1"
   integrity sha512-LAHFDtOB5EB+wXmth04dEdpemf3QCrDMd1u96dQJojzuQRT8vJ/Vty0Airrh+ryFzrTVf8Uogw1QD3a9jsSyNQ==
@@ -1072,7 +1072,7 @@
     signal-promise "^1.0.3"
     source-map-support "^0.5.12"
 
-"@dxos/protocol@^1.1.0-beta.10":
+"@dxos/protocol@^1.1.0-beta.1", "@dxos/protocol@^1.1.0-beta.10":
   version "1.1.0-beta.10"
   resolved "https://registry.yarnpkg.com/@dxos/protocol/-/protocol-1.1.0-beta.10.tgz#398325e2f5d99315224a2ca7c702beaee4b28139"
   integrity sha512-DYeSiamQsRD0ZOxKZdSetjvZm2XpxoKEfTB4zeeVAq919YwU+VDbZlIp7oscRjqMQXJsTNUOmLX211BraucYlg==
