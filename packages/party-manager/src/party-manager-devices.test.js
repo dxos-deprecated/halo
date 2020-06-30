@@ -8,7 +8,7 @@ import waitForExpect from 'wait-for-expect';
 import { Keyring, KeyType } from '@dxos/credentials';
 
 import { TestNetworkNode } from './testing/test-network-node';
-import { checkReplication, destroyNodes } from './testing/test-common';
+import { checkContacts, checkReplication, destroyNodes } from './testing/test-common';
 
 // eslint-disable-next-line no-unused-vars
 const log = debug('dxos:party-manager:test');
@@ -89,12 +89,12 @@ test('Identity having 2 devices in party with another identity having 2 devices'
   // nodeAA is initialized under IdentityA as its first device.
   // nodeAB is initialized under IdentityA as its second device.
   const nodesA = await createTwoDeviceIdentity({ identityDisplayName: 'Alice' });
-  const [nodeAA] = nodesA;
+  const [nodeAA, nodeAB] = nodesA;
 
   // nodeBA is initialized under IdentityB as its first device.
   // nodeBB is initialized under IdentityB as its second device.
   const nodesB = await createTwoDeviceIdentity({ identityDisplayName: 'Bob' });
-  const [nodeBA] = nodesB;
+  const [nodeBA, nodeBB] = nodesB;
   const allnodes = [...nodesA, ...nodesB];
 
   // nodeAA creates a Party.
@@ -108,17 +108,8 @@ test('Identity having 2 devices in party with another identity having 2 devices'
   await checkReplication(party.publicKey, allnodes);
 
   // Check contact info.
-  await waitForExpect(async () => {
-    const contactsA = await nodeAA.partyManager.getContacts();
-    expect(contactsA.length).toBe(1);
-    expect(contactsA[0].publicKey).toEqual(nodeBA.partyManager.identityManager.publicKey);
-    expect(contactsA[0].displayName).toEqual(nodeBA.partyManager.identityManager.displayName);
-
-    const contactsB = await nodeBA.partyManager.getContacts();
-    expect(contactsB.length).toBe(1);
-    expect(contactsB[0].publicKey).toEqual(nodeAA.partyManager.identityManager.publicKey);
-    expect(contactsB[0].displayName).toEqual(nodeAA.partyManager.identityManager.displayName);
-  });
+  await checkContacts([nodeAA, nodeBA]);
+  await checkContacts([nodeAB, nodeBB]);
 
   // Expect that nodeC identifies messages posted by nodeA and nodeB as belonging to IdentityA
   await destroyNodes(allnodes);

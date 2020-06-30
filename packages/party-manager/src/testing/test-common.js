@@ -90,7 +90,11 @@ export const checkContacts = async (nodes) => {
   for await (const node of nodes) {
     await waitForExpect(async () => {
       const contacts = await node.partyManager.getContacts();
-      expect(contacts.length).toEqual(nodes.length - 1);
+      const expectedContacts = nodes.length - 1;
+      if (contacts.length > expectedContacts) {
+        console.warn(contacts);
+      }
+      expect(contacts.length).toEqual(expectedContacts);
       for (const other of nodes) {
         if (other !== node) {
           const match = contacts.find(contact => contact.publicKey.equals(other.partyManager.identityManager.publicKey));
