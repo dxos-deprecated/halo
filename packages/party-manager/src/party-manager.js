@@ -22,7 +22,7 @@ import {
   createIdentityInfoMessage,
   createDeviceInfoMessage
 } from '@dxos/credentials';
-import { EchoModel } from '@dxos/echo-db';
+import { ObjectModel } from '@dxos/echo-db';
 import { ModelFactory } from '@dxos/model-factory';
 
 import { GreetingResponder } from './greeting-responder';
@@ -826,7 +826,7 @@ export class PartyManager extends EventEmitter {
     this.emit('party', partyKey);
     this.emit('party:update', partyKey);
 
-    const partyPropertyModel = await this._modelFactory.createModel(EchoModel, {
+    const partyPropertyModel = await this._modelFactory.createModel(ObjectModel, {
       type: PARTY_PROPERTIES_TYPE,
       topic: partyStr
     });
@@ -842,7 +842,7 @@ export class PartyManager extends EventEmitter {
     if (this.isHalo(partyKey)) {
       assert(!this._partySettingsModel);
 
-      this._partySettingsModel = await this._modelFactory.createModel(EchoModel, {
+      this._partySettingsModel = await this._modelFactory.createModel(ObjectModel, {
         type: PARTY_SETTINGS_TYPE,
         topic: partyStr
       });
@@ -859,7 +859,7 @@ export class PartyManager extends EventEmitter {
         }
       });
 
-      this._contactManager.setModel(await this._modelFactory.createModel(EchoModel, {
+      this._contactManager.setModel(await this._modelFactory.createModel(ObjectModel, {
         type: CONTACT_TYPE,
         topic: partyStr
       }));

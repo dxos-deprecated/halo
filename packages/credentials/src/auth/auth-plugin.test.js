@@ -125,7 +125,7 @@ const createProtocol = async (partyKey, authenticator, keyring) => {
   const getMessages = async () => {
     const messages = [];
     const stream = feedStore.createReadStream();
-    stream.on('data', (data) => {
+    stream.on('data', ({ data }) => {
       messages.push(data);
     });
 

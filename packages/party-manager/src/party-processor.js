@@ -102,7 +102,7 @@ export class PartyProcessor extends EventEmitter {
     // Open a "fat" stream over all the Feeds in the store.
     // TODO(telackey): Would we ever need some start position other than 0?
     this._messageStream = this._feedStore.createReadStream(() => {
-      return { live: true, start: 0, feedStoreInfo: true };
+      return { live: true, start: 0 };
     });
 
     this._messageStream.on('sync', () => {
