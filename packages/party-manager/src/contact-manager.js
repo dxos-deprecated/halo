@@ -66,8 +66,10 @@ export class ContactManager {
   getContacts () {
     const combined = new Map();
 
-    const stored = this._model ? this._model.getObjectsByType(CONTACT_TYPE).map(item => item.properties) : [];
     const buffered = Array.from(this._buffer.values());
+    const stored = this._model ? this._getStoredContacts()
+      .map(item => item.properties) : [];
+
     stored.forEach(contact => combined.set(keyToString(contact.publicKey), contact));
     buffered.forEach(contact => combined.set(keyToString(contact.publicKey), contact));
 
@@ -114,6 +116,22 @@ export class ContactManager {
     }
   }
 
+  _getStoredContacts () {
+    assert(this._model);
+
+    const contacts = new Map();
+    const existing = this._model.getObjectsByType(CONTACT_TYPE).sort((a, b) => a.id.localeCompare(b.id));
+    for (const item of existing) {
+      const contactKey = keyToString(item.properties.publicKey);
+      if (!contacts.has(contactKey)) {
+        contacts.set(contactKey, item);
+      } else {
+        log(`${item.id} is duplicate of ${contactKey} at ${contacts.get(contactKey).id}`);
+      }
+    }
+    return Array.from(contacts.values());
+  }
+
   _flush () {
     if (!this._model || !this._buffer.size) {
       return;
@@ -129,7 +147,7 @@ export class ContactManager {
       existing: 0
     };
 
-    const existing = this._model.getObjectsByType(CONTACT_TYPE);
+    const existing = this._getStoredContacts();
     counts.existing = existing.length;
 
     for (const contact of buffer) {
@@ -137,8 +155,8 @@ export class ContactManager {
 
       const item = existing.find(item => item.properties.publicKey.equals(contact.publicKey));
       if (!item) {
-        log('CREATE', contactKey, contact);
-        this._model.createItem(CONTACT_TYPE, contact);
+        const id = this._model.createItem(CONTACT_TYPE, contact);
+        log('CREATE', contactKey, contact, id);
         counts.create++;
       } else {
         const differences = diff(item.properties, contact);
@@ -147,8 +165,8 @@ export class ContactManager {
           for (const change of differences) {
             applyChange(changedProperties, null, change);
           }
-          log('UPDATE', contactKey, changedProperties);
           this._model.updateItem(item.id, changedProperties);
+          log('UPDATE', contactKey, changedProperties, item.id);
           counts.update++;
         }
       }
