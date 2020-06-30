@@ -64,11 +64,14 @@ export class ContactManager {
    * @returns {Contact[]}
    */
   getContacts () {
+    const combined = new Map();
+
+    const stored = this._model ? this._model.getObjectsByType(CONTACT_TYPE).map(item => item.properties) : [];
     const buffered = Array.from(this._buffer.values());
-    const stored = this._model ? this._model.getObjectsByType(CONTACT_TYPE)
-      .map(item => item.properties)
-      .filter(contact => !buffered.find(entry => entry.publicKey.equals(contact.publicKey))) : [];
-    return [...buffered, ...stored];
+    stored.forEach(contact => combined.set(keyToString(contact.publicKey), contact));
+    buffered.forEach(contact => combined.set(keyToString(contact.publicKey), contact));
+
+    return Array.from(combined.values());
   }
 
   /**
