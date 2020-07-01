@@ -12,8 +12,11 @@ import { PartyMemberInfo } from './party-member-info';
 /**
  * Party and Party-membership information.
  *
- * @event PartyInfo#'update' fires whenever PartyInfo is updated directly or a change is made to PartyMemberInfo.
- * @event PartyInfo#'subscription' fires whenever the subscription status of the PartyInfo changes.
+ * @event PartyInfo#'member:added' fires whenever PartyMemberInfo is added ('update' also fires).
+ * @event PartyInfo#'member:update' fires whenever PartyMemberInfo is updated ('update' also fires).
+ * @event PartyInfo#'subscription' fires whenever the subscription status of the PartyInfo changes ('update' also fires).
+ * @event PartyInfo#'update' fires whenever PartyInfo attributes, settings, or properties are updated or
+ *   PartyMemberInfo is added or changed.
  * @type {PublicKey}
  */
 export class PartyInfo extends EventEmitter {
@@ -49,6 +52,14 @@ export class PartyInfo extends EventEmitter {
         this.updateMembershipFromParty();
       }
     });
+
+    // Echo some specific events under the general 'update' event.
+    {
+      const eventNames = ['member:added', 'member:update'];
+      for (const eventName of eventNames) {
+        this.on(eventName, (...args) => this.emit('update', ...args));
+      }
+    }
   }
 
   get publicKey () {
@@ -123,8 +134,8 @@ export class PartyInfo extends EventEmitter {
           if (!this._members.has(keyStr)) {
             const member = new PartyMemberInfo(key, this, this.__partyManager);
             this._members.set(keyStr, member);
-            member.on('update', () => this.emit('update', member));
-            this.emit('update', member);
+            member.on('update', () => this.emit('member:update', member));
+            this.emit('member:added', member);
           }
         }
       }
