@@ -12,7 +12,7 @@ import { PartyMemberInfo } from './party-member-info';
 /**
  * Party and Party-membership information.
  *
- * @event PartyInfo#'member:added' fires whenever PartyMemberInfo is added ('update' also fires).
+ * @event PartyInfo#'member:add' fires whenever PartyMemberInfo is added ('update' also fires).
  * @event PartyInfo#'member:update' fires whenever PartyMemberInfo is updated ('update' also fires).
  * @event PartyInfo#'subscription' fires whenever the subscription status of the PartyInfo changes ('update' also fires).
  * @event PartyInfo#'update' fires whenever PartyInfo attributes, settings, or properties are updated or
@@ -55,7 +55,7 @@ export class PartyInfo extends EventEmitter {
 
     // Echo some specific events under the general 'update' event.
     {
-      const eventNames = ['member:added', 'member:update'];
+      const eventNames = ['member:add', 'member:update'];
       for (const eventName of eventNames) {
         this.on(eventName, (...args) => this.emit('update', ...args));
       }
@@ -135,7 +135,7 @@ export class PartyInfo extends EventEmitter {
             const member = new PartyMemberInfo(key, this, this.__partyManager);
             this._members.set(keyStr, member);
             member.on('update', () => this.emit('member:update', member));
-            this.emit('member:added', member);
+            this.emit('member:add', member);
           }
         }
       }
