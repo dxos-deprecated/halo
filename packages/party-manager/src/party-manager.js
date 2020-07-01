@@ -297,7 +297,13 @@ export class PartyManager extends EventEmitter {
       throw new Error(`Unknown party: ${keyToString(partyKey)}`);
     }
 
-    if ([PartyState.OPEN, PartyState.OPENING].find(state => state === this._getPartyState(party))) {
+    // Prevent opening while in the process of closing.
+    const currentState = await waitForCondition(() => {
+      const state = this._getPartyState(party);
+      return state !== PartyState.CLOSING ? state : undefined;
+    });
+
+    if (currentState === PartyState.OPEN || currentState === PartyState.OPENING) {
       log(`openParty (already open or opening): ${keyToString(partyKey)}`);
       return;
     }
@@ -345,7 +351,13 @@ export class PartyManager extends EventEmitter {
     const party = this.getParty(partyKey);
     assert(party);
 
-    if ([PartyState.CLOSED, PartyState.CLOSING].find(state => state === this._getPartyState(party))) {
+    // Prevent closing while in the process of opening.
+    const currentState = await waitForCondition(() => {
+      const state = this._getPartyState(party);
+      return state !== PartyState.OPENING ? state : undefined;
+    });
+
+    if (currentState === PartyState.CLOSING || currentState === PartyState.CLOSED) {
       log(`closeParty (already closed or closing): ${keyToString(partyKey)}`);
       return;
     }
