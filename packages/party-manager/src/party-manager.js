@@ -1079,7 +1079,12 @@ export class PartyManager extends EventEmitter {
     const partyKey = party.publicKey;
     const partyKeyStr = keyToString(partyKey);
 
-    const before = this._partyState.get(partyKeyStr) || PartyState.CLOSED;
+    const before = this._getPartyState(party);
+    if (before === state) {
+      log(`Party ${partyKeyStr} already ${state}`);
+      return { before, after: state };
+    }
+
     this._partyState.set(partyKeyStr, state);
 
     switch (state) {
