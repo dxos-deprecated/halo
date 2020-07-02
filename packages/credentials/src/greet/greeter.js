@@ -8,11 +8,8 @@ import debug from 'debug';
 import { ERR_EXTENSION_RESPONSE_FAILED } from '@dxos/protocol';
 
 import { Keyring } from '../keys';
-import {
-  PartyCredential,
-  getPartyCredentialMessageType
-} from '../party';
-import { codec } from '../proto';
+import { PartyCredential, getPartyCredentialMessageType } from '../party';
+import { Command } from './constants';
 import {
   ERR_GREET_INVALID_COMMAND,
   ERR_GREET_INVALID_INVITATION,
@@ -27,23 +24,12 @@ import { Invitation } from './invitation';
 const log = debug('dxos:creds:greet');
 
 /**
- * Constants
- */
-// TODO(burdon): Use generated classes.
-export const Command = {
-  Type: Object.freeze({
-    ...codec.getType('dxos.credentials.greet.Command.Type').values
-  })
-};
-
-/**
  * Reference Greeter that uses useable, single-use "invitations" to authenticate the invitee.
  */
 export class Greeter {
   /**
    * For a Greeter, all parameters must be properly set, but for the Invitee, they can be omitted.
    * TODO(telackey): Does it make sense to separate out the Invitee functionality?
-   * @param {Keyring} [keyring] The keyring to use for verification.
    * @param {Buffer} [partyKey] The publicKey of the target Party.
    * @param {function} [partyWriter] Callback function to write messages to the Party.
    * @param {function} [hintProvider] Callback function to gather feed and key hints to give to the invitee.

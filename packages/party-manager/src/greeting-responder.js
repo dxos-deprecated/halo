@@ -9,7 +9,7 @@ import EventEmitter from 'events';
 import { waitForEvent } from '@dxos/async';
 import {
   Greeter,
-  GreeterPlugin,
+  GreetingCommandPlugin,
   Keyring,
   KeyType,
   admitsKeys,
@@ -51,7 +51,7 @@ export class GreetingResponder extends EventEmitter {
   /** @type {Greeter} */
   _greeter;
 
-  /** @type {GreeterPlugin} */
+  /** @type {GreetingCommandPlugin} */
   _greeterPlugin;
 
   /** @type {Buffer} */
@@ -81,7 +81,7 @@ export class GreetingResponder extends EventEmitter {
       async messages => this._writeCredentialsToParty(messages),
       async () => this._gatherHints()
     );
-    this._greeterPlugin = new GreeterPlugin(this._swarmKey, this._greeter.createMessageHandler());
+    this._greeterPlugin = new GreetingCommandPlugin(this._swarmKey, this._greeter.createMessageHandler());
 
     this._state = GreetingState.INITIALIZED;
   }

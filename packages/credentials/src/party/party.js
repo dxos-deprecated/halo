@@ -31,18 +31,15 @@ export class Party extends EventEmitter {
   /**
    * Initialize with party public key
    * @param {PublicKey} publicKey
-   * @param {Keyring} keyring
    * @return {Party}
    */
-  constructor (publicKey, keyring) {
+  constructor (publicKey) {
     super();
 
     assert(Buffer.isBuffer(publicKey));
-    assert(keyring);
-    assert(keyring.getKey(publicKey), 'Keyring must contain this Party.');
 
     this._publicKey = publicKey;
-    this._keyring = keyring;
+    this._keyring = new Keyring();
     this._open = false;
 
     /** @type {Map<string, Message>} */
@@ -53,6 +50,13 @@ export class Party extends EventEmitter {
     this._memberFeeds = new Map();
     /** @type {Map<string, PublicKey>} */
     this._admittedBy = new Map();
+
+    // The Keyring must contain the Party key itself.
+    this._readyToProcess = this._keyring.addPublicKey({
+      publicKey,
+      type: KeyType.PARTY,
+      own: false
+    });
   }
 
   /**
@@ -83,8 +87,6 @@ export class Party extends EventEmitter {
    * Returns the Party's keyring (note, this Keyring may contain other keys not belonging to this Party).
    * @return {Keyring}
    */
-  // TODO(burdon): Why expose this? Do not do this just for testing (esp. since can pass it in).
-  // TODO(telackey): This should change to the Party's own keyring.
   get keyring () {
     return this._keyring;
   }
@@ -136,40 +138,6 @@ export class Party extends EventEmitter {
   }
 
   /**
-   * Returns a Keyring consisting of only Party-member publicKeys.
-   * No changes to this Keyring will be persisted.
-   * TODO(telackey): Remove this once we stop passing in an external Keyring.
-   * @param {boolean} [includeFeedKeys=false] Whether to include feedKeys (should be false for auth checks).
-   * @return {Promise<Keyring>}
-   */
-  async getKeyringForMembers (includeFeedKeys = false) {
-    const keyring = new Keyring();
-
-    // Add the PARTY key.
-    await keyring.addPublicKey(this._keyring.getKey(this._publicKey));
-
-    // And all the members.
-    const memberKeys = Array.from(this._memberKeys.values()).filter(key => this._keyring.isTrusted(key));
-    for await (const publicKey of memberKeys) {
-      if (!keyring.hasKey(publicKey)) {
-        await keyring.addPublicKey(this._keyring.getKey(publicKey));
-      }
-    }
-
-    if (includeFeedKeys) {
-      // And all the feeds.
-      const memberFeeds = Array.from(this._memberFeeds.values()).filter(key => this._keyring.isTrusted(key));
-      for await (const feedKey of memberFeeds) {
-        if (!keyring.hasKey(feedKey)) {
-          await keyring.addPublicKey(this._keyring.getKey(feedKey));
-        }
-      }
-    }
-
-    return keyring;
-  }
-
-  /**
    * What member admitted the specified feed or member key?
    * @param {PublicKey} publicKey
    * @returns {PublicKey|undefined}
@@ -210,7 +178,6 @@ export class Party extends EventEmitter {
    * Process an ordered array of messages, for compatibility with Model.processMessages().
    * @param {Message[]} messages
    */
-  // TODO(burdon): Pending async signature change.
   async processMessages (messages) {
     assert(Array.isArray(messages));
 
@@ -275,6 +242,8 @@ export class Party extends EventEmitter {
    * @returns {void}
    */
   async _processMessage (message) {
+    await this._readyToProcess;
+
     assert(message);
     const original = message;
 

@@ -7,7 +7,7 @@ import debug from 'debug';
 
 import { waitForEvent } from '@dxos/async';
 import {
-  Greeter, GreeterPlugin, Command, createEnvelopeMessage, createFeedAdmitMessage, createKeyAdmitMessage
+  Greeter, GreetingCommandPlugin, Command, createEnvelopeMessage, createFeedAdmitMessage, createKeyAdmitMessage
 } from '@dxos/credentials';
 import { keyToString } from '@dxos/crypto';
 
@@ -33,7 +33,7 @@ export class GreetingInitiator {
   /** @type {NetworkManager} */
   _networkManager;
 
-  /** @type {GreeterPlugin} */
+  /** @type {GreetingCommandPlugin} */
   _greeterPlugin;
 
   /** @type {GreetingState} TODO(dboreham): can we use the same states as the responder? */
@@ -86,7 +86,7 @@ export class GreetingInitiator {
     const localPeerId = invitation;
     log('Local PeerId:', keyToString(localPeerId));
 
-    this._greeterPlugin = new GreeterPlugin(localPeerId, (new Greeter()).createMessageHandler());
+    this._greeterPlugin = new GreetingCommandPlugin(localPeerId, (new Greeter()).createMessageHandler());
 
     log('Connecting');
     const peerJoinedWaiter = waitForEvent(this._greeterPlugin, 'peer:joined',

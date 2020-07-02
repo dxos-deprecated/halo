@@ -605,7 +605,7 @@ export class PartyManager extends EventEmitter {
 
     // Create and open a Feed for this Party, and add it to the Keyring.
     const feed = await this.initWritableFeed(partyKeyRecord.publicKey);
-    const feedKey = await this._keyRing.getKey(feed.key);
+    const feedKey = this._keyRing.getKey(feed.key);
 
     const writeMessage = this._messageWriterFactory(feed);
 
@@ -779,10 +779,8 @@ export class PartyManager extends EventEmitter {
   async initParty (partyKey, writeFeedAdmitMessage = false) {
     assert(!this.hasParty(partyKey));
 
-    let partyKeyRecord = this._keyRing.getKey(partyKey);
-
-    if (!partyKeyRecord) {
-      partyKeyRecord = await this._keyRing.addPublicKey({
+    if (!this._keyRing.hasKey(partyKey)) {
+      await this._keyRing.addPublicKey({
         publicKey: partyKey,
         type: KeyType.PARTY,
         own: false
@@ -811,10 +809,7 @@ export class PartyManager extends EventEmitter {
       });
     }
 
-    // TODO(telackey): Stop passing any Keyring to Party altogether.
-    const partyKeyring = new Keyring();
-    await partyKeyring.addPublicKey(partyKeyRecord);
-    const party = new Party(partyKey, partyKeyring);
+    const party = new Party(partyKey);
 
     // At the least, we trust ourselves.
     // TODO(telackey): "Hints" are normally used in Greeting. We have a similar need here, but should these

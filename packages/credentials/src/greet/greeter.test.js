@@ -7,10 +7,13 @@
 import { randomBytes } from '@dxos/crypto';
 import { ERR_EXTENSION_RESPONSE_FAILED } from '@dxos/protocol';
 
-import { createKeyAdmitMessage } from '../party/party-credential';
-import { validate } from '../proto';
+import { createKeyRecord, stripSecrets } from '../keys/keyring-helpers';
 import { Filter, Keyring, KeyType } from '../keys';
-import { Greeter, Command } from './greeter';
+import { createKeyAdmitMessage } from '../party';
+import { validate } from '../proto';
+import { Command } from './constants';
+import { Greeter } from './greeter';
+import { createInvitationMessage } from './invitation-message';
 
 const createKeyring = async () => {
   const keyring = new Keyring();
@@ -77,9 +80,9 @@ test('Good invitation', async () => {
     nonce = response.payload.nonce;
   }
 
-  // In the `SUBMIT` command, the Invitee "submits" signed credentials to the Greeter to be written to the Party.
+  // In the `SUBMIT` command, the Invitee 'submits' signed credentials to the Greeter to be written to the Party.
   // The Greeter wraps these credentials in an Envelope, which it signs, and returns signed copies to the Invitee.
-  // The Greeter also returns "hints" about the member keys and feeds keys already in the Party, so that the Invitee
+  // The Greeter also returns 'hints' about the member keys and feeds keys already in the Party, so that the Invitee
   // will know whom to trust for replication.
   {
     const message = {
@@ -239,4 +242,15 @@ test('Wrong partyKey', async () => {
     }, () => {
     });
   }).toThrow(ERR_EXTENSION_RESPONSE_FAILED);
+});
+
+test('Create Invitation message ', async () => {
+  const keyring = await createKeyring();
+
+  const partyKey = keyring.findKey(Filter.matches({ type: KeyType.PARTY }));
+  const issuerKey = keyring.findKey(Filter.matches({ type: KeyType.IDENTITY }));
+  const inviteeKey = stripSecrets(createKeyRecord({ type: KeyType.IDENTITY }));
+
+  const message = validate(createInvitationMessage(keyring, partyKey.publicKey, issuerKey, inviteeKey, issuerKey));
+  expect(keyring.verify(message.payload)).toBe(true);
 });

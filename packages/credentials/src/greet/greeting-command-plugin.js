@@ -1,5 +1,5 @@
 //
-// Copyright 2019 DxOS
+// Copyright 2020 DXOS.org
 //
 
 // TODO(dboreham): This class is not specific to Greeting (apart from the codec chosen) and so should be renamed
@@ -12,9 +12,9 @@ import { EventEmitter } from 'events';
 import { Extension, ERR_EXTENSION_RESPONSE_FAILED } from '@dxos/protocol';
 import { keyToString } from '@dxos/crypto';
 
-import { ERR_GREET_GENERAL } from './error-codes';
 import { codec } from '../proto';
-import { Command } from './greeter';
+import { ERR_GREET_GENERAL } from './error-codes';
+import { Command } from './constants';
 
 const log = debug('dxos:creds:greet'); // eslint-disable-line no-unused-vars
 
@@ -40,10 +40,10 @@ const getPeerId = (protocol) => {
  * TODO(dboreham) What happens on errors and timeouts?
  * @param peerId {Buffer} Unique key. On a responding node, this value must be communicated OOB to any requesting node.
  * @param peerMessageHandler {function({Buffer}):Buffer} Async receive/send callback. Only used on responding nodes.
- * @event GreeterPlugin#'peer:joined' - Peer joined swarm
- * @event GreeterPlugin#'peer:exited' - Peer exits swarm
+ * @event GreetingCommandPlugin#'peer:joined' - Peer joined swarm
+ * @event GreetingCommandPlugin#'peer:exited' - Peer exits swarm
  */
-export class GreeterPlugin extends EventEmitter {
+export class GreetingCommandPlugin extends EventEmitter {
   constructor (peerId, peerMessageHandler) {
     assert(Buffer.isBuffer(peerId));
     assert(peerMessageHandler);

@@ -229,8 +229,7 @@ export class PartyProcessor extends EventEmitter {
       if (!halo || !halo.isMemberKey(info.publicKey)) {
         return false;
       }
-      const keyring = await halo.getKeyringForMembers();
-      if (keyring.verify(signedMessage)) {
+      if (halo.keyring.verify(signedMessage)) {
         if (isDeviceInfoMessage(message)) {
           this._partyManager.identityManager.deviceManager.setDeviceInfo(info);
           this.emit('@package:device:info', info);
@@ -319,8 +318,7 @@ export class PartyProcessor extends EventEmitter {
           return false;
         }
 
-        const keyring = await party.getKeyringForMembers();
-        if (keyring.verify(signedMessage)) {
+        if (party.keyring.verify(signedMessage)) {
           const memberInfo = partyInfo.members.find(member => member.publicKey.equals(info.publicKey));
           memberInfo.setDisplayName(info.displayName);
         } else {

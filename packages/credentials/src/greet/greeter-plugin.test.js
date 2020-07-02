@@ -8,10 +8,11 @@ import pump from 'pump';
 import { keyToString, keyToBuffer, randomBytes } from '@dxos/crypto';
 import { Protocol } from '@dxos/protocol';
 
-import { Greeter, Command } from './greeter';
-import { GreeterPlugin } from './greeter-plugin';
 import { Keyring, KeyType } from '../keys';
 import { createKeyAdmitMessage } from '../party';
+import { Command } from './constants';
+import { Greeter } from './greeter';
+import { GreetingCommandPlugin } from './greeting-command-plugin';
 
 const log = debug('dxos:creds:greet');
 
@@ -39,7 +40,7 @@ const createGreeter = async (targetPartyKey) => {
   );
 
   const peerId = randomBytes(32);
-  const plugin = new GreeterPlugin(peerId, greeter.createMessageHandler());
+  const plugin = new GreetingCommandPlugin(peerId, greeter.createMessageHandler());
 
   const protocol = new Protocol({
     streamOptions: {
@@ -62,7 +63,7 @@ export const createInvitee = async (rendezvousKey, invitationId) => {
   const peerId = keyToBuffer(invitationId);
 
   const invitee = new Greeter();
-  const plugin = new GreeterPlugin(peerId, invitee.createMessageHandler());
+  const plugin = new GreetingCommandPlugin(peerId, invitee.createMessageHandler());
 
   const connectionPromise = new Promise(resolve => {
     plugin.on('peer:joined', (peerId) => {
@@ -95,7 +96,7 @@ const connect = (source, target) => {
   return pump(source.stream, target.stream, source.stream);
 };
 
-test('Greeting Flow using GreeterPlugin', async () => {
+test('Greeting Flow using GreetingCommandPlugin', async () => {
   const targetPartyKey = randomBytes(32);
   const secret = '0000';
 

@@ -2,7 +2,8 @@
 // Copyright 2019 DxOS
 //
 
+export * from './constants';
 export * from './greeter';
-export * from './greeter-plugin';
+export * from './greeting-command-plugin';
 export * from './invitation';
 export * from './passcode';
