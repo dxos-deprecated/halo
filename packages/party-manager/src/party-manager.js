@@ -438,8 +438,8 @@ export class PartyManager extends EventEmitter {
       const invitationClaimer = new PartyInvitationClaimer(invitationDescriptor, this, this._networkManager);
       await invitationClaimer.connect();
       invitationDescriptor = await invitationClaimer.claim();
-      log(`Party invitation ${keyToString(originalInvitation.invitation)} triggered interactive Greeting` +
-        ` at ${keyToString(invitationDescriptor.invitation)}`);
+      log(`Party invitation ${keyToString(originalInvitation.invitation)} triggered interactive Greeting`,
+        `at ${keyToString(invitationDescriptor.invitation)}`);
       await invitationClaimer.destroy();
     }
 
