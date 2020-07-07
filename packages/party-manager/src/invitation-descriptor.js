@@ -57,6 +57,7 @@ export class InvitationDescriptor {
   identityKey;
 
   /**
+   * @param {InvitationDescriptorType} type
    * @param {Buffer} swarmKey
    * @param {Buffer} invitation
    * @param {Buffer} [identityKey]

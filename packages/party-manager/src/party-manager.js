@@ -34,7 +34,7 @@ import { PartyProcessor } from './party-processor';
 import { partyProtocolProvider } from './party-protocol-provider';
 import { waitForCondition } from './util';
 import { CONTACT_TYPE, ContactManager } from './contact-manager';
-import { PartyInvitatationClaimer } from './party-invitatation-claimer';
+import { PartyInvitationClaimer } from './party-invitation-claims';
 
 const log = debug('dxos:party-manager');
 const noop = () => {
@@ -410,7 +410,7 @@ export class PartyManager extends EventEmitter {
     log(`Joining party with invitation id: ${keyToString(invitationDescriptor.invitation)}`);
 
     if (InvitationDescriptorType.PARTY === invitationDescriptor.type) {
-      const invitationClaimer = new PartyInvitatationClaimer(invitationDescriptor, this, this._networkManager);
+      const invitationClaimer = new PartyInvitationClaimer(invitationDescriptor, this, this._networkManager);
       await invitationClaimer.connect();
       invitationDescriptor = await invitationClaimer.claim();
       log(`Party invitation ${keyToString(originalInvitation.invitation)} triggered interactive Greeting` +
