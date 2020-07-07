@@ -12,7 +12,7 @@ export const InviteType = Object.freeze({
 });
 
 export class InviteDetails {
-  constructor (type, { secretValidator = noop, secretProvider = noop, publicKey = null, expiration = null }) {
+  constructor (type, { secretValidator = noop, secretProvider = noop, publicKey = null }) {
     assert(type);
     if (InviteType.INTERACTIVE === type) {
       assert(secretValidator);
@@ -24,16 +24,11 @@ export class InviteDetails {
     this._type = type;
     this._secretValidator = secretValidator;
     this._secretProvider = secretProvider;
-    this._expiration = expiration;
     this._publicKey = publicKey;
   }
 
   get type () {
     return this._type;
-  }
-
-  get expiration () {
-    return this._expiration;
   }
 
   get secretValidator () {

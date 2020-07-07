@@ -382,11 +382,11 @@ export class PartyManager extends EventEmitter {
     assert(this.hasParty(partyKey));
 
     const party = this.getParty(partyKey);
-    const { onFinish } = options;
+    const { onFinish, expiration } = options;
 
     switch (inviteDetails.type) {
       case InviteType.INTERACTIVE: {
-        const { secretValidator, secretProvider, expiration } = inviteDetails;
+        const { secretValidator, secretProvider } = inviteDetails;
         const responder = new GreetingResponder(party, this, this._keyRing, this._networkManager);
         const swarmKey = await responder.start();
         const invitation = await responder.invite(secretValidator, secretProvider, onFinish, expiration);
@@ -400,8 +400,8 @@ export class PartyManager extends EventEmitter {
         return new InvitationDescriptor(InvitationDescriptorType.INTERACTIVE, swarmKey, invitation);
       }
       case InviteType.OFFLINE_KEY: {
-        if (onFinish) {
-          throw new Error('Invalid options, onFinish cannot be used with OFFLINE invitations.');
+        if (onFinish || expiration) {
+          throw new Error('Invalid options, onFinish and expiration cannot be used with OFFLINE invitations.');
         }
 
         const { publicKey } = inviteDetails;
