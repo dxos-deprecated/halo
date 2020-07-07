@@ -11,7 +11,17 @@ export const InviteType = Object.freeze({
   OFFLINE_KEY: '2'
 });
 
+/**
+ * Required information for issuing an invitation. An interactive invitation will need (at a minimum)
+ * a `secretValidator`, while an offline, key-based invitation will need a `publicKey`.
+ */
 export class InviteDetails {
+  /**
+   * @param {InviteType} type
+   * @param {SecretValidator} [secretValidator]
+   * @param {SecretProvider} [secretProvider]
+   * @param {PublicKey} [publicKey]
+   */
   constructor (type, { secretValidator = noop, secretProvider = noop, publicKey = null }) {
     assert(type);
     if (InviteType.INTERACTIVE === type) {
