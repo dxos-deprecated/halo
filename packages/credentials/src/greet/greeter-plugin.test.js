@@ -121,17 +121,17 @@ test('Greeting Flow using GreetingCommandPlugin', async () => {
   {
     const command = {
       __type_url: 'dxos.credentials.greet.Command',
-      command: Command.Type.PRESENT
+      command: Command.Type.BEGIN
     };
 
     await plugin.send(rendezvousKey, command);
   }
 
-  // Obtain the nonce and partyKey from the NEGOTIATE response.
+  // Obtain the nonce and partyKey from the HANDSHAKE response.
   const { nonce, partyKey } = await (async () => {
     const command = {
       __type_url: 'dxos.credentials.greet.Command',
-      command: Command.Type.NEGOTIATE,
+      command: Command.Type.HANDSHAKE,
       secret: await secretProvider(),
       params: []
     };
@@ -147,7 +147,7 @@ test('Greeting Flow using GreetingCommandPlugin', async () => {
 
     const command = {
       __type_url: 'dxos.credentials.greet.Command',
-      command: Command.Type.SUBMIT,
+      command: Command.Type.NOTARIZE,
       secret: await secretProvider(),
       params: [
         createKeyAdmitMessage(keyring,
@@ -159,8 +159,8 @@ test('Greeting Flow using GreetingCommandPlugin', async () => {
     };
 
     // Send them to the greeter.
-    const submitResponse = await plugin.send(rendezvousKey, command);
-    expect(submitResponse.hints).toEqual(hints);
+    const notarizeResponse = await plugin.send(rendezvousKey, command);
+    expect(notarizeResponse.hints).toEqual(hints);
 
     // In the real world, the response would be signed in an envelope by the Greeter, but in this test it is not altered.
     expect(await writePromise).toEqual(command.params);

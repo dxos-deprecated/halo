@@ -6,6 +6,7 @@ import assert from 'assert';
 import get from 'lodash.get';
 
 import { codec } from '../proto';
+import { randomBytes } from '@dxos/crypto';
 
 /**
  * Constants
@@ -28,9 +29,9 @@ export const partyModelType = () => 'dxos.credentials.Message';
  * It must be signed by all three keys (party, key, feed). The Party private key should be destroyed after
  * signing this message.
  * @param {Keyring} keyring
- * @param {KeyPair} partyKeyPair
- * @param {KeyPair} feedKeyPair
- * @param {KeyPair} admitKeyPair
+ * @param {KeyRecord} partyKeyPair
+ * @param {KeyRecord} feedKeyPair
+ * @param {KeyRecord} admitKeyPair
  * @returns {SignedMessage}
  */
 export const createPartyGenesisMessage = (keyring, partyKeyPair, feedKeyPair, admitKeyPair) => {
@@ -261,4 +262,53 @@ export const admitsKeys = (message) => {
   }
 
   return keys;
+};
+
+/**
+ * Create a `dxos.credentials.party.PartyInvitation` message.
+ * @param {Keyring} keyring
+ * @param {PublicKey} partyKey
+ * @param {KeyRecord} issuerKey
+ * @param {KeyRecord} inviteeKey
+ * @param {KeyRecord|KeyChain} [signingKey]
+ * @returns {Message}
+ */
+export const createPartyInvitationMessage = (keyring, partyKey, issuerKey, inviteeKey, signingKey) => {
+  assert(keyring);
+  assert(Buffer.isBuffer(partyKey));
+  assert(Buffer.isBuffer(issuerKey.publicKey));
+  assert(Buffer.isBuffer(inviteeKey.publicKey));
+  if (!signingKey) {
+    signingKey = issuerKey;
+  }
+  assert(Buffer.isBuffer(signingKey.publicKey));
+  assert(keyring.hasSecretKey(signingKey));
+
+  return {
+    __type_url: 'dxos.credentials.Message',
+    payload:
+      keyring.sign({
+        __type_url: 'dxos.credentials.party.PartyInvitation',
+        id: randomBytes(),
+        partyKey,
+        issuerKey: issuerKey.publicKey,
+        inviteeKey: inviteeKey.publicKey
+      }, [signingKey])
+  };
+};
+
+/**
+ * Is `message` a PartyInvitation message?
+ * @param {Message} message
+ * @return {boolean}
+ */
+export const isPartyInvitationMessage = (message) => {
+  if (message.payload && !message.signed) {
+    message = message.payload;
+  }
+
+  const payloadType = get(message, '__type_url');
+  const signedType = get(message, 'signed.payload.__type_url');
+  return payloadType === 'dxos.credentials.SignedMessage' &&
+    signedType === 'dxos.credentials.party.PartyInvitation';
 };

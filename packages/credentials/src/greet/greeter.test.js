@@ -9,11 +9,10 @@ import { ERR_EXTENSION_RESPONSE_FAILED } from '@dxos/protocol';
 
 import { createKeyRecord, stripSecrets } from '../keys/keyring-helpers';
 import { Filter, Keyring, KeyType } from '../keys';
-import { createKeyAdmitMessage } from '../party';
+import { createKeyAdmitMessage, createPartyInvitationMessage } from '../party';
 import { validate } from '../proto';
 import { Command } from './constants';
 import { Greeter } from './greeter';
-import { createInvitationMessage } from './invitation-message';
 
 const createKeyring = async () => {
   const keyring = new Keyring();
@@ -48,20 +47,20 @@ test('Good invitation', async () => {
     keyring.findKey(Filter.matches({ type: KeyType.PARTY })).publicKey, secretValidator, secretProvider
   );
 
-  // The `PRESENT` command informs the Greeter the Invitee has connected. This gives the Greeter an opportunity
+  // The `BEGIN` command informs the Greeter the Invitee has connected. This gives the Greeter an opportunity
   // to do things like create a passphrase on-demand rather than in advance.
   {
     const message = validate({
       payload: {
         __type_url: 'dxos.credentials.greet.Command',
-        command: Command.Type.PRESENT
+        command: Command.Type.BEGIN
       }
     });
 
     await greeter.handleMessage(invitation.id, message.payload);
   }
 
-  // The `NEGOTIATE` command allows the Greeter and Invitee to exchange any initial settings or details for
+  // The `HANDSHAKE` command allows the Greeter and Invitee to exchange any initial settings or details for
   // completing the exchange. It returns the `nonce` to use in the signed credential messages and the publicKey
   // of the target Party.
   let nonce;
@@ -69,7 +68,7 @@ test('Good invitation', async () => {
     const message = validate({
       payload: {
         __type_url: 'dxos.credentials.greet.Command',
-        command: Command.Type.NEGOTIATE,
+        command: Command.Type.HANDSHAKE,
         secret: await secretProvider()
       }
     });
@@ -80,7 +79,7 @@ test('Good invitation', async () => {
     nonce = response.payload.nonce;
   }
 
-  // In the `SUBMIT` command, the Invitee 'submits' signed credentials to the Greeter to be written to the Party.
+  // In the `NOTARIZE` command, the Invitee 'submits' signed credentials to the Greeter to be written to the Party.
   // The Greeter wraps these credentials in an Envelope, which it signs, and returns signed copies to the Invitee.
   // The Greeter also returns 'hints' about the member keys and feeds keys already in the Party, so that the Invitee
   // will know whom to trust for replication.
@@ -88,7 +87,7 @@ test('Good invitation', async () => {
     const message = {
       payload: {
         __type_url: 'dxos.credentials.greet.Command',
-        command: Command.Type.SUBMIT,
+        command: Command.Type.NOTARIZE,
         secret: await secretProvider(),
         params: [
           createKeyAdmitMessage(keyring,
@@ -131,24 +130,24 @@ test('Bad invitation secret', async (done) => {
     keyring.findKey(Filter.matches({ type: KeyType.PARTY })).publicKey, secretValidator, secretProvider
   );
 
-  // Normal `PRESENT` command.
+  // Normal `BEGIN` command.
   {
     const message = validate({
       payload: {
         __type_url: 'dxos.credentials.greet.Command',
-        command: Command.Type.PRESENT
+        command: Command.Type.BEGIN
       }
     });
 
     await greeter.handleMessage(invitation.id, message.payload);
   }
 
-  // Bad secret in the `NEGOTIATE` command.
+  // Bad secret in the `HANDSHAKE` command.
   {
     const message = validate({
       payload: {
         __type_url: 'dxos.credentials.greet.Command',
-        command: Command.Type.NEGOTIATE,
+        command: Command.Type.HANDSHAKE,
         secret: Buffer.from('wrong')
       }
     });
@@ -178,7 +177,7 @@ test('Attempt to re-use invitation', async (done) => {
     const message = validate({
       payload: {
         __type_url: 'dxos.credentials.greet.Command',
-        command: Command.Type.PRESENT
+        command: Command.Type.BEGIN
       }
     });
 
@@ -190,7 +189,7 @@ test('Attempt to re-use invitation', async (done) => {
     const message = validate({
       payload: {
         __type_url: 'dxos.credentials.greet.Command',
-        command: Command.Type.NEGOTIATE,
+        command: Command.Type.HANDSHAKE,
         secret: await secretProvider()
       }
     });
@@ -205,7 +204,7 @@ test('Attempt to re-use invitation', async (done) => {
     const message = {
       payload: {
         __type_url: 'dxos.credentials.greet.Command',
-        command: Command.Type.SUBMIT,
+        command: Command.Type.NOTARIZE,
         secret: await secretProvider(),
         params: [
           createKeyAdmitMessage(keyring,
@@ -251,6 +250,27 @@ test('Create Invitation message ', async () => {
   const issuerKey = keyring.findKey(Filter.matches({ type: KeyType.IDENTITY }));
   const inviteeKey = stripSecrets(createKeyRecord({ type: KeyType.IDENTITY }));
 
-  const message = validate(createInvitationMessage(keyring, partyKey.publicKey, issuerKey, inviteeKey, issuerKey));
+  const message = validate(createPartyInvitationMessage(keyring, partyKey.publicKey, issuerKey, inviteeKey, issuerKey));
   expect(keyring.verify(message.payload)).toBe(true);
+});
+
+test('WellKnownType params - BytesValue', async () => {
+  const value = randomBytes();
+
+  const command = validate({
+    __type_url: 'dxos.credentials.Message',
+    payload: {
+      __type_url: 'dxos.credentials.greet.Command',
+      command: Command.Type.CLAIM,
+      secret: Buffer.from('123'),
+      params: [
+        {
+          __type_url: 'google.protobuf.BytesValue',
+          value
+        }
+      ]
+    }
+  });
+
+  expect(command.payload.params[0].value).toEqual(value);
 });

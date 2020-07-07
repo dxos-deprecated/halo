@@ -9,7 +9,8 @@ import EventEmitter from 'events';
 import { discoveryKey, keyToString } from '@dxos/crypto';
 
 import { KeyType, Keyring, keyTypeName } from '../keys';
-import { PartyCredential, isEnvelope } from './party-credential';
+import { PartyCredential, isEnvelope, isPartyInvitationMessage } from './party-credential';
+import { PartyInvitationManager } from './party-invitation-manager';
 
 const log = debug('dxos:creds:party');
 
@@ -40,6 +41,7 @@ export class Party extends EventEmitter {
 
     this._publicKey = publicKey;
     this._keyring = new Keyring();
+    this._invitationManager = new PartyInvitationManager(this);
     this._open = false;
 
     /** @type {Map<string, Message>} */
@@ -135,6 +137,12 @@ export class Party extends EventEmitter {
    */
   close () {
     this._open = false;
+  }
+
+  getInvitation (invitationID) {
+    assert(invitationID);
+
+    return this._invitationManager.getInvitation(invitationID);
   }
 
   /**
@@ -243,6 +251,11 @@ export class Party extends EventEmitter {
    */
   async _processMessage (message) {
     await this._readyToProcess;
+
+    // All PartyInvitation messages are handled by the PartyInvitationManager.
+    if (isPartyInvitationMessage(message)) {
+      return this._invitationManager.recordInvitation(message);
+    }
 
     assert(message);
     const original = message;
