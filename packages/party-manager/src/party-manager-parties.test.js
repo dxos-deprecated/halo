@@ -8,10 +8,9 @@ import waitForExpect from 'wait-for-expect';
 import { Keyring, KeyType, codec, createAuthMessage } from '@dxos/credentials';
 import { createKeyPair, keyToBuffer, randomBytes, sign, verify, SIGNATURE_LENGTH } from '@dxos/crypto';
 
+import { InviteDetails, InviteType } from './invite-details';
 import { TestNetworkNode } from './testing/test-network-node';
 import { checkReplication, checkPartyInfo, createTestParty, destroyNodes, checkContacts } from './testing/test-common';
-import { createPartyInvitationMessage } from '@dxos/credentials/src/party';
-import { InvitationDescriptor, InvitationDescriptorType } from './invitation-descriptor';
 
 // eslint-disable-next-line no-unused-vars
 const log = debug('dxos:party-manager:test');
@@ -42,7 +41,8 @@ test('Create a party with 2 Identities each having one device (signature invitat
   };
 
   // Issue the invitation on nodeA.
-  const invitationDescriptor = await nodeA.partyManager.inviteToParty(party.publicKey, greeterSecretValidator);
+  const invitationDescriptor = await nodeA.partyManager.inviteToParty(party.publicKey,
+    new InviteDetails(InviteType.INTERACTIVE, { secretValidator: greeterSecretValidator }));
 
   // The `secret` Buffer is composed of the signature (fixed length) followed by the message (variable length).
   const inviteeSecretProvider = async () => {
@@ -100,7 +100,8 @@ test('Create a party with 2 Identities each having one device (publicKey + keych
   };
 
   // Issue the invitation on nodeA.
-  const invitationDescriptor = await nodeA.partyManager.inviteToParty(party.publicKey, greeterSecretValidator);
+  const invitationDescriptor = await nodeA.partyManager.inviteToParty(party.publicKey,
+    new InviteDetails(InviteType.INTERACTIVE, { secretValidator: greeterSecretValidator }));
 
   // This function executes on the invitee. It provides an Auth message which has been signed by the local
   // device key, with its KeyChain leading back to the Identity PublicKey.
@@ -189,23 +190,12 @@ test('Create a party with 2 Identities each having one device (PartInvitationMes
   // The PublicKey of the contact we wish to invite.
   const contactKey = nodeB.partyManager.identityManager.publicKey;
 
-  // TODO(telackey): Add PartyManager method to simplify this?  inviteContactToParty(partyKey, contactKey) ???
-  const writeStream = await nodeA.partyManager.getWritableStream(party.publicKey);
-  const invitationMessage = createPartyInvitationMessage(keyringA,
-    party.publicKey,
-    contactKey,
-    nodeA.partyManager.identityManager.keyRecord,
-    nodeA.partyManager.identityManager.deviceManager.keyChain
-  );
-  writeStream.write(invitationMessage);
-
-  const invitationID = invitationMessage.payload.signed.payload.id;
+  const invitationDescriptor = await nodeA.partyManager.inviteToParty(party.publicKey,
+    new InviteDetails(InviteType.OFFLINE_KEY, { publicKey: contactKey }));
 
   await waitForExpect(() => {
-    expect(party.getInvitation(invitationID)).toBeTruthy();
+    expect(party.getInvitation(invitationDescriptor.invitation)).toBeTruthy();
   });
-
-  const invitationDescriptor = new InvitationDescriptor(InvitationDescriptorType.PARTY, party.publicKey, invitationID);
 
   // This function executes on the invitee. It provides an Auth message which has been signed by the local
   // device key, with its KeyChain leading back to the Identity PublicKey.

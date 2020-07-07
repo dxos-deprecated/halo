@@ -1,5 +1,5 @@
 //
-// Copyright 2020 DxOS
+// Copyright 2020 DXOS.org
 //
 
 import assert from 'assert';
@@ -9,16 +9,15 @@ import { keyToBuffer, keyToString } from '@dxos/crypto';
 
 import { ripemd160 } from './util';
 
-// TODO(telackey): Add comment explaining in brief what is going on.
-//  e.g. what is hash for?
-//  e.g. do we expect users of this class to serialize it themselves?
-
 export const InvitationDescriptorType = Object.freeze({
   INTERACTIVE: '1',
-  PARTY: '2'
+  OFFLINE_KEY: '2'
 });
 
 // TODO(telackey): Add class description:
+// TODO(telackey): Add comment explaining in brief what is going on.
+//  e.g. what is hash for?
+//  e.g. do we expect users of this class to serialize it themselves?
 /**
  * Description of what this class is for goes here.
  */

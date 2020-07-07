@@ -20,7 +20,8 @@ import {
   createKeyAdmitMessage,
   createPartyGenesisMessage,
   createIdentityInfoMessage,
-  createDeviceInfoMessage
+  createDeviceInfoMessage,
+  createPartyInvitationMessage
 } from '@dxos/credentials';
 import { ObjectModel } from '@dxos/echo-db';
 import { ModelFactory } from '@dxos/model-factory';
@@ -29,6 +30,7 @@ import { GreetingResponder } from './greeting-responder';
 import { GreetingInitiator } from './greeting-initiator';
 import { IdentityManager } from './identity-manager';
 import { InvitationDescriptor, InvitationDescriptorType } from './invitation-descriptor';
+import { InviteType } from './invite-details';
 import { PartyInfo } from './party-info';
 import { PartyProcessor } from './party-processor';
 import { partyProtocolProvider } from './party-protocol-provider';
@@ -37,8 +39,6 @@ import { CONTACT_TYPE, ContactManager } from './contact-manager';
 import { PartyInvitationClaimer } from './party-invitation-claims';
 
 const log = debug('dxos:party-manager');
-const noop = () => {
-};
 
 // TODO(telackey): Figure out a better place to put this.
 const PARTY_PROPERTIES_TYPE = 'dxos.party.PartyProperties';
@@ -207,7 +207,7 @@ export class PartyManager extends EventEmitter {
       this._contactManager.start();
     });
 
-    // Combine several events into a generic "update" event.
+    // Combine several events into a generic 'update' event.
     {
       const eventNames = ['party', 'party:update', 'party:info', 'party:info:update'];
       for (const eventName of eventNames) {
@@ -373,28 +373,53 @@ export class PartyManager extends EventEmitter {
   /**
    * Issues an invitation to join a Party.
    * @param {PublicKey} partyKey
-   * @param {SecretValidator} secretValidator
-   * @param {SecretProvider} secretProvider
+   * @param {InviteDetails} inviteDetails
    * @param {InviteOptions} [options]
    * @returns {InvitationDescriptor}
    */
-  async inviteToParty (partyKey, secretValidator, secretProvider = noop, options = {}) {
+  async inviteToParty (partyKey, inviteDetails, options = {}) {
     this._assertValid();
     assert(this.hasParty(partyKey));
+
     const party = this.getParty(partyKey);
+    const { onFinish } = options;
 
-    const { onFinish, expiration } = options;
-    const responder = new GreetingResponder(party, this, this._keyRing, this._networkManager);
-    const swarmKey = await responder.start();
-    const invitation = await responder.invite(secretValidator, secretProvider, onFinish, expiration);
+    switch (inviteDetails.type) {
+      case InviteType.INTERACTIVE: {
+        const { secretValidator, secretProvider, expiration } = inviteDetails;
+        const responder = new GreetingResponder(party, this, this._keyRing, this._networkManager);
+        const swarmKey = await responder.start();
+        const invitation = await responder.invite(secretValidator, secretProvider, onFinish, expiration);
 
-    const logData = {
-      partyKey: keyToString(partyKey),
-      rendezvousKey: keyToString(swarmKey),
-      invitationId: keyToString(invitation)
-    };
-    log(`Created invitation to party: ${JSON.stringify(logData)}`);
-    return new InvitationDescriptor(InvitationDescriptorType.INTERACTIVE, swarmKey, invitation);
+        const logData = {
+          partyKey: keyToString(partyKey),
+          rendezvousKey: keyToString(swarmKey),
+          invitationId: keyToString(invitation)
+        };
+        log(`Created invitation to party: ${JSON.stringify(logData)}`);
+        return new InvitationDescriptor(InvitationDescriptorType.INTERACTIVE, swarmKey, invitation);
+      }
+      case InviteType.OFFLINE_KEY: {
+        if (onFinish) {
+          throw new Error('Invalid options, onFinish cannot be used with OFFLINE invitations.');
+        }
+
+        const { publicKey } = inviteDetails;
+        const writeStream = await this.getWritableStream(party.publicKey);
+        const invitationMessage = createPartyInvitationMessage(this._keyRing,
+          party.publicKey,
+          publicKey,
+          this.identityManager.keyRecord,
+          this.identityManager.deviceManager.keyChain
+        );
+        writeStream.write(invitationMessage);
+
+        return new InvitationDescriptor(InvitationDescriptorType.OFFLINE_KEY, party.publicKey,
+          invitationMessage.payload.signed.payload.id);
+      }
+      default:
+        throw new Error(`Unknown InviteType: ${inviteDetails.type}`);
+    }
   }
 
   /**
@@ -409,7 +434,7 @@ export class PartyManager extends EventEmitter {
 
     log(`Joining party with invitation id: ${keyToString(invitationDescriptor.invitation)}`);
 
-    if (InvitationDescriptorType.PARTY === invitationDescriptor.type) {
+    if (InvitationDescriptorType.OFFLINE_KEY === invitationDescriptor.type) {
       const invitationClaimer = new PartyInvitationClaimer(invitationDescriptor, this, this._networkManager);
       await invitationClaimer.connect();
       invitationDescriptor = await invitationClaimer.claim();
@@ -504,7 +529,7 @@ export class PartyManager extends EventEmitter {
       cb();
     };
 
-    // Creates a WritableStream opened in objectMode which appends the "chunks" (in this case, objects) to our feed.
+    // Creates a WritableStream opened in objectMode which appends the 'chunks' (in this case, objects) to our feed.
     return miss.to.obj(write);
   }
 
@@ -783,7 +808,7 @@ export class PartyManager extends EventEmitter {
   /**
    * Package private method for loading a party initiated by halo message.
    * If writeFeedAdmitMessage is true, and the Feed is created, a signed FeedAdmit message will be written
-   * to the Feed. This is needed when "auto-opening" a Party which was joined on another Device.
+   * to the Feed. This is needed when 'auto-opening' a Party which was joined on another Device.
    * @package
    * @param {PublicKey} partyKey
    * @param {boolean} [writeFeedAdmitMessage=false]
@@ -825,8 +850,8 @@ export class PartyManager extends EventEmitter {
     const party = new Party(partyKey);
 
     // At the least, we trust ourselves.
-    // TODO(telackey): "Hints" are normally used in Greeting. We have a similar need here, but should these
-    // still be called "hints", or something else?
+    // TODO(telackey): 'Hints' are normally used in Greeting. We have a similar need here, but should these
+    // still be called 'hints', or something else?
     if (!this.isHalo(partyKey)) {
       await party.takeHints([
         { publicKey: this._identityManager.publicKey, type: KeyType.IDENTITY },
@@ -835,7 +860,7 @@ export class PartyManager extends EventEmitter {
     }
 
     // TODO(telackey): The only reason to save these keys to the main Keyring is to aid in recovery,
-    // so that we can know whom to trust without requiring "hints". However, that is useless without
+    // so that we can know whom to trust without requiring 'hints'. However, that is useless without
     // associating specific keys with specific Parties, something we no longer have since removing
     // the 'parties' attribute from the KeyRecords.
     const partyUpdate = async (keyRecord) => {

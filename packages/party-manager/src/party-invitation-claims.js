@@ -13,6 +13,7 @@ import { InvitationDescriptor, InvitationDescriptorType } from './invitation-des
 import { GreetingState } from './greeting-responder';
 import { greetingProtocolProvider } from './party-protocol-provider';
 import { PartyInvitationClaimHandler } from '@dxos/credentials/src/greet';
+import { InviteDetails, InviteType } from './invite-details';
 
 const log = debug('dxos:party-manager:party-invitation-claimer');
 
@@ -47,7 +48,7 @@ export class PartyInvitationClaimer {
     assert(invitationDescriptor);
     assert(partyManager);
     assert(networkManager);
-    assert(InvitationDescriptorType.PARTY === invitationDescriptor.type);
+    assert(InvitationDescriptorType.OFFLINE_KEY === invitationDescriptor.type);
 
     this._invitationDescriptor = invitationDescriptor;
     this._partyManager = partyManager;
@@ -154,7 +155,7 @@ export const makePartyInvitationClaimHandler = (party, partyManager) => {
       return keyring.verify(authMessage) && party.publicKey.equals(authMessage.signed.payload.partyKey);
     };
 
-    return partyManager.inviteToParty(party.publicKey, secretValidator);
+    return partyManager.inviteToParty(party.publicKey, new InviteDetails(InviteType.INTERACTIVE, { secretValidator }));
   });
 
   return claimHandler.createMessageHandler();
