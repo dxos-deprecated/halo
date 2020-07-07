@@ -10,7 +10,7 @@ import { keyToString } from '@dxos/crypto';
 const log = debug('dxos:creds:party');
 
 /**
- * A class to manage the lifecycle of written PartyInvitations.
+ * A class to manage the lifecycle of invitations which are written to the Party.
  * @package
  */
 export class PartyInvitationManager {
@@ -40,33 +40,18 @@ export class PartyInvitationManager {
     });
   }
 
-  // hasInvitation(invitationID) {
-  //  return !!this.getInvitation(invitationID);
-  // }
-
+  /**
+   * Return the Message for `invitationID`, if known.
+   * @param {Buffer} invitationID
+   * @returns {SignedMessage}
+   */
   getInvitation (invitationID) {
     assert(Buffer.isBuffer(invitationID));
     return this._activeInvitations.get(keyToString(invitationID));
   }
 
-  // lookupInvitationsByKey(publicKey) {
-  //  assert(Buffer.isBuffer(publicKey));
-
-  //  const invitationMessages = [];
-  //  const keyStr = keyToString(publicKey);
-  //  const byKey = this._invitationsByKey.get(keyStr) || new Set();
-  //  for (const idStr of byKey) {
-  //    const message = this._activeInvitations.get(idStr);
-  //    if (message) {
-  //      invitationMessages.push(message);
-  //    }
-  //  }
-
-  //  return invitationMessages;
-  // }
-
   /**
-   *
+   * Record a new PartyInvitation message.
    * @param {SignedMessage} invitationMessage
    */
   recordInvitation (invitationMessage) {
@@ -89,24 +74,30 @@ export class PartyInvitationManager {
     }
   }
 
-  _verifyAndParse (signedMessage) {
-    assert(signedMessage);
+  /**
+   * Verify that the PartyInvitation message is properly formed and validly signed.
+   * @param {SignedMessage} invitationMessage
+   * @returns {PartyInvitation}
+   * @private
+   */
+  _verifyAndParse (invitationMessage) {
+    assert(invitationMessage);
 
     // Verify Message
-    if (!this._party.keyring.verify(signedMessage)) {
-      throw new Error(`Unverifiable message: ${signedMessage}`);
+    if (!this._party.keyring.verify(invitationMessage)) {
+      throw new Error(`Unverifiable message: ${invitationMessage}`);
     }
 
-    const { id, issuerKey, inviteeKey } = signedMessage.signed.payload;
+    const { id, issuerKey, inviteeKey } = invitationMessage.signed.payload;
 
     assert(Buffer.isBuffer(id));
     assert(Buffer.isBuffer(issuerKey));
     assert(Buffer.isBuffer(inviteeKey));
 
     if (!this._party.isMemberKey(issuerKey)) {
-      throw new Error(`Invalid issuer: ${signedMessage}`);
+      throw new Error(`Invalid issuer: ${invitationMessage}`);
     }
 
-    return signedMessage.signed.payload;
+    return invitationMessage.signed.payload;
   }
 }
