@@ -20,8 +20,8 @@ const log = debug('dxos:party-manager:party-invitation-claimer');
 const DEFAULT_TIMEOUT = 30000;
 
 /**
- * Attempts to connect to a greeting responder to 'redeem' an invitation, potentially with some out-of-band
- * authentication check, in order to be admitted to a Party.
+ * Class to facilitate making an unauthenticated connection to an existing Party in order to claim an
+ * offline invitation. If successful, the regular interactive Greeting flow will follow.
  */
 export class PartyInvitationClaimer {
   /** @type {InvitationDescriptor} */
@@ -61,7 +61,7 @@ export class PartyInvitationClaimer {
   }
 
   /**
-   * Initiate a connection to a greeting responder node.
+   * Initiate a connection to some Party member node.
    * @param {number} timeout Connection timeout (ms).
    */
   async connect (timeout = DEFAULT_TIMEOUT) {
@@ -88,7 +88,9 @@ export class PartyInvitationClaimer {
   }
 
   /**
-   * Called after connecting to claim the PartyInvitation and trigger interactive Greeting.
+   * Executes a 'CLAIM' command for an offline invitation.  If successful, the Party member's device will begin
+   * interactive Greeting, with a new invitation and swarm key which will be provided to the claimant.
+   * Those will be returned in the form of an InvitationDescriptor.
    * @return {InvitationDescriptor}
    */
   async claim () {
@@ -124,8 +126,8 @@ export class PartyInvitationClaimer {
 }
 
 /**
- * Create a function for handling PartyInvitations on the indicated Party. This is used by members of the Party
- * for responding to attempts to claim PartyInvitations which have been written to the Party.
+ * Create a function for handling PartyInvitation claims on the indicated Party. This is used by members
+ * of the Party for responding to attempts to claim an Invitation which has been written to the Party.
  * @param {Party} party
  * @param {PartyManager} partyManager
  * @returns {function(*=, *=): Promise<{}>}
