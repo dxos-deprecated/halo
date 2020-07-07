@@ -250,7 +250,7 @@ test('Create Invitation message ', async () => {
   const issuerKey = keyring.findKey(Filter.matches({ type: KeyType.IDENTITY }));
   const inviteeKey = stripSecrets(createKeyRecord({ type: KeyType.IDENTITY }));
 
-  const message = validate(createPartyInvitationMessage(keyring, partyKey.publicKey, issuerKey, inviteeKey, issuerKey));
+  const message = validate(createPartyInvitationMessage(keyring, partyKey.publicKey, inviteeKey.publicKey, issuerKey));
   expect(keyring.verify(message.payload)).toBe(true);
 });
 

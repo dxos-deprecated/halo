@@ -30,7 +30,7 @@ import { protocolFactory } from '@dxos/network-manager';
 const log = debug('dxos:party-manager:protocol-provider');
 
 const makePartyInvitationHandler = (party, partyManager) => {
-  const claimHandler = new PartyInvitationClaimHandler(party, async (invitationID) => {
+  const claimHandler = new PartyInvitationClaimHandler(async (invitationID) => {
     const invitationMessage = party.getInvitation(invitationID);
     if (!invitationMessage) {
       throw new Error(`Invalid invitation ${keyToString(invitationID)}`);
@@ -41,7 +41,6 @@ const makePartyInvitationHandler = (party, partyManager) => {
 
     const secretValidator = async (invitation, secret) => {
       const { payload: authMessage } = codec.decode(secret);
-      const invitationID = keyToBuffer(invitation.id);
 
       // Create a Keyring containing only the PublicKey of the contact we invited. Only a message signed by
       // by the matching private key, or a KeyChain which traces back to that key, will be verified.
@@ -53,7 +52,7 @@ const makePartyInvitationHandler = (party, partyManager) => {
         own: false
       });
 
-      return keyring.verify(authMessage) && invitationID.equals(authMessage.signed.payload.partyKey);
+      return keyring.verify(authMessage) && party.publicKey.equals(authMessage.signed.payload.partyKey);
     };
 
     return partyManager.inviteToParty(party.publicKey, secretValidator);
@@ -151,6 +150,7 @@ const replicatorProtocolFactory = ({ session = {}, plugins = [], getTopics, part
  * @param {PublicKey} peerId
  * @param {} credentials
  * @param {Party} party
+ * @param {PartyManager} partyManager
  * @return {function({channel?: *, protocolContext: *}): *}
  */
 export const partyProtocolProvider = (peerId, credentials, party, partyManager) => {
@@ -166,9 +166,8 @@ export const partyProtocolProvider = (peerId, credentials, party, partyManager) 
     },
 
     plugins: [
-      new AuthPlugin(peerId, new PartyAuthenticator(party)),
-      // This type of Greeting only deals with written PartyInvitation messages, handing them over to the
-      // regular Greeting flow.
+      new AuthPlugin(peerId, new PartyAuthenticator(party), [Replicator.extension]),
+      // Only deals with written PartyInvitation messages, handing them over to the regular Greeting flow.
       new GreetingCommandPlugin(peerId, makePartyInvitationHandler(party, partyManager))
       // TODO(dboreham): add back removed ability for the client.js caller to specify additional plugins.
       // ...plugins

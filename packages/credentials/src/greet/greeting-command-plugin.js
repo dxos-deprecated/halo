@@ -16,9 +16,9 @@ import { codec } from '../proto';
 import { ERR_GREET_GENERAL } from './error-codes';
 import { Command } from './constants';
 
-const log = debug('dxos:creds:greet'); // eslint-disable-line no-unused-vars
+const log = debug('dxos:creds:greet:plugin'); // eslint-disable-line no-unused-vars
 
-const EXTENSION_NAME = 'greeter';
+const EXTENSION_NAME = 'dxos.credentials.greeting';
 const DEFAULT_TIMEOUT = 30000;
 
 const getPeerId = (protocol) => {
@@ -185,11 +185,11 @@ export class GreetingCommandPlugin extends EventEmitter {
     this.emit('peer:joined', peerId);
   }
 
-  _removePeer (error, protocol) {
+  _removePeer (protocol, error) {
     const { peerId, peerIdStr } = getPeerId(protocol);
 
     if (error) {
-      log(error);
+      log('Error', error);
     }
 
     this._peers.delete(peerIdStr);

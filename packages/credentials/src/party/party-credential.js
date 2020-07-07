@@ -268,16 +268,16 @@ export const admitsKeys = (message) => {
  * Create a `dxos.credentials.party.PartyInvitation` message.
  * @param {Keyring} keyring
  * @param {PublicKey} partyKey
- * @param {KeyRecord} issuerKey
- * @param {KeyRecord} inviteeKey
+ * @param {PublicKey} inviteeKey
+ * @param {KeyRecord|KeyChain} issuerKey
  * @param {KeyRecord|KeyChain} [signingKey]
  * @returns {Message}
  */
-export const createPartyInvitationMessage = (keyring, partyKey, issuerKey, inviteeKey, signingKey) => {
+export const createPartyInvitationMessage = (keyring, partyKey, inviteeKey, issuerKey, signingKey) => {
   assert(keyring);
   assert(Buffer.isBuffer(partyKey));
+  assert(Buffer.isBuffer(inviteeKey));
   assert(Buffer.isBuffer(issuerKey.publicKey));
-  assert(Buffer.isBuffer(inviteeKey.publicKey));
   if (!signingKey) {
     signingKey = issuerKey;
   }
@@ -292,7 +292,7 @@ export const createPartyInvitationMessage = (keyring, partyKey, issuerKey, invit
         id: randomBytes(),
         partyKey,
         issuerKey: issuerKey.publicKey,
-        inviteeKey: inviteeKey.publicKey
+        inviteeKey: inviteeKey
       }, [signingKey])
   };
 };

@@ -7,18 +7,18 @@ import debug from 'debug';
 
 import { waitForEvent } from '@dxos/async';
 import {
-  Greeter, GreetingCommandPlugin, createEnvelopeMessage, createFeedAdmitMessage, createKeyAdmitMessage
-} from '@dxos/credentials';
-import { keyToString } from '@dxos/crypto';
-
-import { greetingProtocolProvider } from './party-protocol-provider';
-
-import { GreetingState } from './greeting-responder';
-import {
+  Greeter, GreetingCommandPlugin, createEnvelopeMessage,
+  createFeedAdmitMessage, createKeyAdmitMessage,
   createGreetingBeginMessage, createGreetingFinishMessage,
   createGreetingHandshakeMessage,
   createGreetingNotarizeMessage
-} from '@dxos/credentials/src/greet';
+} from '@dxos/credentials';
+
+import { keyToString } from '@dxos/crypto';
+
+import { GreetingState } from './greeting-responder';
+import { InvitationDescriptorType } from './invitation-descriptor';
+import { greetingProtocolProvider } from './party-protocol-provider';
 
 const log = debug('dxos:party-manager:greeting-initiator');
 
@@ -54,6 +54,7 @@ export class GreetingInitiator {
     assert(partyManager);
     assert(networkManager);
     assert(invitationDescriptor);
+    assert(InvitationDescriptorType.INTERACTIVE === invitationDescriptor.type);
 
     this._invitationDescriptor = invitationDescriptor;
     this._keyring = keyring;

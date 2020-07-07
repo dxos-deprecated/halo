@@ -62,11 +62,16 @@ export const createGreetingClaimMessage = (invitationID) => {
   };
 };
 
-export const createGreetingClaimResponse = (rendezvousKey) => {
+export const createGreetingClaimResponse = (id, rendezvousKey) => {
+  assert(id);
   assert(Buffer.isBuffer(rendezvousKey));
 
   return {
-    __type_url: 'dxos.credentials.greet.ClaimResponse',
-    rendezvousKey
+    __type_url: 'dxos.credentials.Message',
+    payload: {
+      __type_url: 'dxos.credentials.greet.ClaimResponse',
+      id,
+      rendezvousKey
+    }
   };
 };

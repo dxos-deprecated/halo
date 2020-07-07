@@ -11,7 +11,7 @@ import { Command } from './constants';
 import { ERR_GREET_GENERAL, ERR_GREET_INVALID_COMMAND, ERR_GREET_INVALID_INVITATION } from './error-codes';
 import { createGreetingClaimResponse } from './greeting-message';
 
-const log = debug('dxos:creds:greet');
+const log = debug('dxos:creds:greet:claim');
 
 export class PartyInvitationClaimHandler {
   /** @type {function} */
@@ -54,7 +54,8 @@ export class PartyInvitationClaimHandler {
 
     try {
       const invitationDescriptor = await this._greetingHandler(invitationID);
-      return createGreetingClaimResponse(invitationDescriptor.swarmKey);
+      log(invitationDescriptor);
+      return createGreetingClaimResponse(invitationDescriptor.invitation, invitationDescriptor.swarmKey);
     } catch (err) {
       log(err);
       throw new ERR_EXTENSION_RESPONSE_FAILED(ERR_GREET_GENERAL, 'Error handing off Invitation for Greeting.');

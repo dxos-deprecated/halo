@@ -13,6 +13,11 @@ import { ripemd160 } from './util';
 //  e.g. what is hash for?
 //  e.g. do we expect users of this class to serialize it themselves?
 
+export const InvitationDescriptorType = Object.freeze({
+  INTERACTIVE: '1',
+  PARTY: '2'
+});
+
 // TODO(telackey): Add class description:
 /**
  * Description of what this class is for goes here.
@@ -25,12 +30,13 @@ export class InvitationDescriptor {
    * @property {string} query.swarmKey
    * @property {string} query.invitation
    * @property {string} query.identityKey
+   * @property {string} query.type
    * @returns {InvitationDescriptor}
    */
   static fromQueryParameters (queryParameters) {
-    const { hash, swarmKey, invitation, identityKey } = queryParameters;
+    const { hash, swarmKey, invitation, identityKey, type } = queryParameters;
 
-    const descriptor = new InvitationDescriptor(keyToBuffer(swarmKey),
+    const descriptor = new InvitationDescriptor(type, keyToBuffer(swarmKey),
       keyToBuffer(invitation), (identityKey) ? keyToBuffer(identityKey) : undefined);
 
     if (hash !== descriptor.hash) {
@@ -55,13 +61,15 @@ export class InvitationDescriptor {
    * @param {Buffer} invitation
    * @param {Buffer} [identityKey]
    */
-  constructor (swarmKey, invitation, identityKey) {
+  constructor (type, swarmKey, invitation, identityKey) {
+    assert(type);
     assert(Buffer.isBuffer(swarmKey));
     assert(Buffer.isBuffer(invitation));
     if (identityKey) {
       assert(Buffer.isBuffer(identityKey));
     }
 
+    this.type = type;
     this.swarmKey = swarmKey;
     this.invitation = invitation;
     this.identityKey = identityKey;
@@ -79,7 +87,8 @@ export class InvitationDescriptor {
   toQueryParameters () {
     const query = {
       swarmKey: keyToString(this.swarmKey),
-      invitation: keyToString(this.invitation)
+      invitation: keyToString(this.invitation),
+      type: this.type
     };
 
     if (this.identityKey) {

@@ -28,15 +28,17 @@ import { ModelFactory } from '@dxos/model-factory';
 import { GreetingResponder } from './greeting-responder';
 import { GreetingInitiator } from './greeting-initiator';
 import { IdentityManager } from './identity-manager';
-import { InvitationDescriptor } from './invitation-descriptor';
+import { InvitationDescriptor, InvitationDescriptorType } from './invitation-descriptor';
 import { PartyInfo } from './party-info';
 import { PartyProcessor } from './party-processor';
 import { partyProtocolProvider } from './party-protocol-provider';
 import { waitForCondition } from './util';
 import { CONTACT_TYPE, ContactManager } from './contact-manager';
+import { PartyInvitatationClaimer } from './party-invitatation-claimer';
 
 const log = debug('dxos:party-manager');
-const noop = () => {};
+const noop = () => {
+};
 
 // TODO(telackey): Figure out a better place to put this.
 const PARTY_PROPERTIES_TYPE = 'dxos.party.PartyProperties';
@@ -335,7 +337,8 @@ export class PartyManager extends EventEmitter {
       partyProtocolProvider(
         this._identityManager.deviceManager.publicKey,
         credentials,
-        party
+        party,
+        this
       ));
 
     this._setPartyState(party, PartyState.OPEN);
@@ -391,7 +394,7 @@ export class PartyManager extends EventEmitter {
       invitationId: keyToString(invitation)
     };
     log(`Created invitation to party: ${JSON.stringify(logData)}`);
-    return new InvitationDescriptor(swarmKey, invitation);
+    return new InvitationDescriptor(InvitationDescriptorType.INTERACTIVE, swarmKey, invitation);
   }
 
   /**
@@ -402,8 +405,18 @@ export class PartyManager extends EventEmitter {
    */
   async joinParty (invitationDescriptor, secretProvider) {
     this._assertValid();
+    const originalInvitation = invitationDescriptor;
 
     log(`Joining party with invitation id: ${keyToString(invitationDescriptor.invitation)}`);
+
+    if (InvitationDescriptorType.PARTY === invitationDescriptor.type) {
+      const invitationClaimer = new PartyInvitatationClaimer(invitationDescriptor, this, this._networkManager);
+      await invitationClaimer.connect();
+      invitationDescriptor = await invitationClaimer.claim();
+      log(`Party invitation ${keyToString(originalInvitation.invitation)} triggered interactive Greeting` +
+        ` at ${keyToString(invitationDescriptor.invitation)}`);
+      await invitationClaimer.destroy();
+    }
 
     const initiator = new GreetingInitiator(invitationDescriptor, this, this._keyRing, this._networkManager);
     await initiator.connect();

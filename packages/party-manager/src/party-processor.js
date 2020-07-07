@@ -18,7 +18,8 @@ import {
   isIdentityInfoMessage,
   isIdentityMessage,
   isJoinedPartyMessage,
-  isPartyCredentialMessage
+  isPartyCredentialMessage,
+  isPartyInvitationMessage
 } from '@dxos/credentials';
 
 import { waitForCondition } from './util';
@@ -121,6 +122,8 @@ export class PartyProcessor extends EventEmitter {
         const partyKey = keyToBuffer(metadata.topic);
         const message = data; // TODO(dboreham): Hack.
         if (isPartyCredentialMessage(message)) {
+          await this._processPartyMessage(partyKey, message);
+        } else if (isPartyInvitationMessage(message)) {
           await this._processPartyMessage(partyKey, message);
         } else if (isIdentityMessage(message)) {
           await this._processIdentityMessage(partyKey, message);
@@ -350,11 +353,14 @@ export class PartyProcessor extends EventEmitter {
    * @private
    */
   async _processPartyMessage (partyKey, message) {
-    assert(isPartyCredentialMessage(message));
-    {
-      // Check that the Party from the Feed and the Party in the message match.
+    if (isPartyCredentialMessage(message)) {
       const { payload: { signed: { payload: { contents: { partyKey: messagePartyKey } } } } } = message;
       assert(partyKey.equals(messagePartyKey), 'Mismatched party key.');
+    } else if (isPartyInvitationMessage(message)) {
+      const { payload: { signed: { payload: { partyKey: messagePartyKey } } } } = message;
+      assert(partyKey.equals(messagePartyKey), 'Mismatched party key.');
+    } else {
+      throw new Error(`Wrong message type: ${message}`);
     }
 
     const party = await this._safeGetOrInitParty(partyKey);
@@ -368,8 +374,8 @@ export class PartyProcessor extends EventEmitter {
     }
 
     // We can always process the GENESIS right away.
-    const messageType = getPartyCredentialMessageType(message);
-    if (messageType === PartyCredential.Type.PARTY_GENESIS) {
+    const credentialType = isPartyCredentialMessage(message) && getPartyCredentialMessageType(message);
+    if (credentialType === PartyCredential.Type.PARTY_GENESIS) {
       await party.processMessages([message]);
       this.emit('@private:party:message', partyKey, message);
       return;
@@ -382,7 +388,7 @@ export class PartyProcessor extends EventEmitter {
           await party.processMessages([message]);
 
           // If this is a FEED, update the PartyMemberInfo of the owner to include it in their "feeds" list.
-          if (!this._partyManager.isHalo(partyKey) && messageType === PartyCredential.Type.FEED_ADMIT) {
+          if (!this._partyManager.isHalo(partyKey) && credentialType === PartyCredential.Type.FEED_ADMIT) {
             const [feedKey] = admitsKeys(message);
             const admittedBy = party.getAdmittedBy(feedKey);
             if (!admittedBy.equals(partyKey)) {
