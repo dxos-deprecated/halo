@@ -1,6 +1,6 @@
-# DxOS Credentials
+# DXOS Credentials
 
-> DxOS credentials.
+> DXOS credentials.
 
 ## Install
 
@@ -18,5 +18,5 @@ PRs accepted.
 
 ## License
 
-GPL-3.0 © DxOS
+GPL-3.0 © DXOS.org
 
