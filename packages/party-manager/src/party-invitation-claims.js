@@ -6,14 +6,20 @@ import assert from 'assert';
 import debug from 'debug';
 
 import { waitForEvent, noop } from '@dxos/async';
-import { Keyring, KeyType, GreetingCommandPlugin, createGreetingClaimMessage, codec } from '@dxos/credentials';
+import {
+  Keyring,
+  KeyType,
+  GreetingCommandPlugin,
+  PartyInvitationClaimHandler,
+  createGreetingClaimMessage,
+  codec
+} from '@dxos/credentials';
 import { keyToString, randomBytes } from '@dxos/crypto';
 
 import { InvitationDescriptor, InvitationDescriptorType } from './invitation-descriptor';
+import { InviteDetails, InviteType } from './invite-details';
 import { GreetingState } from './greeting-responder';
 import { greetingProtocolProvider } from './party-protocol-provider';
-import { PartyInvitationClaimHandler } from '@dxos/credentials/src/greet';
-import { InviteDetails, InviteType } from './invite-details';
 
 const log = debug('dxos:party-manager:party-invitation-claimer');
 
