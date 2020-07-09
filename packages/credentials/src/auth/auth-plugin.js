@@ -92,7 +92,7 @@ export class AuthPlugin extends EventEmitter {
         if (!authRequired) {
           log(`Unauthenticated access allowed for ${keyToString(sessionPeerId)};`,
             'no extensions which require authentication are active on remote Protocol.');
-          this.emit('pass', sessionPeerId);
+          this.emit('allowed-unauthenticated', sessionPeerId);
           return;
         }
       }
