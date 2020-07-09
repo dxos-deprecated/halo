@@ -41,17 +41,18 @@ key (or keychain).
 
 ```javascript
 
-const invitation = InvitationDescriptor.fromQueryParameters(queryParams);
+const invitation = InvitationDescriptor.fromQueryParameters(link.queryParameters);
 
 // The secretProvider should provide an `Auth` message signed directly by the invited key,
 // or by a keychain leading back to it. In this case, the invited key is the Identity key,
 // and it is signed by the Device keychain.
-const secretProvider = () => codec.encode(createAuthMessage(client.keyring,
-  invitationDescriptor.swarmKey,
-  client.partyManager.identityManager.keyRecord,
-  client.partyManager.identityManager.deviceManager.keyChain));
+const secretProvider = () => codec.encode(
+  createAuthMessage(client.keyring, invitation.swarmKey,
+    client.partyManager.identityManager.keyRecord,
+    client.partyManager.identityManager.deviceManager.keyChain)
+);
 
-const party = await partyManager.joinParty(invitationDescriptor, secretProvider);
+const party = await partyManager.joinParty(invitation, secretProvider);
 
 ```
 
