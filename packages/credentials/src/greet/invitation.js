@@ -1,5 +1,5 @@
 //
-// Copyright 2019 DxOS
+// Copyright 2019 DXOS.org
 //
 
 import assert from 'assert';
@@ -46,9 +46,9 @@ export class Invitation {
     // TODO(telackey): Change to InvitationState.
 
     this._issued = createDateTimeString();
-    this._presented = null;
-    this._negotiated = null;
-    this._submitted = null;
+    this._began = null;
+    this._handshook = null;
+    this._notarized = null;
     this._finished = null;
     this._revoked = null;
   }
@@ -69,16 +69,16 @@ export class Invitation {
     return !this.finished && !this.expired && !this.revoked;
   }
 
-  get presented () {
-    return !!this._presented;
+  get began () {
+    return !!this._began;
   }
 
-  get submitted () {
-    return !!this._submitted;
+  get notarized () {
+    return !!this._notarized;
   }
 
-  get negotiated () {
-    return !!this._negotiated;
+  get handshook () {
+    return !!this._handshook;
   }
 
   get revoked () {
@@ -119,7 +119,7 @@ export class Invitation {
    * marks the invitation as having been presented.
    * @returns {Promise<boolean>} true if the invitation was alive, else false
    */
-  async present () {
+  async begin () {
     if (!this.live) {
       return false;
     }
@@ -128,7 +128,7 @@ export class Invitation {
       this._secret = await this._secretProvider(this);
     }
 
-    this._presented = createDateTimeString();
+    this._began = createDateTimeString();
 
     return true;
   }
@@ -137,12 +137,12 @@ export class Invitation {
    * Marks the invitation as having been negotiated.
    * @returns {Promise<boolean>} true if the invitation was alive, else false
    */
-  async negotiate () {
+  async handshake () {
     if (!this.live) {
       return false;
     }
 
-    this._negotiated = createDateTimeString();
+    this._handshook = createDateTimeString();
 
     return true;
   }
@@ -151,12 +151,12 @@ export class Invitation {
    * Marks the invitation as having been submitted.
    * @returns {Promise<boolean>} true if the invitation was alive, else false
    */
-  async submit () {
+  async notarize () {
     if (!this.live) {
       return false;
     }
 
-    this._submitted = createDateTimeString();
+    this._notarized = createDateTimeString();
 
     return true;
   }

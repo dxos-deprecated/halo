@@ -1,5 +1,5 @@
 //
-// Copyright 2019 DxOS
+// Copyright 2019 DXOS.org
 //
 
 import debug from 'debug';
@@ -8,6 +8,7 @@ import waitForExpect from 'wait-for-expect';
 import { Keyring, KeyType, codec, createAuthMessage } from '@dxos/credentials';
 import { createKeyPair, keyToBuffer, randomBytes, sign, verify, SIGNATURE_LENGTH } from '@dxos/crypto';
 
+import { InviteDetails, InviteType } from './invite-details';
 import { TestNetworkNode } from './testing/test-network-node';
 import { checkReplication, checkPartyInfo, createTestParty, destroyNodes, checkContacts } from './testing/test-common';
 
@@ -40,7 +41,8 @@ test('Create a party with 2 Identities each having one device (signature invitat
   };
 
   // Issue the invitation on nodeA.
-  const invitationDescriptor = await nodeA.partyManager.inviteToParty(party.publicKey, greeterSecretValidator);
+  const invitationDescriptor = await nodeA.partyManager.inviteToParty(party.publicKey,
+    new InviteDetails(InviteType.INTERACTIVE, { secretValidator: greeterSecretValidator }));
 
   // The `secret` Buffer is composed of the signature (fixed length) followed by the message (variable length).
   const inviteeSecretProvider = async () => {
@@ -98,7 +100,8 @@ test('Create a party with 2 Identities each having one device (publicKey + keych
   };
 
   // Issue the invitation on nodeA.
-  const invitationDescriptor = await nodeA.partyManager.inviteToParty(party.publicKey, greeterSecretValidator);
+  const invitationDescriptor = await nodeA.partyManager.inviteToParty(party.publicKey,
+    new InviteDetails(InviteType.INTERACTIVE, { secretValidator: greeterSecretValidator }));
 
   // This function executes on the invitee. It provides an Auth message which has been signed by the local
   // device key, with its KeyChain leading back to the Identity PublicKey.
@@ -167,4 +170,44 @@ test('Check subscribe/unsubscribe', async (done) => {
 
   await destroyNodes(nodes);
   done();
+});
+
+test('Create a party with 2 Identities each having one device (PartInvitationMessage invite)', async () => {
+  const keyringA = new Keyring();
+  await keyringA.createKeyRecord({ type: KeyType.IDENTITY });
+  const keyringB = new Keyring();
+  await keyringB.createKeyRecord({ type: KeyType.IDENTITY });
+
+  const nodeA = new TestNetworkNode(keyringA);
+  await nodeA.initialize({ identityDisplayName: 'IdentityA', deviceDisplayName: 'Device1-A' });
+  const nodeB = new TestNetworkNode(keyringB);
+  await nodeB.initialize({ identityDisplayName: 'IdentityB', deviceDisplayName: 'Device1-B' });
+  const nodes = [nodeA, nodeB];
+
+  // Create the Party.
+  const party = await nodeA.partyManager.createParty();
+
+  // The PublicKey of the contact we wish to invite.
+  const contactKey = nodeB.partyManager.identityManager.publicKey;
+
+  const invitationDescriptor = await nodeA.partyManager.inviteToParty(party.publicKey,
+    new InviteDetails(InviteType.OFFLINE_KEY, { publicKey: contactKey }));
+
+  await waitForExpect(() => {
+    expect(party.getInvitation(invitationDescriptor.invitation)).toBeTruthy();
+  });
+
+  // This function executes on the invitee. It provides an Auth message which has been signed by the local
+  // device key, with its KeyChain leading back to the Identity PublicKey.
+  const inviteeSecretProvider = () => codec.encode(createAuthMessage(keyringB,
+    party.publicKey,
+    nodeB.partyManager.identityManager.keyRecord,
+    nodeB.partyManager.identityManager.deviceManager.keyChain));
+
+  // And then redeem it on nodeB.
+  await nodeB.partyManager.joinParty(invitationDescriptor, inviteeSecretProvider);
+
+  await checkReplication(party.publicKey, nodes);
+  await checkPartyInfo(party.publicKey, nodes);
+  await checkContacts(nodes);
 });

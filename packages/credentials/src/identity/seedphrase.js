@@ -1,5 +1,5 @@
 //
-// Copyright 2020 DxOS
+// Copyright 2020 DXOS.org
 //
 
 // TODO(dboreham): move this code to @dxos/crypto or ../keys

@@ -1,5 +1,5 @@
 //
-// Copyright 2020 DxOS
+// Copyright 2020 DXOS.org
 //
 
 import waitForExpect from 'wait-for-expect';
@@ -7,6 +7,7 @@ import waitForExpect from 'wait-for-expect';
 import { createId, keyToString } from '@dxos/crypto';
 import { Keyring, KeyType } from '@dxos/credentials';
 
+import { InviteDetails, InviteType } from '../invite-details';
 import { TestModel } from './test-model';
 import { TestNetworkNode } from './test-network-node';
 
@@ -142,7 +143,10 @@ export const addNodeToParty = async (party, nodes) => {
   const inviteeSecretProvider = async () => Buffer.from(secret);
 
   const invitation = await nodes[nodes.length - 1].partyManager.inviteToParty(party.publicKey,
-    greeterSecretProvider, greeterSecretValidator);
+    new InviteDetails(InviteType.INTERACTIVE, {
+      secretProvider: greeterSecretProvider,
+      secretValidator: greeterSecretValidator
+    }));
 
   // And then redeem it on nodeB.
   await node.partyManager.joinParty(invitation, inviteeSecretProvider);

@@ -1,5 +1,5 @@
 //
-// Copyright 2019 DxOS
+// Copyright 2019 DXOS.org
 //
 
 // Simple Model used to verify party operation without depending on data-client/model

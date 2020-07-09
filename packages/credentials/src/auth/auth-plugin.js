@@ -1,5 +1,5 @@
 //
-// Copyright 2019 DxOS
+// Copyright 2019 DXOS.org
 //
 
 import assert from 'assert';
@@ -14,7 +14,7 @@ import { codec } from '../proto';
 
 const log = debug('dxos:creds:auth');
 
-const EXTENSION_NAME = 'auth';
+const EXTENSION_NAME = 'dxos.credentials.auth';
 
 /**
  * A Protocol extension to require nodes to be authenticated during handshake before being allowed to replicate.
@@ -28,8 +28,9 @@ export class AuthPlugin extends EventEmitter {
    * @constructor
    * @param {Buffer} peerId
    * @param {AuthenticatorDialog} authenticator
+   * @param {string[]} [requireAuthForExtensions] (default is always)
    */
-  constructor (peerId, authenticator) {
+  constructor (peerId, authenticator, requireAuthForExtensions = []) {
     assert(Buffer.isBuffer(peerId));
     assert(authenticator);
     super();
@@ -37,6 +38,7 @@ export class AuthPlugin extends EventEmitter {
     // TODO(burdon): Not used.
     this._peerId = peerId;
     this._authenticator = authenticator;
+    this._requiredForExtensions = new Set(requireAuthForExtensions);
   }
 
   get authenticator () {
@@ -71,8 +73,30 @@ export class AuthPlugin extends EventEmitter {
     // Obtain the credentials from the session.
     // At this point credentials is protobuf encoded and base64-encoded
     // Note protocol.session.credentials is our data
-    const { credentials } = protocol && protocol.getSession() ? protocol.getSession() : {};
+    const { credentials, peerId: sessionPeerId } = protocol && protocol.getSession() ? protocol.getSession() : {};
     if (!credentials) {
+      // If we only require auth when certain extensions are active, check if those are present.
+      if (this._requiredForExtensions.size) {
+        let authRequired = false;
+        for (const index of protocol.stream.remoteExtensions) {
+          const name = protocol.stream.extensions[index];
+          if (this._requiredForExtensions.has(name)) {
+            log(`Auth required for extension: ${name}`);
+            authRequired = true;
+            break;
+          }
+        }
+
+        // We can allow the unauthenticated connection, because none of the extensions which
+        // require authentication to use are active on this connection.
+        if (!authRequired) {
+          log(`Unauthenticated access allowed for ${keyToString(sessionPeerId)};`,
+            'no extensions which require authentication are active on remote Protocol.');
+          this.emit('allowed-unauthenticated', sessionPeerId);
+          return;
+        }
+      }
+
       protocol.stream.destroy();
       throw new ERR_EXTENSION_RESPONSE_FAILED(ERR_AUTH_REJECTED, 'Authentication rejected: no credentials.');
     }
@@ -91,7 +115,6 @@ export class AuthPlugin extends EventEmitter {
     const { payload } = wrappedCredentials;
 
     // The peerId in the normal session info should match that in the signed credentials.
-    const { peerId: sessionPeerId } = protocol.getSession();
     const { payload: { deviceKey: credsPeerId } } = payload.signed || {};
     if (!sessionPeerId || !credsPeerId || keyToString(sessionPeerId) !== keyToString(credsPeerId)) {
       protocol.stream.destroy();

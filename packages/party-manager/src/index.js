@@ -1,7 +1,8 @@
 //
-// Copyright 2020 DxOS
+// Copyright 2020 DXOS.org
 //
 
-export { InvitationDescriptor } from './invitation-descriptor';
+export * from './invitation-descriptor';
+export * from './invite-details';
 export { PartyManager } from './party-manager';
 export { waitForCondition } from './util';

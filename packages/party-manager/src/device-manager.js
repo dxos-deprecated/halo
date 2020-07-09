@@ -1,5 +1,5 @@
 //
-// Copyright 2020 DxOS
+// Copyright 2020 DXOS.org
 //
 
 import assert from 'assert';
@@ -9,7 +9,8 @@ import { waitForEvent } from '@dxos/async';
 import { keyToString } from '@dxos/crypto';
 import { Keyring, KeyType, createDeviceInfoMessage } from '@dxos/credentials';
 
-import { InvitationDescriptor } from './invitation-descriptor';
+import { InvitationDescriptor, InvitationDescriptorType } from './invitation-descriptor';
+import { InviteDetails, InviteType } from './invite-details';
 
 const log = debug('dxos:party-manager:device-manager');
 
@@ -122,12 +123,14 @@ export class DeviceManager {
     assert(secretProvider);
 
     const identityKey = this._partyManager.identityManager.publicKey;
-    const invitation = await this._partyManager.inviteToParty(identityKey, secretValidator, secretProvider, options);
+    const invitation = await this._partyManager.inviteToParty(identityKey,
+      new InviteDetails(InviteType.INTERACTIVE, { secretValidator, secretProvider }), options);
 
     log(`Inviting device for identity: ${keyToString(identityKey)}` +
       ` with invitation id: ${keyToString(invitation.invitation)}`);
 
-    return new InvitationDescriptor(invitation.swarmKey, invitation.invitation, identityKey);
+    return new InvitationDescriptor(InvitationDescriptorType.INTERACTIVE, invitation.swarmKey,
+      invitation.invitation, identityKey);
   }
 
   /**

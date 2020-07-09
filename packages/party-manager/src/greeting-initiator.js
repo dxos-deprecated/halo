@@ -1,5 +1,5 @@
 //
-// Copyright 2020 DxOS
+// Copyright 2020 DXOS.org
 //
 
 import assert from 'assert';
@@ -7,13 +7,18 @@ import debug from 'debug';
 
 import { waitForEvent } from '@dxos/async';
 import {
-  Greeter, GreeterPlugin, Command, createEnvelopeMessage, createFeedAdmitMessage, createKeyAdmitMessage
+  Greeter, GreetingCommandPlugin, createEnvelopeMessage,
+  createFeedAdmitMessage, createKeyAdmitMessage,
+  createGreetingBeginMessage, createGreetingFinishMessage,
+  createGreetingHandshakeMessage,
+  createGreetingNotarizeMessage
 } from '@dxos/credentials';
+
 import { keyToString } from '@dxos/crypto';
 
-import { greetingProtocolProvider } from './party-protocol-provider';
-
 import { GreetingState } from './greeting-responder';
+import { InvitationDescriptorType } from './invitation-descriptor';
+import { greetingProtocolProvider } from './party-protocol-provider';
 
 const log = debug('dxos:party-manager:greeting-initiator');
 
@@ -33,7 +38,7 @@ export class GreetingInitiator {
   /** @type {NetworkManager} */
   _networkManager;
 
-  /** @type {GreeterPlugin} */
+  /** @type {GreetingCommandPlugin} */
   _greeterPlugin;
 
   /** @type {GreetingState} TODO(dboreham): can we use the same states as the responder? */
@@ -49,6 +54,7 @@ export class GreetingInitiator {
     assert(partyManager);
     assert(networkManager);
     assert(invitationDescriptor);
+    assert(InvitationDescriptorType.INTERACTIVE === invitationDescriptor.type);
 
     this._invitationDescriptor = invitationDescriptor;
     this._keyring = keyring;
@@ -86,7 +92,7 @@ export class GreetingInitiator {
     const localPeerId = invitation;
     log('Local PeerId:', keyToString(localPeerId));
 
-    this._greeterPlugin = new GreeterPlugin(localPeerId, (new Greeter()).createMessageHandler());
+    this._greeterPlugin = new GreetingCommandPlugin(localPeerId, (new Greeter()).createMessageHandler());
 
     log('Connecting');
     const peerJoinedWaiter = waitForEvent(this._greeterPlugin, 'peer:joined',
@@ -111,18 +117,15 @@ export class GreetingInitiator {
     const responderPeerId = swarmKey;
 
     //
-    // The first step in redeeming the Invitation is the PRESENT command.
+    // The first step in redeeming the Invitation is the BEGIN command.
     // On the Greeter end, this is when it takes action (e.g., generating a passcode)
     // starting the redemption of the Invitation.
     //
 
-    const { info } = await this._greeterPlugin.send(responderPeerId, {
-      __type_url: 'dxos.credentials.greet.Command',
-      command: Command.Type.PRESENT
-    });
+    const { info } = await this._greeterPlugin.send(responderPeerId, createGreetingBeginMessage());
 
     //
-    // The next step is the NEGOTIATE command, which allow us to exchange additional
+    // The next step is the HANDSHAKE command, which allow us to exchange additional
     // details with the Greeter. This step requires authentication, so we must obtain
     // a signature in the case of bot/key auth, or interactively from the user in the
     // case of PIN/passphrase auth.
@@ -132,21 +135,16 @@ export class GreetingInitiator {
     const secret = await secretProvider(info);
     log('Received secret');
 
-    const negotiateResponse = await this._greeterPlugin.send(responderPeerId, {
-      __type_url: 'dxos.credentials.greet.Command',
-      command: Command.Type.NEGOTIATE,
-      params: [],
-      secret
-    });
+    const handshakeResponse = await this._greeterPlugin.send(responderPeerId, createGreetingHandshakeMessage(secret));
 
     //
-    // The last step is the SUBMIT command, where we submit our signed credentials to the Greeter.
+    // The last step is the NOTARIZE command, where we submit our signed credentials to the Greeter.
     // Until this point, we did not know the publicKey of the Party we had been invited to join.
     // Now we must know it, because it (and the nonce) are needed in our signed credentials.
     //
 
     // The result will include the partyKey and a nonce used when signing the response.
-    const { nonce, partyKey } = negotiateResponse;
+    const { nonce, partyKey } = handshakeResponse;
 
     const writeFeed = await this._partyManager.initWritableFeed(partyKey);
     const feedKey = await this._keyring.getKey(writeFeed.key);
@@ -185,12 +183,8 @@ export class GreetingInitiator {
     }
 
     // Send the signed payload to the greeting responder.
-    const submitResponse = await this._greeterPlugin.send(responderPeerId, {
-      __type_url: 'dxos.credentials.greet.Command',
-      command: Command.Type.SUBMIT,
-      secret,
-      params: credentialMessages
-    });
+    const notarizeResponse = await this._greeterPlugin.send(responderPeerId,
+      createGreetingNotarizeMessage(secret, credentialMessages));
 
     //
     // We will receive back a collection of 'hints' of the keys and feeds that make up the Party.
@@ -198,17 +192,13 @@ export class GreetingInitiator {
     //
 
     const party = await this._partyManager.initParty(partyKey);
-    if (submitResponse.hints) {
-      await party.takeHints(submitResponse.hints);
+    if (notarizeResponse.hints) {
+      await party.takeHints(notarizeResponse.hints);
     }
     await this._partyManager.openParty(partyKey);
 
     // Tell the Greeter that we are done.
-    await this._greeterPlugin.send(responderPeerId, {
-      __type_url: 'dxos.credentials.greet.Command',
-      command: Command.Type.FINISH,
-      secret
-    });
+    await this._greeterPlugin.send(responderPeerId, createGreetingFinishMessage(secret));
 
     await this.disconnect();
 

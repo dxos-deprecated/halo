@@ -1,5 +1,5 @@
 //
-// Copyright 2020 DxOS
+// Copyright 2020 DXOS.org
 //
 
 import debug from 'debug';
@@ -7,6 +7,7 @@ import waitForExpect from 'wait-for-expect';
 
 import { Keyring, KeyType } from '@dxos/credentials';
 
+import { InviteDetails, InviteType } from './invite-details';
 import { TestNetworkNode } from './testing/test-network-node';
 import { checkContacts, checkReplication, destroyNodes } from './testing/test-common';
 
@@ -101,7 +102,11 @@ test('Identity having 2 devices in party with another identity having 2 devices'
   const party = await nodeAA.partyManager.createParty();
 
   // nodeAA invites B to the Party.
-  const invitation = await nodeAA.partyManager.inviteToParty(party.publicKey, pinSecretValidator, pinSecretProvider);
+  const invitation = await nodeAA.partyManager.inviteToParty(party.publicKey,
+    new InviteDetails(InviteType.INTERACTIVE, {
+      secretValidator: pinSecretValidator,
+      secretProvider: pinSecretProvider
+    }));
   await nodeBA.partyManager.joinParty(invitation, pinSecretProvider);
 
   // Expect that all the nodes can now replicate with each other.

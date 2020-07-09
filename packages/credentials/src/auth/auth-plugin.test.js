@@ -1,5 +1,5 @@
 //
-// Copyright 2019 DxOS
+// Copyright 2019 DXOS.org
 //
 
 // dxos-testing-browser
@@ -84,7 +84,7 @@ const createProtocol = async (partyKey, authenticator, keyring) => {
     }, [keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE }))])
   }).toString('base64');
 
-  const auth = new AuthPlugin(peerId, authenticator);
+  const auth = new AuthPlugin(peerId, authenticator, [Replicator.extension]);
   const authPromise = new Promise((resolve) => {
     auth.on('authenticated', (incomingPeerId) => {
       log(`Authenticated ${keyToString(incomingPeerId)} on ${keyToString(peerId)}`);

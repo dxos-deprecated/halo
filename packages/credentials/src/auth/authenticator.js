@@ -1,5 +1,5 @@
 //
-// Copyright 2019 DxOS
+// Copyright 2019 DXOS.org
 //
 
 import assert from 'assert';
@@ -105,8 +105,7 @@ export class PartyAuthenticator extends Authenticator {
       return false;
     }
 
-    const keyring = await this._party.getKeyringForMembers();
-    const verified = keyring.verify(credentials);
+    const verified = this._party.keyring.verify(credentials);
 
     // TODO(telackey): Find a better place to do this, since doing it here could be considered a side-effect.
     if (verified &&

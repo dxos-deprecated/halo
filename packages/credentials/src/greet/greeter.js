@@ -1,5 +1,5 @@
 //
-// Copyright 2019 DxOS
+// Copyright 2019 DXOS.org
 //
 
 import assert from 'assert';
@@ -8,11 +8,8 @@ import debug from 'debug';
 import { ERR_EXTENSION_RESPONSE_FAILED } from '@dxos/protocol';
 
 import { Keyring } from '../keys';
-import {
-  PartyCredential,
-  getPartyCredentialMessageType
-} from '../party';
-import { codec } from '../proto';
+import { PartyCredential, getPartyCredentialMessageType } from '../party';
+import { Command } from './constants';
 import {
   ERR_GREET_INVALID_COMMAND,
   ERR_GREET_INVALID_INVITATION,
@@ -27,23 +24,12 @@ import { Invitation } from './invitation';
 const log = debug('dxos:creds:greet');
 
 /**
- * Constants
- */
-// TODO(burdon): Use generated classes.
-export const Command = {
-  Type: Object.freeze({
-    ...codec.getType('dxos.credentials.greet.Command.Type').values
-  })
-};
-
-/**
  * Reference Greeter that uses useable, single-use "invitations" to authenticate the invitee.
  */
 export class Greeter {
   /**
    * For a Greeter, all parameters must be properly set, but for the Invitee, they can be omitted.
    * TODO(telackey): Does it make sense to separate out the Invitee functionality?
-   * @param {Keyring} [keyring] The keyring to use for verification.
    * @param {Buffer} [partyKey] The publicKey of the target Party.
    * @param {function} [partyWriter] Callback function to write messages to the Party.
    * @param {function} [hintProvider] Callback function to gather feed and key hints to give to the invitee.
@@ -112,9 +98,9 @@ export class Greeter {
     const invitationId = peerId;
     const { command, params, secret } = message;
 
-    // The PRESENT command is unique, in that it happens before auth and may require user interaction.
-    if (command === Command.Type.PRESENT) {
-      return this._handlePresent(invitationId);
+    // The BEGIN command is unique, in that it happens before auth and may require user interaction.
+    if (command === Command.Type.BEGIN) {
+      return this._handleBegin(invitationId);
     }
 
     const invitation = await this._getInvitation(invitationId, secret);
@@ -123,12 +109,12 @@ export class Greeter {
     }
 
     switch (command) {
-      case Command.Type.NEGOTIATE: {
-        return this._handleNegotiate(invitation, params);
+      case Command.Type.HANDSHAKE: {
+        return this._handleHandshake(invitation, params);
       }
 
-      case Command.Type.SUBMIT: {
-        return this._handleSubmit(invitation, params);
+      case Command.Type.NOTARIZE: {
+        return this._handleNotarize(invitation, params);
       }
 
       case Command.Type.FINISH: {
@@ -144,7 +130,7 @@ export class Greeter {
    * Retrieves a valid invitation.
    * @param invitationId
    * @param secret
-   * @returns {Promise<{presented}|null>}
+   * @returns {Promise<{Invitation}|null>}
    * @private
    */
   async _getInvitation (invitationId, secret) {
@@ -157,8 +143,8 @@ export class Greeter {
       throw new ERR_EXTENSION_RESPONSE_FAILED(ERR_GREET_INVALID_STATE, `${invitationId} dead`);
     }
 
-    if (!invitation.presented) {
-      throw new ERR_EXTENSION_RESPONSE_FAILED(ERR_GREET_INVALID_STATE, `${invitationId} not presented`);
+    if (!invitation.began) {
+      throw new ERR_EXTENSION_RESPONSE_FAILED(ERR_GREET_INVALID_STATE, `${invitationId} not begun`);
     }
 
     const valid = await invitation.validate(secret);
@@ -180,44 +166,43 @@ export class Greeter {
     this._invitations.delete(invitation.id);
   }
 
-  async _handlePresent (invitationId) {
+  async _handleBegin (invitationId) {
     const invitation = this._invitations.get(invitationId);
-    if (!invitation || !invitation.live || invitation.presented || invitation.secret) {
+    if (!invitation || !invitation.live || invitation.began || invitation.secret) {
       throw new ERR_EXTENSION_RESPONSE_FAILED(ERR_GREET_INVALID_STATE, 'Invalid invitation or out-of-order command sequence.');
     }
 
     // Mark it as having been presented and do any actions required
     // by specific Invitation type such as generate or gather the secret info.
-    await invitation.present();
+    await invitation.begin();
 
     return {
       __type_url: 'dxos.credentials.Message',
       payload: {
-        __type_url: 'dxos.credentials.greet.PresentResponse',
+        __type_url: 'dxos.credentials.greet.BeginResponse',
         info: {}
       }
     };
   }
 
-  async _handleNegotiate (invitation /* , params */) { // eslint-disable-line class-methods-use-this
-    if (!invitation.presented || invitation.negotiated) {
+  async _handleHandshake (invitation /* , params */) { // eslint-disable-line class-methods-use-this
+    if (!invitation.began || invitation.handshook) {
       throw new ERR_EXTENSION_RESPONSE_FAILED(ERR_GREET_INVALID_STATE, 'Out-of-order command sequence.');
     }
 
-    await invitation.negotiate();
+    await invitation.handshake();
     return {
       __type_url: 'dxos.credentials.Message',
       payload: {
-        __type_url: 'dxos.credentials.greet.NegotiateResponse',
+        __type_url: 'dxos.credentials.greet.HandshakeResponse',
         partyKey: invitation.partyKey,
         nonce: invitation.nonce
       }
     };
   }
 
-  // TODO(burdon): Why are params messages?
-  async _handleSubmit (invitation, params) {
-    if (!invitation.negotiated || invitation.submitted) {
+  async _handleNotarize (invitation, params) {
+    if (!invitation.handshook || invitation.notarized) {
       throw new ERR_EXTENSION_RESPONSE_FAILED(ERR_GREET_INVALID_STATE, 'Out-of-order command sequence.');
     }
 
@@ -250,11 +235,11 @@ export class Greeter {
     // Retrieve the hinted feed and key info for the invitee.
     const hints = await this._hintProvider(params);
 
-    await invitation.submit();
+    await invitation.notarize();
     return {
       __type_url: 'dxos.credentials.Message',
       payload: {
-        __type_url: 'dxos.credentials.greet.SubmitResponse',
+        __type_url: 'dxos.credentials.greet.NotarizeResponse',
         copies,
         hints
       }
