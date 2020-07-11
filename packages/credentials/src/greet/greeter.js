@@ -188,7 +188,7 @@ export class Greeter {
           },
           authNonce: {
             __type_url: 'google.protobuf.BytesValue',
-            value: Buffer.from(invitation.authNonce)
+            value: invitation.authNonce
           }
         }
       }
