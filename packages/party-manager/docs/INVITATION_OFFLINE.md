@@ -46,8 +46,8 @@ const invitation = InvitationDescriptor.fromQueryParameters(link.queryParameters
 // The secretProvider should provide an `Auth` message signed directly by the invited key,
 // or by a keychain leading back to it. In this case, the invited key is the Identity key,
 // and it is signed by the Device keychain.
-const secretProvider = () => codec.encode(
-  createAuthMessage(client.keyring, invitation.swarmKey,
+const secretProvider = (info) => codec.encode(
+  createAuthMessage(client.keyring, info.authNonce.value,
     client.partyManager.identityManager.keyRecord,
     client.partyManager.identityManager.deviceManager.keyChain)
 );

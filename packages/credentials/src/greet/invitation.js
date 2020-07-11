@@ -40,6 +40,7 @@ export class Invitation {
     this._expiration = expiration;
 
     this._id = createId();
+    this._authNonce = randomBytes(32);
     this._nonce = randomBytes(32);
     this._secret = null;
 
@@ -55,6 +56,10 @@ export class Invitation {
 
   get id () {
     return this._id;
+  }
+
+  get authNonce () {
+    return this._authNonce;
   }
 
   get nonce () {

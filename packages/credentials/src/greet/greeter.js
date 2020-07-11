@@ -5,6 +5,7 @@
 import assert from 'assert';
 import debug from 'debug';
 
+import { keyToBuffer } from '@dxos/crypto';
 import { ERR_EXTENSION_RESPONSE_FAILED } from '@dxos/protocol';
 
 import { Keyring } from '../keys';
@@ -180,7 +181,16 @@ export class Greeter {
       __type_url: 'dxos.credentials.Message',
       payload: {
         __type_url: 'dxos.credentials.greet.BeginResponse',
-        info: {}
+        info: {
+          id: {
+            __type_url: 'google.protobuf.BytesValue',
+            value: keyToBuffer(invitation.id)
+          },
+          authNonce: {
+            __type_url: 'google.protobuf.BytesValue',
+            value: Buffer.from(invitation.authNonce)
+          }
+        }
       }
     };
   }
