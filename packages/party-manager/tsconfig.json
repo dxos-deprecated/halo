@@ -5,7 +5,9 @@
     "sourceMap": true,
     "declarationMap": true,
     "outDir": "dist/es",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "module": "commonjs",
+    "target": "ES2017"
   },
   "include": [
     "src"
