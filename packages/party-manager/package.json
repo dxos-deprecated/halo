@@ -12,9 +12,9 @@
   },
   "license": "GPL-3.0",
   "main": "dist/es/index.js",
+  "types": "dist/es/index.d.ts",
   "scripts": {
-    "build": "npm run clean && npm run build:babel",
-    "build:babel": "babel ./src --out-dir ./dist/es --ignore \"**/*.test.js\" --source-maps inline --copy-files",
+    "build": "npm run clean && tsc",
     "clean": "del-cli dist && del-cli ./src/proto/gen",
     "lint": "semistandard",
     "lint:fix": "semistandard --fix",
@@ -45,12 +45,6 @@
     "mississippi": "^4.0.0"
   },
   "devDependencies": {
-    "@babel/cli": "7.4.4",
-    "@babel/core": "^7.4.5",
-    "@babel/plugin-proposal-class-properties": "^7.5.5",
-    "@babel/plugin-proposal-export-default-from": "^7.5.2",
-    "@babel/plugin-transform-runtime": "^7.0.0",
-    "@babel/preset-env": "^7.4.5",
     "@dxos/feed-store": "^1.2.0-beta.23",
     "babel-eslint": "^10.1.0",
     "babel-jest": "^25.1.0",
@@ -66,6 +60,7 @@
     "random-access-memory": "^3.1.1",
     "semistandard": "14.2.0",
     "through2": "^3.0.1",
+    "typescript": "^3.9.6",
     "wait-for-expect": "^3.0.0"
   },
   "semistandard": {
