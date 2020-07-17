@@ -11,9 +11,10 @@ import assert from 'assert';
  * @param {KeyRecord} identityKey
  * @param {KeyRecord|KeyChain} deviceKey
  * @param {KeyRecord} [feedKey]
+ * @param {Buffer} [nonce]
  * @returns {Message}
  */
-export const createAuthMessage = (keyring, partyKey, identityKey, deviceKey, feedKey) => {
+export const createAuthMessage = (keyring, partyKey, identityKey, deviceKey, feedKey = null, nonce = null) => {
   assert(keyring);
   assert(Buffer.isBuffer(partyKey));
   assert(Buffer.isBuffer(identityKey.publicKey));
@@ -36,6 +37,6 @@ export const createAuthMessage = (keyring, partyKey, identityKey, deviceKey, fee
         identityKey: identityKey.publicKey,
         deviceKey: deviceKey.publicKey,
         feedKey: feedKey ? feedKey.publicKey : undefined
-      }, signingKeys)
+      }, signingKeys, nonce)
   };
 };
