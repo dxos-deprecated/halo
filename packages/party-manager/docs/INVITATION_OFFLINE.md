@@ -47,9 +47,12 @@ const invitation = InvitationDescriptor.fromQueryParameters(link.queryParameters
 // or by a keychain leading back to it. In this case, the invited key is the Identity key,
 // and it is signed by the Device keychain.
 const secretProvider = (info) => codec.encode(
-  createAuthMessage(client.keyring, info.authNonce.value,
+  // The signed portion of the Auth message includes the ID and authNonce provided
+  // by "info". These values will be validated on the other end.
+  createAuthMessage(client.keyring, info.id.value,
     client.partyManager.identityManager.keyRecord,
-    client.partyManager.identityManager.deviceManager.keyChain)
+    client.partyManager.identityManager.deviceManager.keyChain,
+    null, info.authNonce.value)
 );
 
 const party = await partyManager.joinParty(invitation, secretProvider);
