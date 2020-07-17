@@ -160,7 +160,9 @@ export const makePartyInvitationClaimHandler = (party, partyManager) => {
         own: false
       });
 
-      return keyring.verify(authMessage) && party.publicKey.equals(authMessage.signed.payload.partyKey);
+      return keyring.verify(authMessage) &&
+        Buffer.from(invitation.id, 'hex').equals(authMessage.signed.payload.partyKey) &&
+        invitation.authNonce.equals(authMessage.signed.nonce);
     };
 
     return partyManager.inviteToParty(party.publicKey, new InviteDetails(InviteType.INTERACTIVE, { secretValidator }));

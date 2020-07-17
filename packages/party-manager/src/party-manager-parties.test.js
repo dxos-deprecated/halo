@@ -199,10 +199,11 @@ test('Create a party with 2 Identities each having one device (PartInvitationMes
 
   // This function executes on the invitee. It provides an Auth message which has been signed by the local
   // device key, with its KeyChain leading back to the Identity PublicKey.
-  const inviteeSecretProvider = () => codec.encode(createAuthMessage(keyringB,
-    party.publicKey,
+  const inviteeSecretProvider = (info) => codec.encode(createAuthMessage(keyringB, info.id.value,
     nodeB.partyManager.identityManager.keyRecord,
-    nodeB.partyManager.identityManager.deviceManager.keyChain));
+    nodeB.partyManager.identityManager.deviceManager.keyChain,
+    null, info.authNonce.value)
+  );
 
   // And then redeem it on nodeB.
   await nodeB.partyManager.joinParty(invitationDescriptor, inviteeSecretProvider);
