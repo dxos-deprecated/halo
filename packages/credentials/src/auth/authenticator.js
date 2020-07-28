@@ -38,7 +38,7 @@ export class Authenticator {
   /**
    * Return true if the credentials checkout, else false.
    * @param credentials
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    */
   async authenticate(credentials) { // eslint-disable-line
     throw new Error('Not Implemented');
