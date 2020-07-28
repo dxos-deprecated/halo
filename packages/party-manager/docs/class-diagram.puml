@@ -1,0 +1,38 @@
+@startuml
+
+
+FeedStore o-- PartyManager
+Keyring o-- PartyManager
+NetworkManager o-- PartyManager
+PartyProcessor *-- PartyManager
+ModelFactory *-- PartyManager
+IdentityManager *-- PartyManager
+ContactManager *-- PartyManager
+Party "0..*" *-- "1" PartyManager
+PartyInfo "0..*" *-- "1" PartyManager
+PartyPropertyModel "0..*" *-- "1" PartyManager
+PartySettingsModel *-- PartyManager
+
+FeedStore o-- PartyProcessor
+Keyring o-- PartyProcessor
+
+DeviceManager *-- IdentityManager
+
+GreetingInitiator *-- PartyManager
+Keyring o-- GreetingInitiator
+NetworkManager o-- GreetingInitiator
+
+GreetingResponder *-- PartyManager
+Keyring o-- GreetingResponder
+NetworkManager o-- GreetingResponder
+
+PartyInvitationClaimer *-- PartyManager
+NetworkManager o-- PartyInvitationClaimer
+
+PartyPropertyModel *-- ModelFactory
+PartySettingsModel *-- ModelFactory
+ContactManager -- ModelFactory
+
+PartyManager o-- PartyMemberInfo 
+
+@enduml
