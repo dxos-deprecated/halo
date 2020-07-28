@@ -11,7 +11,7 @@ import { keyToString } from '@dxos/crypto';
 
 import { ERR_AUTH_GENERAL, ERR_AUTH_REJECTED } from './error-codes';
 import { codec } from '../proto';
-import { PartyAuthenticator } from './authenticator';
+import { PartyAuthenticator, Authenticator } from './authenticator';
 
 const log = debug('dxos:creds:auth');
 
@@ -29,7 +29,7 @@ export class AuthPlugin extends EventEmitter {
 
   constructor (
     private _peerId: Buffer,
-    private _authenticator: PartyAuthenticator,
+    private _authenticator: Authenticator,
     /** (default is always) */ requireAuthForExtensions: string[] = [],
   ) {
     super();
