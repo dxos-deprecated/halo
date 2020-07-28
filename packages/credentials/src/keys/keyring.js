@@ -477,7 +477,7 @@ export class Keyring {
    *   signatures: []   // An array with signature and publicKey of each signing key.
    * }
    * @param {Object} message
-   * @param {KeyRecord|KeyChain[]} keys
+   * @param {(KeyRecord|KeyChain)[]} keys
    * @param {Buffer} [nonce]
    * @param {string} [created]
    * @returns {{ signed, signatures }}

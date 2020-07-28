@@ -52,6 +52,7 @@ interface KeyRecord {
 }
 
 interface Message {
+    __type_url: string;
     payload: any;
 }
 
