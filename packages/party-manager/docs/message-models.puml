@@ -1,0 +1,190 @@
+@startuml
+
+package auth {
+
+  class Auth {
+    bytes partyKey
+    bytes deviceKey
+    bytes identityKey
+    bytes feedKey
+  }
+
+}
+
+package greet {
+
+  enum CommandType {
+    BEGIN = 0
+    HANDSHAKE = 1
+    NOTARIZE = 2
+    FINISH = 3
+    CLAIM = 10
+  }
+
+  class Command {
+    CommandType command
+    bytes secret
+    Any params[0..*]
+  }
+  Command --> CommandType
+
+  class BeginResponse {
+    map<string, Any> info
+  }
+  BeginResponse --|> Command
+
+  class HandshakeResponse {
+    bytes nonce
+    bytes partyKey
+  }
+  HandshakeResponse --|> Command
+  
+
+  class NotarizeResponse {
+    repeated Any copies[0..*]
+
+    KeyHint hints[0..*]
+  }
+  NotarizeResponse --|> Command
+  NotarizeResponse --> KeyHint
+
+  class KeyHint {
+    bytes publicKey
+    KeyType type
+  }
+
+  class ClaimResponse {
+    bytes id
+    bytes rendezvousKey
+  }
+  ClaimResponse --|> Command
+
+  class FinishResponse {
+
+  }
+  FinishResponse --|> Command
+}
+
+package identity {
+  class IdentityInfo {
+    bytes publicKey
+    string displayName
+  }
+
+  class DeviceInfo {
+    bytes publicKey
+    string displayName
+  }
+
+  class JoinedParty {
+    bytes partyKey
+    bytes deviceKey
+    bytes feedKey
+    repeated KeyHint hints[0..*]
+    string created
+  }
+  JoinedParty --> KeyHint
+}
+
+package party {
+  enum KeyType {
+    UNKNOWN = 0
+    IDENTITY = 1
+    DEVICE = 2
+    PARTY = 3
+    FEED = 4
+  }
+  KeyHint --> KeyType
+
+  enum PartyCredentialType {
+    ENVELOPE = 0
+    PARTY_GENESIS = 1
+    FEED_GENESIS = 2
+    KEY_ADMIT = 3
+    FEED_ADMIT = 4
+  }
+
+  class PartyCredential {
+    PartyCredentialType type
+    Any contents
+  }
+  PartyCredential -> PartyCredentialType
+
+  class PartyGenesis {
+    bytes partyKey
+    bytes feedKey
+    bytes admitKey
+    KeyType admitKeyType
+  }
+  PartyGenesis --|> PartyCredential
+  PartyGenesis --> KeyType
+
+  class KeyAdmit {
+    bytes partyKey
+    bytes admitKey
+    KeyType admitKeyType
+  }
+  KeyAdmit --|> PartyCredential
+  KeyAdmit --> KeyType
+
+  class FeedAdmit {
+    bytes partyKey
+    bytes feedKey
+  }
+  FeedAdmit --|> PartyCredential
+
+  class FeedGenesis {
+    bytes feedKey
+    bytes ownerKey
+  }
+  FeedGenesis --|> PartyCredential
+
+  class Envelope {
+    bytes partyKey
+    Any contents
+  }
+  Envelope --|> PartyCredential
+
+  class PartyInvitation {
+    bytes id
+    bytes partyKey
+    bytes issuerKey
+    bytes inviteeKey
+  }
+}
+
+package Signed {
+  class Message {
+    Any payload
+  }
+
+  class KeyChain {
+    bytes publicKey
+    SignedMessage message
+    KeyChain parents[0..*]
+  }
+  KeyChain "1" --> "0..*" KeyChain
+  KeyChain --> SignedMessage
+
+  class Signed {
+    string created
+    bytes nonce
+    Any payload
+  }
+
+  class Signature {
+    bytes key
+    bytes signature
+    KeyChain keyChain
+  }
+  Signature --> KeyChain
+
+  class SignedMessage {
+    Signed signed
+    Signature signatures[0..*]
+  }
+  SignedMessage --> Signed
+  SignedMessage "1" --> "0..*" Signature
+}
+
+@enduml
