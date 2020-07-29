@@ -1,2 +1,3 @@
-# halo
-HALO
+# HALO
+
+Secure decentralized identity and credentials.
