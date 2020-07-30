@@ -3562,6 +3562,13 @@ caseless@~0.12.0:
   resolved "https://registry.yarnpkg.com/caseless/-/caseless-0.12.0.tgz#1b681c21ff84033c826543090689420d187151dc"
   integrity sha1-G2gcIf+EAzyCZUMJBolCDRhxUdw=
 
+chacha20-universal@^1.0.4:
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/chacha20-universal/-/chacha20-universal-1.0.4.tgz#e8a33a386500b1ce5361b811ec5e81f1797883f5"
+  integrity sha512-/IOxdWWNa7nRabfe7+oF+jVkGjlr2xUL4J8l/OvzZhj+c9RpMqoo3Dq+5nU1j/BflRV4BKnaQ4+4oH1yBpQG1Q==
+  dependencies:
+    nanoassert "^2.0.0"
+
 chalk@^1.0.0, chalk@^1.1.3:
   version "1.1.3"
   resolved "https://registry.yarnpkg.com/chalk/-/chalk-1.1.3.tgz#a8115c55e4a702fe4d150abd3872822a7e09fc98"
@@ -5806,6 +5813,14 @@ hypercore-crypto@^1.0.0:
     buffer-from "^1.1.0"
     sodium-universal "^2.0.0"
     uint64be "^2.0.2"
+
+hypercore-crypto@^2.1.1:
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/hypercore-crypto/-/hypercore-crypto-2.1.1.tgz#39d195e3aa80b0635f5b7d466e577c963ab47170"
+  integrity sha512-KIA25GiFJXieB7Oa0HSDNtXrPH41VJY5j2xWmIjBqREt3quKOFxL7ceOLz7zBMoWkoYeF2m67RhtDE1C4XfoNA==
+  dependencies:
+    sodium-universal "^3.0.0"
+    uint64be "^3.0.0"
 
 hypercore-protocol@^6.11.1, hypercore-protocol@^6.5.0:
   version "6.12.0"
@@ -8353,6 +8368,11 @@ nanoassert@^1.0.0:
   resolved "https://registry.yarnpkg.com/nanoassert/-/nanoassert-1.1.0.tgz#4f3152e09540fde28c76f44b19bbcd1d5a42478d"
   integrity sha1-TzFS4JVA/eKMdvRLGbvNHVpCR40=
 
+nanoassert@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/nanoassert/-/nanoassert-2.0.0.tgz#a05f86de6c7a51618038a620f88878ed1e490c09"
+  integrity sha512-7vO7n28+aYO4J+8w96AzhmU8G+Y/xpPDJz/se19ICsqj/momRbb9mh9ZUtkoJ5X3nTnPdhEJyc0qnM6yAsHBaA==
+
 nanocustomassert@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/nanocustomassert/-/nanocustomassert-1.0.0.tgz#84a1b067c47cd9fdaebb5431b49389f2e582b531"
@@ -8513,6 +8533,11 @@ node-gyp-build@^4.1.0:
   version "4.2.2"
   resolved "https://registry.yarnpkg.com/node-gyp-build/-/node-gyp-build-4.2.2.tgz#3f44b65adaafd42fb6c3d81afd630e45c847eb66"
   integrity sha512-Lqh7mrByWCM8Cf9UPqpeoVBBo5Ugx+RKu885GAzmLBVYjeywScxHXPGLa4JfYNZmcNGwzR0Glu5/9GaQZMFqyA==
+
+node-gyp-build@^4.2.0:
+  version "4.2.3"
+  resolved "https://registry.yarnpkg.com/node-gyp-build/-/node-gyp-build-4.2.3.tgz#ce6277f853835f718829efb47db20f3e4d9c4739"
+  integrity sha512-MN6ZpzmfNCRM+3t57PTJHgHyw/h4OWnZ6mR8P5j/uZtqQr46RRuDE/P+g3n0YR/AiYXeWixZZzaip77gdICfRg==
 
 node-gyp-build@~4.1.0:
   version "4.1.1"
@@ -10226,6 +10251,20 @@ sha.js@^2.4.0, sha.js@^2.4.8:
     inherits "^2.0.1"
     safe-buffer "^5.0.1"
 
+sha256-wasm@^1.3.0:
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/sha256-wasm/-/sha256-wasm-1.3.0.tgz#5cdb7d54a9833840277c1cf1e30876e6819ded91"
+  integrity sha512-/bPoRjEXqbSpsA9MDdjy3J3GWQWiZG+tjJbWYqhK+Ap4JWNJBxqSMJnIIzkZOA89UFqQMdKSoioNKXqXAkDyWQ==
+  dependencies:
+    nanoassert "^2.0.0"
+
+sha512-wasm@^1.2.0:
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/sha512-wasm/-/sha512-wasm-1.2.0.tgz#e4e8ffccaa131fbdff25d4e3c1bbe57a74d4308c"
+  integrity sha512-EPphV7XDTefQZw/fXQLfLjfqMCjLKbalgjiDmkMxMk3tjJB4qpjB0w/GEervpLLf0zwLg8EfddJ29PO6s5ec2A==
+  dependencies:
+    nanoassert "^2.0.0"
+
 shallow-clone@^3.0.0:
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/shallow-clone/-/shallow-clone-3.0.1.tgz#8f2981ad92531f55035b01fb230769a40e02efa3"
@@ -10432,6 +10471,19 @@ sodium-javascript@~0.5.0:
     siphash24 "^1.0.1"
     xsalsa20 "^1.0.0"
 
+sodium-javascript@~0.6.1:
+  version "0.6.1"
+  resolved "https://registry.yarnpkg.com/sodium-javascript/-/sodium-javascript-0.6.1.tgz#024f8b1118acba6ba4139c44f918099cc8f8ccc3"
+  integrity sha512-XIJRAKKfgtYxfKMMK5YJaNYF+Gio+gBgwMh+kvDHQ4/6BaWm9BQH49OMHPsNMMwud+OZM6MxqSy2NW6GNXZcNg==
+  dependencies:
+    blake2b "^2.1.1"
+    chacha20-universal "^1.0.4"
+    nanoassert "^2.0.0"
+    sha256-wasm "^1.3.0"
+    sha512-wasm "^1.2.0"
+    siphash24 "^1.0.1"
+    xsalsa20 "^1.0.0"
+
 sodium-native@^2.0.0:
   version "2.4.9"
   resolved "https://registry.yarnpkg.com/sodium-native/-/sodium-native-2.4.9.tgz#7a7beb997efdbd2c773a385fb959f0cead5f5162"
@@ -10441,6 +10493,14 @@ sodium-native@^2.0.0:
     nan "^2.14.0"
     node-gyp-build "^4.1.0"
 
+sodium-native@^3.2.0:
+  version "3.2.0"
+  resolved "https://registry.yarnpkg.com/sodium-native/-/sodium-native-3.2.0.tgz#68a9469b96edadffef320cbce51294ad5f72a37f"
+  integrity sha512-8aq/vQSegLwsRch8Sb/Bpf9aAqlNe5dp0+NVhb9UjHv42zDZ0D5zX3wBRUbXK9Ejum9uZE6DUgT4vVLlUFRBWg==
+  dependencies:
+    ini "^1.3.5"
+    node-gyp-build "^4.2.0"
+
 sodium-universal@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/sodium-universal/-/sodium-universal-2.0.0.tgz#cfb4e1a9c4afece4382b2c23c53439b443bd2af3"
@@ -10449,6 +10509,22 @@ sodium-universal@^2.0.0:
     sodium-javascript "~0.5.0"
   optionalDependencies:
     sodium-native "^2.0.0"
+
+sodium-universal@^3.0.0:
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/sodium-universal/-/sodium-universal-3.0.1.tgz#59a08ecd21e0a3bde201f899da722313b21bc693"
+  integrity sha512-cKznP/jLjqXw6xMF+CwJzPLJOGMw5HZ4iLDY0+zwSOWFFxPgb8NgLzWupPeH8e5w+cukkD2Aehfxyr157r2Fuw==
+  dependencies:
+    blake2b "^2.1.1"
+    chacha20-universal "^1.0.4"
+    nanoassert "^2.0.0"
+    resolve "^1.17.0"
+    sha256-wasm "^1.3.0"
+    sha512-wasm "^1.2.0"
+    siphash24 "^1.0.1"
+    sodium-javascript "~0.6.1"
+    sodium-native "^3.2.0"
+    xsalsa20 "^1.0.0"
 
 sort-keys@^2.0.0:
   version "2.0.0"
@@ -11223,6 +11299,11 @@ uint64be@^2.0.1, uint64be@^2.0.2:
   integrity sha512-9QqdvpGQTXgxthP+lY4e/gIBy+RuqcBaC6JVwT5I3bDLgT/btL6twZMR0pI3/Fgah9G/pdwzIprE5gL6v9UvyQ==
   dependencies:
     buffer-alloc "^1.1.0"
+
+uint64be@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/uint64be/-/uint64be-3.0.0.tgz#2e9037689817b3714fb86034e05c25f5c3141604"
+  integrity sha512-mliiCSrsE29aNBI7O9W5gGv6WmA9kBR8PtTt6Apaxns076IRdYrrtFhXHEWMj5CSum3U7cv7/pi4xmi4XsIOqg==
 
 umask@^1.1.0:
   version "1.1.0"
