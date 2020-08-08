@@ -1,5 +1,5 @@
 //
-// Copyright 2020 DxOS
+// Copyright 2020 DXOS.org
 //
 
 import debug from 'debug';
@@ -35,18 +35,18 @@ test('Create a PartyManager with an Identity', async () => {
   log('Created PartyManager');
   expect(partyManager.identityManager.hasIdentity()).toBe(true);
 
-  log('Creating Identity Hub');
-  const hub = await partyManager.identityManager.initializeForNewIdentity();
-  log('Created Identity Hub');
-  expect(hub).toBeTruthy();
+  log('Creating Halo');
+  const halo = await partyManager.identityManager.initializeForNewIdentity();
+  log('Created Halo');
+  expect(halo).toBeTruthy();
 
   const deviceKey = keyRing.findKey(Filter.matches({ type: KeyType.DEVICE }));
 
   await waitForExpect(() => {
-    expect(hub.publicKey).toEqual(identityKey.publicKey);
-    expect(hub.memberKeys.length).toBe(2);
-    expect(hub.memberKeys).toContainEqual(identityKey.publicKey);
-    expect(hub.memberKeys).toContainEqual(deviceKey.publicKey);
+    expect(halo.publicKey).toEqual(identityKey.publicKey);
+    expect(halo.memberKeys.length).toBe(2);
+    expect(halo.memberKeys).toContainEqual(identityKey.publicKey);
+    expect(halo.memberKeys).toContainEqual(deviceKey.publicKey);
   });
 
   const party = await partyManager.createParty();
@@ -58,5 +58,6 @@ test('Create a PartyManager with an Identity', async () => {
     // expect(party.memberKeys).not.toContainEqual(deviceKey.publicKey);
   });
 
+  await partyManager.destroy();
   log('Created PartyManager');
 });

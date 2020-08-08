@@ -1,5 +1,5 @@
 //
-// Copyright 2019 DxOS
+// Copyright 2019 DXOS.org
 //
 
 import assert from 'assert';
@@ -11,10 +11,11 @@ import { keyToString } from '@dxos/crypto';
 
 import { ERR_AUTH_GENERAL, ERR_AUTH_REJECTED } from './error-codes';
 import { codec } from '../proto';
+import { PartyAuthenticator, Authenticator } from './authenticator';
 
 const log = debug('dxos:creds:auth');
 
-const EXTENSION_NAME = 'auth';
+const EXTENSION_NAME = 'dxos.credentials.auth';
 
 /**
  * A Protocol extension to require nodes to be authenticated during handshake before being allowed to replicate.
@@ -24,19 +25,19 @@ const EXTENSION_NAME = 'auth';
  * @type {Buffer} peerId
  */
 export class AuthPlugin extends EventEmitter {
-  /**
-   * @constructor
-   * @param {Buffer} peerId
-   * @param {AuthenticatorDialog} authenticator
-   */
-  constructor (peerId, authenticator) {
-    assert(Buffer.isBuffer(peerId));
-    assert(authenticator);
+  _requiredForExtensions: Set<string>;
+
+  constructor (
+    private _peerId: Buffer,
+    private _authenticator: Authenticator,
+    /** (default is always) */ requireAuthForExtensions: string[] = [],
+  ) {
     super();
+    assert(Buffer.isBuffer(_peerId));
+    assert(_authenticator);
 
     // TODO(burdon): Not used.
-    this._peerId = peerId;
-    this._authenticator = authenticator;
+    this._requiredForExtensions = new Set(requireAuthForExtensions);
   }
 
   get authenticator () {
@@ -55,7 +56,6 @@ export class AuthPlugin extends EventEmitter {
    * Handler to be called when the 'handshake' event is emitted.
    * If the session can not be authenticated, a ERR_EXTENSION_RESPONSE_FAILED will be thrown.
    * @param protocol
-   * @returns {Promise<void>}
    * @private
    * @fires AuthPlugin#authenticated
    */
@@ -65,14 +65,36 @@ export class AuthPlugin extends EventEmitter {
   // This is done because there is no known way using the current lower layer
   // implementation (Protocol, dependencies) to explicitly send such a response message.
   // TODO(telackey): supply further background/detail and correct anything incorrect above.
-  _onHandshake = async (protocol /* , context */) => { // TODO(burdon): ???
+  async _onHandshake (protocol: any /* , context */) { // TODO(burdon): ???
     assert(protocol);
 
     // Obtain the credentials from the session.
     // At this point credentials is protobuf encoded and base64-encoded
     // Note protocol.session.credentials is our data
-    const { credentials } = protocol && protocol.getSession() ? protocol.getSession() : {};
+    const { credentials = undefined, peerId: sessionPeerId = undefined } = protocol?.getSession() ?? {};
     if (!credentials) {
+      // If we only require auth when certain extensions are active, check if those are present.
+      if (this._requiredForExtensions.size) {
+        let authRequired = false;
+        for (const index of protocol.stream.remoteExtensions) {
+          const name = protocol.stream.extensions[index];
+          if (this._requiredForExtensions.has(name)) {
+            log(`Auth required for extension: ${name}`);
+            authRequired = true;
+            break;
+          }
+        }
+
+        // We can allow the unauthenticated connection, because none of the extensions which
+        // require authentication to use are active on this connection.
+        if (!authRequired) {
+          log(`Unauthenticated access allowed for ${keyToString(sessionPeerId)};`,
+            'no extensions which require authentication are active on remote Protocol.');
+          this.emit('allowed-unauthenticated', sessionPeerId);
+          return;
+        }
+      }
+
       protocol.stream.destroy();
       throw new ERR_EXTENSION_RESPONSE_FAILED(ERR_AUTH_REJECTED, 'Authentication rejected: no credentials.');
     }
@@ -91,7 +113,6 @@ export class AuthPlugin extends EventEmitter {
     const { payload } = wrappedCredentials;
 
     // The peerId in the normal session info should match that in the signed credentials.
-    const { peerId: sessionPeerId } = protocol.getSession();
     const { payload: { deviceKey: credsPeerId } } = payload.signed || {};
     if (!sessionPeerId || !credsPeerId || keyToString(sessionPeerId) !== keyToString(credsPeerId)) {
       protocol.stream.destroy();

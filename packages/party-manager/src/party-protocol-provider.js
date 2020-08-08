@@ -1,5 +1,5 @@
 //
-// Copyright 2020 DxOS
+// Copyright 2020 DXOS.org
 //
 
 // TODO(dboreham): Clean up and document this old code.
@@ -12,12 +12,17 @@
 import assert from 'assert';
 import debug from 'debug';
 
-import { AuthPlugin, PartyAuthenticator } from '@dxos/credentials';
+import {
+  AuthPlugin,
+  PartyAuthenticator,
+  GreetingCommandPlugin
+} from '@dxos/credentials';
 import { keyToString, discoveryKey, keyToBuffer } from '@dxos/crypto';
 import { Protocol } from '@dxos/protocol';
 import { Replicator } from '@dxos/protocol-plugin-replicator';
-
 import { protocolFactory } from '@dxos/network-manager';
+
+import { makePartyInvitationClaimHandler } from './party-invitation-claims';
 
 const log = debug('dxos:party-manager:protocol-provider');
 
@@ -110,9 +115,10 @@ const replicatorProtocolFactory = ({ session = {}, plugins = [], getTopics, part
  * @param {PublicKey} peerId
  * @param {} credentials
  * @param {Party} party
+ * @param {PartyManager} partyManager
  * @return {function({channel?: *, protocolContext: *}): *}
  */
-export const partyProtocolProvider = (peerId, credentials, party) => {
+export const partyProtocolProvider = (peerId, credentials, party, partyManager) => {
   return replicatorProtocolFactory({
     getTopics: () => {
       return [keyToBuffer(party.topic)];
@@ -125,7 +131,9 @@ export const partyProtocolProvider = (peerId, credentials, party) => {
     },
 
     plugins: [
-      new AuthPlugin(peerId, new PartyAuthenticator(party))
+      new AuthPlugin(peerId, new PartyAuthenticator(party), [Replicator.extension]),
+      // Only deals with written PartyInvitation messages, handing them over to the regular Greeting flow.
+      new GreetingCommandPlugin(peerId, makePartyInvitationClaimHandler(party, partyManager))
       // TODO(dboreham): add back removed ability for the client.js caller to specify additional plugins.
       // ...plugins
     ],

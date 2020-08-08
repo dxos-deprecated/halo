@@ -1,5 +1,5 @@
 //
-// Copyright 2020 DxOS
+// Copyright 2020 DXOS.org
 //
 
 import debug from 'debug';
@@ -49,5 +49,7 @@ test('Create initial node with new Identity', async (done) => {
   const device = readDevices[0];
   expect(device).toHaveProperty('displayName');
   expect(device.displayName).toEqual(deviceDisplayName);
+
+  await node.destroy();
   done();
 });

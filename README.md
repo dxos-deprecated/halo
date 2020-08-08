@@ -1,3 +1,3 @@
 # HALO
 
-DXOS Identity and Access Control.
+Secure decentralized identity and credentials.

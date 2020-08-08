@@ -1,5 +1,5 @@
 //
-// Copyright 2019 DxOS
+// Copyright 2019 DXOS.org
 //
 
 // dxos-testing-browser
@@ -38,13 +38,14 @@ const createTestKeyring = async () => {
  * A test Authenticator that checks for the signature of a pre-determined key.
  */
 class ExpectedKeyAuthenticator extends Authenticator {
-  constructor (keyring, expectedKey) {
+  constructor (
+    private _keyring: Keyring,
+    private _expectedKey: PublicKey,
+  ) {
     super();
-    this._keyring = keyring;
-    this._expectedKey = expectedKey;
   }
 
-  async authenticate (credentials) {
+  async authenticate (credentials: any) { // TODO(marik-d): Use more specific type
     if (this._keyring.verify(credentials)) {
       if (this._expectedKey.equals(credentials.signatures[0].key)) {
         return true;
@@ -60,13 +61,9 @@ class ExpectedKeyAuthenticator extends Authenticator {
  * There are a lot of steps to this. We need an Auth plugin, the credentials, and and an Authenticator to check them,
  * we need a Replicator and a Feed to replicate, and we need a Protocol to attach the plugins too.
  * Basically, we need all of data-client but in one fairly small function.
- * @param partyKey
- * @param authenticator
- * @param keyring
- * @returns {{auth: AuthPlugin, proto: Protocol, id: *}}
  * @listens AuthPlugin#authenticated
  */
-const createProtocol = async (partyKey, authenticator, keyring) => {
+const createProtocol = async (partyKey: PublicKey, authenticator: Authenticator, keyring: Keyring) => {
   const topic = keyToString(partyKey);
   const peerId = randomBytes(6); // createId();
   const feedStore = await FeedStore.create(ram, { feedOptions: { valueEncoding: 'utf8' } });
@@ -84,7 +81,7 @@ const createProtocol = async (partyKey, authenticator, keyring) => {
     }, [keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE }))])
   }).toString('base64');
 
-  const auth = new AuthPlugin(peerId, authenticator);
+  const auth = new AuthPlugin(peerId, authenticator, [Replicator.extension]);
   const authPromise = new Promise((resolve) => {
     auth.on('authenticated', (incomingPeerId) => {
       log(`Authenticated ${keyToString(incomingPeerId)} on ${keyToString(peerId)}`);
@@ -92,8 +89,8 @@ const createProtocol = async (partyKey, authenticator, keyring) => {
     });
   });
 
-  const openFeed = async (key) => {
-    return feedStore.getOpenFeed(desc => desc.feed.key.equals(key)) ||
+  const openFeed = async (key: Buffer) => {
+    return feedStore.getOpenFeed((desc: any) => desc.feed.key.equals(key)) ||
       feedStore.openFeed(`/topic/${topic}/readable/${keyToString(key)}`, { key, metadata: { topic } });
   };
 
@@ -103,15 +100,15 @@ const createProtocol = async (partyKey, authenticator, keyring) => {
       return feedStore.getOpenFeeds();
     },
 
-    subscribe: (add) => {
-      const onFeed = feed => add(feed);
+    subscribe: (add: (feed: any) => void) => {
+      const onFeed = (feed: any) => add(feed);
       feedStore.on('feed', onFeed);
       return () => {
         feedStore.removeListener('feed', onFeed);
       };
     },
 
-    replicate: async (feeds) => {
+    replicate: async (feeds: any[]) => {
       for await (const feed of feeds) {
         if (feed.key) {
           await openFeed(feed.key);
@@ -123,9 +120,9 @@ const createProtocol = async (partyKey, authenticator, keyring) => {
   });
 
   const getMessages = async () => {
-    const messages = [];
+    const messages: { data: unknown }[] = [];
     const stream = feedStore.createReadStream();
-    stream.on('data', (data) => {
+    stream.on('data', ({ data }: any) => {
       messages.push(data);
     });
 
@@ -153,11 +150,9 @@ const createProtocol = async (partyKey, authenticator, keyring) => {
 
 /**
  * Pipe two Protocol objects together.
- * @param source
- * @param target
  */
-const connect = (source, target) => {
-  return pump(source.stream, target.stream, source.stream);
+const connect = (source: any, target: any) => {
+  return pump(source.stream, target.stream, source.stream) as any;
 };
 
 test('Auth Plugin (GOOD)', async () => {

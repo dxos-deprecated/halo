@@ -1,5 +1,5 @@
 //
-// Copyright 2020 DxOS
+// Copyright 2020 DXOS.org
 //
 
 import debug from 'debug';
@@ -7,8 +7,9 @@ import waitForExpect from 'wait-for-expect';
 
 import { Keyring, KeyType } from '@dxos/credentials';
 
+import { InviteDetails, InviteType } from './invite-details';
 import { TestNetworkNode } from './testing/test-network-node';
-import { checkReplication, destroyNodes } from './testing/test-common';
+import { checkContacts, checkReplication, destroyNodes } from './testing/test-common';
 
 // eslint-disable-next-line no-unused-vars
 const log = debug('dxos:party-manager:test');
@@ -19,16 +20,16 @@ const pinSecret = '0000';
 const pinSecretProvider = async () => Buffer.from(pinSecret);
 const pinSecretValidator = async (invitation, secret) => secret && secret.equals(invitation.secret);
 
-const createTwoDeviceIdentity = async () => {
+const createTwoDeviceIdentity = async (props) => {
   const keyringA = new Keyring();
   await keyringA.createKeyRecord({ type: KeyType.IDENTITY });
 
   const nodeA = new TestNetworkNode(keyringA);
-  await nodeA.initialize();
+  await nodeA.initialize(props);
 
   const keyringB = new Keyring();
   const nodeB = new TestNetworkNode(keyringB);
-  await nodeB.initialize();
+  await nodeB.initialize(props);
   const nodes = [nodeA, nodeB];
 
   // nodeA is initialized under IdentityA as its first device.
@@ -52,7 +53,7 @@ const createTwoDeviceIdentity = async () => {
     // nodeB is added to IdentityA as its second device.
     expect(nodeB.partyManager.identityManager.publicKey).toEqual(nodeA.partyManager.identityManager.publicKey);
 
-    // Expect that nodes A, B can replicate on IdentityA's Hub.
+    // Expect that nodes A, B can replicate on IdentityA's Halo.
     await checkReplication(identityKey.publicKey, nodes);
   }
 
@@ -63,11 +64,11 @@ const createTwoDeviceIdentity = async () => {
   // Both nodes should have the Identity and both Devices.
   await waitForExpect(() => {
     for (const node of nodes) {
-      const hub = node.partyManager.identityManager.identityHub;
+      const halo = node.partyManager.identityManager.halo;
       const identityKey = node.partyManager.identityManager.publicKey;
       const deviceKey = node.partyManager.identityManager.deviceManager.publicKey;
-      expect(hub.memberKeys.find(key => key.equals(identityKey)));
-      expect(hub.memberKeys.find(key => key.equals(deviceKey)));
+      expect(halo.memberKeys.find(key => key.equals(identityKey)));
+      expect(halo.memberKeys.find(key => key.equals(deviceKey)));
     }
   });
 
@@ -88,24 +89,32 @@ test('Initial device authorizes device which authorizes device', async () => {
 test('Identity having 2 devices in party with another identity having 2 devices', async () => {
   // nodeAA is initialized under IdentityA as its first device.
   // nodeAB is initialized under IdentityA as its second device.
-  const nodesA = await createTwoDeviceIdentity();
-  const [nodeAA] = nodesA;
+  const nodesA = await createTwoDeviceIdentity({ identityDisplayName: 'Alice' });
+  const [nodeAA, nodeAB] = nodesA;
 
   // nodeBA is initialized under IdentityB as its first device.
   // nodeBB is initialized under IdentityB as its second device.
-  const nodesB = await createTwoDeviceIdentity();
-  const [nodeBA] = nodesB;
+  const nodesB = await createTwoDeviceIdentity({ identityDisplayName: 'Bob' });
+  const [nodeBA, nodeBB] = nodesB;
   const allnodes = [...nodesA, ...nodesB];
 
   // nodeAA creates a Party.
   const party = await nodeAA.partyManager.createParty();
 
   // nodeAA invites B to the Party.
-  const invitation = await nodeAA.partyManager.inviteToParty(party.publicKey, pinSecretValidator, pinSecretProvider);
+  const invitation = await nodeAA.partyManager.inviteToParty(party.publicKey,
+    new InviteDetails(InviteType.INTERACTIVE, {
+      secretValidator: pinSecretValidator,
+      secretProvider: pinSecretProvider
+    }));
   await nodeBA.partyManager.joinParty(invitation, pinSecretProvider);
 
   // Expect that all the nodes can now replicate with each other.
   await checkReplication(party.publicKey, allnodes);
+
+  // Check contact info.
+  await checkContacts([nodeAA, nodeBA]);
+  await checkContacts([nodeAB, nodeBB]);
 
   // Expect that nodeC identifies messages posted by nodeA and nodeB as belonging to IdentityA
   await destroyNodes(allnodes);
@@ -114,7 +123,7 @@ test('Identity having 2 devices in party with another identity having 2 devices'
 test.skip('Initial device with unauthorized device', async () => {
   // nodeA is initialized under IdentityA as its first device.
   // nodeB is initialized as un-owned.
-  // Expect that nodeB can't access IdentityA's Hub, even if it knows IdentityA's public key.
+  // Expect that nodeB can't access IdentityA's Halo, even if it knows IdentityA's public key.
   // nodeA creates and joins a new Party.
   // Expect that nodeB can not access that Party.
 });

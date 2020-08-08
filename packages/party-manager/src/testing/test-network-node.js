@@ -1,5 +1,5 @@
 //
-// Copyright 2020 DxOS
+// Copyright 2020 DXOS.org
 //
 
 import assert from 'assert';
@@ -66,8 +66,8 @@ export class TestNetworkNode {
     await this.partyManager.initialize();
     log('Initialized PartyManager');
     if (this.partyManager.identityManager.hasIdentity()) {
-      const hasHub = await this.partyManager.identityManager.isInitialized();
-      if (!hasHub) {
+      const hasHalo = await this.partyManager.identityManager.isInitialized();
+      if (!hasHalo) {
         await this.partyManager.identityManager.initializeForNewIdentity(props);
         log('Initialized IdentityManager');
       }

@@ -1,19 +1,21 @@
 //
-// Copyright 2020 DxOS
+// Copyright 2020 DXOS.org
 //
 
 import assert from 'assert';
+import { Keyring } from '../keys';
 
 /**
  * Create `dxos.credentials.auth.Auth` credentials.
- * @param {Keyring} keyring
- * @param {PublicKey} partyKey
- * @param {KeyRecord} identityKey
- * @param {KeyRecord|KeyChain} deviceKey
- * @param {KeyRecord} [feedKey]
- * @returns {Message}
  */
-export const createAuthMessage = (keyring, partyKey, identityKey, deviceKey, feedKey) => {
+export const createAuthMessage = (
+  keyring: Keyring,
+  partyKey: PublicKey,
+  identityKey: KeyRecord,
+  deviceKey: KeyRecord | KeyChain,
+  feedKey?: KeyRecord,
+  nonce?: Buffer,
+): Message => {
   assert(keyring);
   assert(Buffer.isBuffer(partyKey));
   assert(Buffer.isBuffer(identityKey.publicKey));
@@ -36,6 +38,6 @@ export const createAuthMessage = (keyring, partyKey, identityKey, deviceKey, fee
         identityKey: identityKey.publicKey,
         deviceKey: deviceKey.publicKey,
         feedKey: feedKey ? feedKey.publicKey : undefined
-      }, signingKeys)
+      }, signingKeys, nonce)
   };
 };

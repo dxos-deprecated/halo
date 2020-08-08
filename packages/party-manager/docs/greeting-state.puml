@@ -1,0 +1,24 @@
+@startuml
+
+title Greeting responder states
+
+hide empty description
+
+[*] --> INITIALIZED
+
+INITIALIZED --> LISTENING : start()
+
+LISTENING --> CONNECTED : initiator has connected
+
+CONNECTED --> LISTENING : initiator fails
+CONNECTED --> SUCCEEDED
+
+SUCCEEDED : An initiator succeeded and has been admitted. 
+SUCCEEDED : Only one successful initiator is permitted
+
+SUCCEEDED --> STOPPED : stop()
+STOPPED --> DESTROYED : destroy()
+
+DESTROYED --> [*]
+
+@enduml

@@ -43,13 +43,13 @@ The first device is certified by the Identity Key and is the
 device on which the Identity Key was created. Devices form a certification DAG with the Identity Key as
 its root.
 
-## Identity Hub (change name)
-Each Identity has its own "Private Party" called a Hub that operates much like a "Public" Party. 
+## Halo
+Each Identity has its own "Private Party" called a Halo that operates much like a "Public" Party. 
 Its Party Key is the Identity Public Key.
 All the user's devices are admitted as members of this party via the PIN-auth Invite/Greet mechanism.
 Messages signed by the Identity Key and all Device Certification Messages 
-are published on the Hub in order for all devices to have
-access to them for re-publishing on Parties. The Hub also allows devices to all know
+are published on the Halo in order for all devices to have
+access to them for re-publishing on Parties. The Halo also allows devices to all know
 the set of Parties to which the Identity has been admitted, regardless of which device participated in the
 Invite/Greet process.
 

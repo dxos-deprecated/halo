@@ -1,5 +1,5 @@
 //
-// Copyright 2020 DxOS
+// Copyright 2020 DXOS.org
 //
 
 import assert from 'assert';
@@ -9,7 +9,7 @@ import EventEmitter from 'events';
 import { waitForEvent } from '@dxos/async';
 import {
   Greeter,
-  GreeterPlugin,
+  GreetingCommandPlugin,
   Keyring,
   KeyType,
   admitsKeys,
@@ -51,7 +51,7 @@ export class GreetingResponder extends EventEmitter {
   /** @type {Greeter} */
   _greeter;
 
-  /** @type {GreeterPlugin} */
+  /** @type {GreetingCommandPlugin} */
   _greeterPlugin;
 
   /** @type {Buffer} */
@@ -81,7 +81,7 @@ export class GreetingResponder extends EventEmitter {
       async messages => this._writeCredentialsToParty(messages),
       async () => this._gatherHints()
     );
-    this._greeterPlugin = new GreeterPlugin(this._swarmKey, this._greeter.createMessageHandler());
+    this._greeterPlugin = new GreetingCommandPlugin(this._swarmKey, this._greeter.createMessageHandler());
 
     this._state = GreetingState.INITIALIZED;
   }
@@ -205,8 +205,8 @@ export class GreetingResponder extends EventEmitter {
 
     const deviceKey = this._keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE }));
     const deviceKeyChain = Keyring.buildKeyChain(deviceKey.publicKey,
-      this._partyManager.identityManager.identityHub.memberCredentials,
-      this._partyManager.identityManager.identityHub.memberFeeds);
+      this._partyManager.identityManager.halo.memberCredentials,
+      this._partyManager.identityManager.halo.memberFeeds);
 
     const writeFeed = await this._partyManager.getWritableFeed(this._party.publicKey);
 

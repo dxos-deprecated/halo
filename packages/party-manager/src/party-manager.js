@@ -1,5 +1,5 @@
 //
-// Copyright 2020 DxOS
+// Copyright 2020 DXOS.org
 //
 
 import assert from 'assert';
@@ -20,20 +20,39 @@ import {
   createKeyAdmitMessage,
   createPartyGenesisMessage,
   createIdentityInfoMessage,
-  createDeviceInfoMessage
+  createDeviceInfoMessage,
+  createPartyInvitationMessage
 } from '@dxos/credentials';
+import { ObjectModel } from '@dxos/echo-db';
+import { ModelFactory } from '@dxos/model-factory';
 
 import { GreetingResponder } from './greeting-responder';
 import { GreetingInitiator } from './greeting-initiator';
 import { IdentityManager } from './identity-manager';
-import { InvitationDescriptor } from './invitation-descriptor';
+import { InvitationDescriptor, InvitationDescriptorType } from './invitation-descriptor';
+import { InviteType } from './invite-details';
 import { PartyInfo } from './party-info';
 import { PartyProcessor } from './party-processor';
 import { partyProtocolProvider } from './party-protocol-provider';
 import { waitForCondition } from './util';
+import { CONTACT_TYPE, ContactManager } from './contact-manager';
+import { PartyInvitationClaimer } from './party-invitation-claims';
 
 const log = debug('dxos:party-manager');
-const noop = () => {};
+
+// TODO(telackey): Figure out a better place to put this.
+const PARTY_PROPERTIES_TYPE = 'dxos.party.PartyProperties';
+const PARTY_SETTINGS_TYPE = 'dxos.halo.PartySettings';
+
+/**
+ * Flags representing the current state of a Party. Used to prevent things like double opens, double closes, etc.
+ */
+const PartyState = Object.freeze({
+  OPEN: 'OPEN',
+  OPENING: 'OPENING',
+  CLOSED: 'CLOSED',
+  CLOSING: 'CLOSING'
+});
 
 /**
  * @typedef SecretProvider
@@ -58,11 +77,10 @@ const noop = () => {};
  * @event PartyManager#'party:info:update' fires when PartyInfo is updated
  * @type {PublicKey}
  *
- * @event PartyManager#'@package:device:info' fires when a DeviceInfo message has been processed on the IdentityHub
+ * @event PartyManager#'@package:device:info' fires when a DeviceInfo message has been processed on the Halo
  * @type {DeviceInfo}
  *
- * @event PartyManager#'@package:identity:info' fires when an IdentityInfo message has been processed
- * on the IdentityHub
+ * @event PartyManager#'@package:identity:info' fires when an IdentityInfo message has been processed on the Halo
  * @type {IdentityInfo}
  *
  * @event PartyManager#'@package:identity:joinedparty' fires when a JoinedParty message has been processed
@@ -72,6 +90,10 @@ export class PartyManager extends EventEmitter {
   // The key is the hexlified PublicKey of the party.
   /** @type {Map<string, Party>} */
   _parties;
+
+  // The key is the hexlified PublicKey of the party.
+  /** @type {Map<string, PartyState>} */
+  _partyState;
 
   // The key is the hexlified PublicKey of the party.
   /** @type {Map<string, PartyInfo>} */
@@ -95,6 +117,15 @@ export class PartyManager extends EventEmitter {
   /** @type {PartyProcessor} */
   _partyProcessor;
 
+  /** @type {ModelFactory} */
+  _modelFactory;
+
+  /** @type {Map<string, Model>} */
+  _partyPropertyModels;
+
+  /** @type {Model} */
+  _partySettingsModel;
+
   /**
    *
    * @param {FeedStore} feedStore configured Feed Store
@@ -115,9 +146,20 @@ export class PartyManager extends EventEmitter {
     this._destroyed = false;
     this._initialized = false;
     this._parties = new Map();
+    this._partyState = new Map();
     this._partyInfoMap = new Map();
     this._partyProcessor = new PartyProcessor(this, this._feedStore, this._keyRing);
     this._identityManager = new IdentityManager(this);
+    this._contactManager = new ContactManager();
+
+    this._modelFactory = new ModelFactory(this._feedStore, {
+      onAppend: async (message, { topic }) => {
+        const feed = await this.getWritableFeed(keyToBuffer(topic));
+        return feed.append(message);
+      }
+    });
+
+    this._partyPropertyModels = new Map();
   }
 
   /**
@@ -161,7 +203,11 @@ export class PartyManager extends EventEmitter {
       }
     }
 
-    // Combine several events into a generic "update" event.
+    this._partyProcessor.once('@package:sync', () => {
+      this._contactManager.start();
+    });
+
+    // Combine several events into a generic 'update' event.
     {
       const eventNames = ['party', 'party:update', 'party:info', 'party:info:update'];
       for (const eventName of eventNames) {
@@ -173,18 +219,18 @@ export class PartyManager extends EventEmitter {
     await this._loadKnownPartyInfo();
 
     const hasIdentity = this._identityManager.hasIdentity();
-    const hasHub = await this._identityManager.isInitialized();
+    const hasHalo = await this._identityManager.isInitialized();
 
-    // Check if we are in a valid state regarding our Identity key and its associated Hub in the FeedStore.
-    if (hasIdentity && !hasHub && !this._keyRing.hasSecretKey(this._identityManager.keyRecord)) {
-      throw new Error('IdentityHub uninitialized, and no Identity secret key is present to initialize it.');
+    // Check if we are in a valid state regarding our Identity key and its associated Halo in the FeedStore.
+    if (hasIdentity && !hasHalo && !this._keyRing.hasSecretKey(this._identityManager.keyRecord)) {
+      throw new Error('Halo uninitialized, and no Identity secret key is present to initialize it.');
     }
 
     // Begin reading from the FeedStore.
     await this._partyProcessor.start();
 
-    // If we have an IdentityHub, wait for it to be processed as part of initialization.
-    if (hasHub) {
+    // If we have an Halo, wait for it to be processed as part of initialization.
+    if (hasHalo) {
       await this._identityManager.waitForIdentity();
     }
   }
@@ -193,16 +239,32 @@ export class PartyManager extends EventEmitter {
    * Cleanup, release resources.
    */
   async destroy () {
+    await this._contactManager.destroy();
+
     if (this._partyProcessor) {
+      this._partyProcessor.removeAllListeners();
       this._partyProcessor.destroy();
       this._partyProcessor = undefined;
     }
 
+    for await (const info of this._partyInfoMap.values()) {
+      info.removeAllListeners();
+    }
+
     for await (const party of this._parties.values()) {
+      party.removeAllListeners();
       await this.closeParty(party.publicKey);
     }
 
+    for await (const model of this._partyPropertyModels.values()) {
+      await model.destroy();
+    }
+
+    await this._partySettingsModel.destroy();
+
     this._destroyed = true;
+    this.emit('destroyed');
+    this.removeAllListeners();
   }
 
   /**
@@ -211,8 +273,8 @@ export class PartyManager extends EventEmitter {
    */
   async createParty () {
     this._assertValid();
-    const hasHub = await this._identityManager.isInitialized();
-    assert(hasHub, 'IdentityHub does not exist.');
+    const hasHalo = await this._identityManager.isInitialized();
+    assert(hasHalo, 'Halo does not exist.');
 
     // Make up a brand new key for the Party.
     const partyKey = await this._keyRing.createKeyRecord({ type: KeyType.PARTY });
@@ -237,20 +299,24 @@ export class PartyManager extends EventEmitter {
       throw new Error(`Unknown party: ${keyToString(partyKey)}`);
     }
 
-    if (party.isOpen()) {
-      log(`Opened party (already open): ${keyToString(partyKey)}`);
+    // Prevent opening while in the process of closing.
+    const currentState = await waitForCondition(() => {
+      const state = this._getPartyState(party);
+      return state !== PartyState.CLOSING ? state : undefined;
+    });
+
+    if (currentState === PartyState.OPEN || currentState === PartyState.OPENING) {
+      log(`openParty (already open or opening): ${keyToString(partyKey)}`);
       return;
     }
-
-    log(`Opened party: ${keyToString(partyKey)}`);
-    party.open();
+    this._setPartyState(party, PartyState.OPENING);
 
     const feed = await this.getWritableFeed(partyKey);
     const feedKey = this._keyRing.getKey(feed.key);
 
     let deviceKey;
-    if (this.isIdentityHub(party.publicKey)) {
-      // In the IdentityHub case, all we need is the Device's own key, so we can proceed immediately.
+    if (this.isHalo(party.publicKey)) {
+      // In the Halo case, all we need is the Device's own key, so we can proceed immediately.
       deviceKey = this._identityManager.deviceManager.keyRecord;
     } else {
       // For other parties, we need the whole keychain from the Device back to the Identity, so we may need to
@@ -271,10 +337,11 @@ export class PartyManager extends EventEmitter {
       partyProtocolProvider(
         this._identityManager.deviceManager.publicKey,
         credentials,
-        party
+        party,
+        this
       ));
 
-    this.emit('party:open', partyKey);
+    this._setPartyState(party, PartyState.OPEN);
   }
 
   /**
@@ -287,43 +354,72 @@ export class PartyManager extends EventEmitter {
     const party = this.getParty(partyKey);
     assert(party);
 
-    if (!party.isOpen()) {
-      log('Close party (already closed):', keyToString(partyKey));
+    // Prevent closing while in the process of opening.
+    const currentState = await waitForCondition(() => {
+      const state = this._getPartyState(party);
+      return state !== PartyState.OPENING ? state : undefined;
+    });
+
+    if (currentState === PartyState.CLOSING || currentState === PartyState.CLOSED) {
+      log(`closeParty (already closed or closing): ${keyToString(partyKey)}`);
       return;
     }
 
-    log('Close party:', keyToString(partyKey));
-    party.close();
-
+    this._setPartyState(party, PartyState.CLOSING);
     await this._networkManager.leaveProtocolSwarm(partyKey);
-    this.emit('party:close', partyKey);
+    this._setPartyState(party, PartyState.CLOSED);
   }
 
   /**
    * Issues an invitation to join a Party.
    * @param {PublicKey} partyKey
-   * @param {SecretValidator} secretValidator
-   * @param {SecretProvider} secretProvider
+   * @param {InviteDetails} inviteDetails
    * @param {InviteOptions} [options]
    * @returns {InvitationDescriptor}
    */
-  async inviteToParty (partyKey, secretValidator, secretProvider = noop, options = {}) {
+  async inviteToParty (partyKey, inviteDetails, options = {}) {
     this._assertValid();
     assert(this.hasParty(partyKey));
+
     const party = this.getParty(partyKey);
-
     const { onFinish, expiration } = options;
-    const responder = new GreetingResponder(party, this, this._keyRing, this._networkManager);
-    const swarmKey = await responder.start();
-    const invitation = await responder.invite(secretValidator, secretProvider, onFinish, expiration);
 
-    const logData = {
-      partyKey: keyToString(partyKey),
-      rendezvousKey: keyToString(swarmKey),
-      invitationId: keyToString(invitation)
-    };
-    log(`Created invitation to party: ${JSON.stringify(logData)}`);
-    return new InvitationDescriptor(swarmKey, invitation);
+    switch (inviteDetails.type) {
+      case InviteType.INTERACTIVE: {
+        const { secretValidator, secretProvider } = inviteDetails;
+        const responder = new GreetingResponder(party, this, this._keyRing, this._networkManager);
+        const swarmKey = await responder.start();
+        const invitation = await responder.invite(secretValidator, secretProvider, onFinish, expiration);
+
+        const logData = {
+          partyKey: keyToString(partyKey),
+          rendezvousKey: keyToString(swarmKey),
+          invitationId: keyToString(invitation)
+        };
+        log(`Created invitation to party: ${JSON.stringify(logData)}`);
+        return new InvitationDescriptor(InvitationDescriptorType.INTERACTIVE, swarmKey, invitation);
+      }
+      case InviteType.OFFLINE_KEY: {
+        if (onFinish || expiration) {
+          throw new Error('Invalid options, onFinish and expiration cannot be used with OFFLINE invitations.');
+        }
+
+        const { publicKey } = inviteDetails;
+        const writeStream = await this.getWritableStream(party.publicKey);
+        const invitationMessage = createPartyInvitationMessage(this._keyRing,
+          party.publicKey,
+          publicKey,
+          this.identityManager.keyRecord,
+          this.identityManager.deviceManager.keyChain
+        );
+        writeStream.write(invitationMessage);
+
+        return new InvitationDescriptor(InvitationDescriptorType.OFFLINE_KEY, party.publicKey,
+          invitationMessage.payload.signed.payload.id);
+      }
+      default:
+        throw new Error(`Unknown InviteType: ${inviteDetails.type}`);
+    }
   }
 
   /**
@@ -334,15 +430,25 @@ export class PartyManager extends EventEmitter {
    */
   async joinParty (invitationDescriptor, secretProvider) {
     this._assertValid();
+    const originalInvitation = invitationDescriptor;
 
     log(`Joining party with invitation id: ${keyToString(invitationDescriptor.invitation)}`);
+
+    if (InvitationDescriptorType.OFFLINE_KEY === invitationDescriptor.type) {
+      const invitationClaimer = new PartyInvitationClaimer(invitationDescriptor, this, this._networkManager);
+      await invitationClaimer.connect();
+      invitationDescriptor = await invitationClaimer.claim();
+      log(`Party invitation ${keyToString(originalInvitation.invitation)} triggered interactive Greeting`,
+        `at ${keyToString(invitationDescriptor.invitation)}`);
+      await invitationClaimer.destroy();
+    }
 
     const initiator = new GreetingInitiator(invitationDescriptor, this, this._keyRing, this._networkManager);
     await initiator.connect();
     const party = await initiator.redeemInvitation(secretProvider);
     await initiator.destroy();
 
-    if (!this.isIdentityHub(party.publicKey)) {
+    if (!this.isHalo(party.publicKey)) {
       await this._writeIdentityInfo(party);
       await this._recordPartyJoining(party);
     }
@@ -350,6 +456,57 @@ export class PartyManager extends EventEmitter {
     log(`Joined party: ${keyToString(party.publicKey)}`);
 
     return party;
+  }
+
+  /**
+   * Set one or more properties on the specified Party as key/value pairs.
+   * Expected properties include:
+   *    {String} displayName
+   * @param {PublicKey} partyKey
+   * @param {Object} properties
+   * @returns {Promise<void>}
+   */
+  async setPartyProperty (partyKey, properties) {
+    this._assertValid();
+    assert(Buffer.isBuffer(partyKey));
+    assert(properties);
+
+    // Both of these are expected to exist for any properly constructed Party.
+    const model = this._partyPropertyModels.get(keyToString(partyKey));
+    assert(model);
+
+    const item = this._getPartyPropertiesItem(partyKey);
+    assert(item);
+
+    model.updateItem(item.id, properties);
+  }
+
+  /**
+   * Unsubscribe to a Party (this Party must already exist and have previously been joined/created).
+   * @param partyKey
+   * @returns {Promise<void>}
+   */
+  async unsubscribe (partyKey) {
+    this._assertValid();
+
+    const item = this._getPartySettingsItem(partyKey);
+    assert(item);
+
+    this._partySettingsModel.updateItem(item.id, { subscribed: false });
+  }
+
+  /**
+   * Subscribe to a Party (this Party must already exist and have previously been joined/created).
+   * @param partyKey
+   * @returns {Promise<void>}
+   */
+  async subscribe (partyKey) {
+    this._assertValid();
+
+    const item = this._getPartySettingsItem(partyKey);
+    assert(item);
+
+    this._partySettingsModel.updateItem(item.id, { subscribed: true });
   }
 
   /**
@@ -372,7 +529,7 @@ export class PartyManager extends EventEmitter {
       cb();
     };
 
-    // Creates a WritableStream opened in objectMode which appends the "chunks" (in this case, objects) to our feed.
+    // Creates a WritableStream opened in objectMode which appends the 'chunks' (in this case, objects) to our feed.
     return miss.to.obj(write);
   }
 
@@ -447,14 +604,22 @@ export class PartyManager extends EventEmitter {
   }
 
   /**
-   * Is the specified Party key for the IdentityHub?
+   * Is the specified Party key for the Halo?
    * Only intended to be used by code in this package, not part of the public interface.
    * @package
    * @param {PublicKey} partyKey
    * @return {boolean}
    */
-  isIdentityHub (partyKey) {
+  isHalo (partyKey) {
     return this._identityManager.keyRecord && this._identityManager.publicKey.equals(partyKey);
+  }
+
+  /**
+   * Returns an Array of all known Contacts across all Parties.
+   * @returns {Contact[]}
+   */
+  async getContacts () {
+    return this._contactManager.getContacts();
   }
 
   /**
@@ -464,7 +629,7 @@ export class PartyManager extends EventEmitter {
    * @param {KeyRecord} admitKeyRecord
    * @param {Object} props
    * TODO(telackey): Implement display name.
-   * @property props.deviceDisplayName {string} When creating an Identity hub party, supplies the Device display name.
+   * @property props.deviceDisplayName {string} When creating an Identity halo party, supplies the Device display name.
    * @return {Party}
    */
   // TODO(telackey): Move out of this file.
@@ -478,14 +643,14 @@ export class PartyManager extends EventEmitter {
 
     // Create and open a Feed for this Party, and add it to the Keyring.
     const feed = await this.initWritableFeed(partyKeyRecord.publicKey);
-    const feedKey = await this._keyRing.getKey(feed.key);
+    const feedKey = this._keyRing.getKey(feed.key);
 
     const writeMessage = this._messageWriterFactory(feed);
 
     // Write the PARTY_GENESIS message to the feed.
     writeMessage(createPartyGenesisMessage, partyKeyRecord, feedKey, admitKeyRecord);
 
-    if (this.isIdentityHub(partyKeyRecord.publicKey)) {
+    if (this.isHalo(partyKeyRecord.publicKey)) {
       // 1. Write the IdentityGenesis message.
       writeMessage(createKeyAdmitMessage, this._identityManager.publicKey, this._identityManager.keyRecord);
       // 2. Write the IdentityInfo message.
@@ -498,7 +663,7 @@ export class PartyManager extends EventEmitter {
       writeMessage(createDeviceInfoMessage,
         deviceDisplayName || keyToString(this._identityManager.deviceManager.publicKey),
         this._identityManager.deviceManager.keyRecord);
-      log(`Created identity hub: ${partyKeyRecord.key}`);
+      log(`Created identity halo: ${partyKeyRecord.key}`);
     } else {
       // 1. Obtain the IdentityGenesis message (we should already have it...)
       assert(this._identityManager.identityGenesisMessage);
@@ -522,11 +687,13 @@ export class PartyManager extends EventEmitter {
     const party = this.getParty(partyKeyRecord.publicKey);
     assert(party);
 
-    if (!this.isIdentityHub(partyKeyRecord.publicKey)) {
+    if (!this.isHalo(partyKeyRecord.publicKey)) {
       // 4. If we have IdentityInfo, copy that over too.
       await this._writeIdentityInfo(party);
-      // 5. Write the JoinedParty message to the IdentityHub using the deviceKey.
+      // 5. Write the JoinedParty message to the Halo using the deviceKey.
       await this._recordPartyJoining(party);
+      // 6. Create and write the PartyProperties item for the Party.
+      await this._createPartyPropertiesItem(party);
     }
 
     return party;
@@ -639,9 +806,9 @@ export class PartyManager extends EventEmitter {
   }
 
   /**
-   * Package private method for loading a party initiated by hub message.
+   * Package private method for loading a party initiated by halo message.
    * If writeFeedAdmitMessage is true, and the Feed is created, a signed FeedAdmit message will be written
-   * to the Feed. This is needed when "auto-opening" a Party which was joined on another Device.
+   * to the Feed. This is needed when 'auto-opening' a Party which was joined on another Device.
    * @package
    * @param {PublicKey} partyKey
    * @param {boolean} [writeFeedAdmitMessage=false]
@@ -650,17 +817,15 @@ export class PartyManager extends EventEmitter {
   async initParty (partyKey, writeFeedAdmitMessage = false) {
     assert(!this.hasParty(partyKey));
 
-    let partyKeyRecord = this._keyRing.getKey(partyKey);
-
-    if (!partyKeyRecord) {
-      partyKeyRecord = await this._keyRing.addPublicKey({
+    if (!this._keyRing.hasKey(partyKey)) {
+      await this._keyRing.addPublicKey({
         publicKey: partyKey,
         type: KeyType.PARTY,
         own: false
       });
     }
 
-    if (!this.hasPartyInfo(partyKey) && !this.isIdentityHub(partyKey)) {
+    if (!this.hasPartyInfo(partyKey) && !this.isHalo(partyKey)) {
       await this._initPartyInfo(partyKey);
     }
 
@@ -682,15 +847,12 @@ export class PartyManager extends EventEmitter {
       });
     }
 
-    // TODO(telackey): Stop passing any Keyring to Party altogether.
-    const partyKeyring = new Keyring();
-    await partyKeyring.addPublicKey(partyKeyRecord);
-    const party = new Party(partyKey, partyKeyring);
+    const party = new Party(partyKey);
 
     // At the least, we trust ourselves.
-    // TODO(telackey): "Hints" are normally used in Greeting. We have a similar need here, but should these
-    // still be called "hints", or something else?
-    if (!this.isIdentityHub(partyKey)) {
+    // TODO(telackey): 'Hints' are normally used in Greeting. We have a similar need here, but should these
+    // still be called 'hints', or something else?
+    if (!this.isHalo(partyKey)) {
       await party.takeHints([
         { publicKey: this._identityManager.publicKey, type: KeyType.IDENTITY },
         { publicKey: feed.key, type: KeyType.FEED }
@@ -698,7 +860,7 @@ export class PartyManager extends EventEmitter {
     }
 
     // TODO(telackey): The only reason to save these keys to the main Keyring is to aid in recovery,
-    // so that we can know whom to trust without requiring "hints". However, that is useless without
+    // so that we can know whom to trust without requiring 'hints'. However, that is useless without
     // associating specific keys with specific Parties, something we no longer have since removing
     // the 'parties' attribute from the KeyRecords.
     const partyUpdate = async (keyRecord) => {
@@ -715,9 +877,49 @@ export class PartyManager extends EventEmitter {
     party.on('update:key', partyUpdate);
     party.on('admit:feed', partyUpdate);
 
-    this._parties.set(keyToString(partyKey), party);
+    const partyStr = keyToString(partyKey);
+    this._parties.set(partyStr, party);
     this.emit('party', partyKey);
     this.emit('party:update', partyKey);
+
+    const partyPropertyModel = await this._modelFactory.createModel(ObjectModel, {
+      type: PARTY_PROPERTIES_TYPE,
+      topic: partyStr
+    });
+
+    partyPropertyModel.on('update', async () => {
+      const partyInfo = this.getPartyInfo(partyKey);
+      const item = this._getPartyPropertiesItem(partyKey);
+      partyInfo.setProperties(item.properties);
+    });
+
+    this._partyPropertyModels.set(partyStr, partyPropertyModel);
+
+    if (this.isHalo(partyKey)) {
+      assert(!this._partySettingsModel);
+
+      this._partySettingsModel = await this._modelFactory.createModel(ObjectModel, {
+        type: PARTY_SETTINGS_TYPE,
+        topic: partyStr
+      });
+
+      this._partySettingsModel.on('update', async (_, messages) => {
+        for (const message of messages) {
+          const item = this._partySettingsModel.getItem(message.objectId);
+          assert(item);
+
+          const { partyKey, ...settings } = item.properties;
+          await waitForCondition(() => this.getPartyInfo(partyKey));
+          const info = this.getPartyInfo(partyKey);
+          info.setSettings(settings);
+        }
+      });
+
+      this._contactManager.setModel(await this._modelFactory.createModel(ObjectModel, {
+        type: CONTACT_TYPE,
+        topic: partyStr
+      }));
+    }
 
     return party;
   }
@@ -730,10 +932,27 @@ export class PartyManager extends EventEmitter {
    */
   async _initPartyInfo (partyKey) {
     assert(!this.hasPartyInfo(partyKey));
-    assert(!this.isIdentityHub(partyKey));
+    assert(!this.isHalo(partyKey));
 
     const info = new PartyInfo(partyKey, this);
-    info.on('update', () => this.emit('party:info:update', partyKey));
+    info.on('update', (member) => {
+      if (member && !member.isMe) {
+        this._contactManager.addContact(member);
+      }
+      this.emit('party:info:update', partyKey);
+    });
+
+    info.on('subscription', async () => {
+      const party = this.getParty(partyKey);
+      if (party) {
+        if (info.subscribed && !party.isOpen()) {
+          await this.openParty(partyKey);
+        } else if (!info.subscribed && party.isOpen()) {
+          await this.closeParty(partyKey);
+        }
+      }
+    });
+
     this._partyInfoMap.set(keyToString(partyKey), info);
     this.emit('party:info', partyKey);
     return info;
@@ -741,7 +960,7 @@ export class PartyManager extends EventEmitter {
 
   /**
    * Copies the IdentityInfo message (if present) into the target Party.
-   * @param party
+   * @param {Party} party
    * @returns {Promise<void>}
    * @private
    */
@@ -755,7 +974,20 @@ export class PartyManager extends EventEmitter {
   }
 
   /**
-   * Writes the JoinedParty informational message to the IdenityHub.
+   * Creates a PartyProperty object and writes it to the Party.
+   * @param {Party} party
+   * @param {Object} properties
+   * @returns {Promise<string>}
+   * @private
+   */
+  async _createPartyPropertiesItem (party, properties = {}) {
+    assert(party);
+    const model = await this._partyPropertyModels.get(keyToString(party.publicKey));
+    return model.createItem(PARTY_PROPERTIES_TYPE, properties);
+  }
+
+  /**
+   * Writes the JoinedParty informational message to the Halo.
    * @param {Party} party
    * @returns {Promise<void>}
    * @private
@@ -764,7 +996,7 @@ export class PartyManager extends EventEmitter {
     assert(party);
     const feed = await this.getWritableFeed(party.publicKey);
     const feedKey = this._keyRing.getKey(feed.key);
-    const hubFeed = await this.getWritableFeed(this._identityManager.publicKey);
+    const haloFeed = await this.getWritableFeed(this._identityManager.publicKey);
 
     const memberKeys = party.memberKeys.map(publicKey => {
       return {
@@ -780,12 +1012,17 @@ export class PartyManager extends EventEmitter {
       };
     });
 
-    hubFeed.append(createJoinedPartyMessage(
+    haloFeed.append(createJoinedPartyMessage(
       party.publicKey,
       this._identityManager.deviceManager.publicKey,
       feedKey.publicKey,
       [...memberKeys, ...memberFeeds]
     ));
+
+    this._partySettingsModel.createItem(PARTY_SETTINGS_TYPE, {
+      partyKey: party.publicKey,
+      subscribed: true
+    });
   }
 
   /**
@@ -800,10 +1037,105 @@ export class PartyManager extends EventEmitter {
       const { topic } = descriptor;
       if (topic && !this._partyInfoMap.has(topic)) {
         const partyKey = keyToBuffer(topic);
-        if (!this.isIdentityHub(partyKey)) {
+        if (!this.isHalo(partyKey)) {
           await this._initPartyInfo(partyKey);
         }
       }
     }
+  }
+
+  /**
+   * Get the PartyProperties item for the indicated Party.
+   * @param {PublicKey} partyKey
+   * @returns {undefined|{PartyProperties}}
+   * @private
+   */
+  _getPartyPropertiesItem (partyKey) {
+    this._assertValid();
+
+    const model = this._partyPropertyModels.get(keyToString(partyKey));
+    assert(model);
+
+    const objects = model.getObjectsByType(PARTY_PROPERTIES_TYPE);
+    if (!objects.length) {
+      log(`Expected one PartyProperties item, found ${objects.length}.`);
+      return undefined;
+    }
+
+    // TODO(telackey): There should only be one of these, but we will need to take steps to enforce that.
+    if (objects.length > 1) {
+      log(`Expected one PartyProperties item, found ${objects.length}.`);
+      objects.sort((a, b) => a.id.localeCompare(b.id));
+    }
+
+    return objects[0];
+  }
+
+  /**
+   * Get the PartySettings item for the indicated Party.
+   * @param {PublicKey} partyKey
+   * @returns {undefined|{PartySettings}}
+   * @private
+   */
+  _getPartySettingsItem (partyKey) {
+    this._assertValid();
+
+    return this._partySettingsModel.getObjectsByType(PARTY_SETTINGS_TYPE)
+      .find(item => partyKey.equals(item.properties.partyKey));
+  }
+
+  /**
+   * Retrieve the PartyState of the indicated Party.
+   * @param {Party} party
+   * @returns {PartyState}
+   * @private
+   */
+  _getPartyState (party) {
+    this._assertValid();
+    assert(party);
+
+    return this._partyState.get(keyToString(party.publicKey)) || PartyState.CLOSED;
+  }
+
+  /**
+   * Set the PartyState of the indicated Party.
+   * @param {Party} party
+   * @param {PartyState} state
+   * @returns {{before: PartyState, after: PartyState}}
+   * @private
+   */
+  _setPartyState (party, state) {
+    this._assertValid();
+    assert(party);
+    assert(state);
+
+    const partyKey = party.publicKey;
+    const partyKeyStr = keyToString(partyKey);
+
+    const before = this._getPartyState(party);
+    if (before === state) {
+      log(`Party ${partyKeyStr} already ${state}`);
+      return { before, after: state };
+    }
+
+    this._partyState.set(partyKeyStr, state);
+
+    switch (state) {
+      case PartyState.OPEN:
+        party.open();
+        this.emit('party:open', partyKey);
+        break;
+      case PartyState.CLOSED:
+        party.close();
+        this.emit('party:close', partyKey);
+        break;
+    }
+
+    log(`Party ${partyKeyStr} ${state} (${before})`);
+
+    return {
+      before,
+      after: state
+    };
   }
 }

@@ -1,5 +1,5 @@
 //
-// Copyright 2020 DxOS
+// Copyright 2020 DXOS.org
 //
 
 import assert from 'assert';
@@ -66,7 +66,7 @@ export class IdentityManager extends EventEmitter {
   /**
    * @return {Party}
    */
-  get identityHub () {
+  get halo () {
     return this.hasIdentity() ? this._partyManager.getParty(this.publicKey) : undefined;
   }
 
@@ -85,8 +85,8 @@ export class IdentityManager extends EventEmitter {
    * @returns {Message}
    */
   get identityGenesisMessage () {
-    return this.identityHub
-      ? this.identityHub.memberCredentials.get(this.keyRecord.key)
+    return this.halo
+      ? this.halo.memberCredentials.get(this.keyRecord.key)
       : undefined;
   }
 
@@ -113,7 +113,7 @@ export class IdentityManager extends EventEmitter {
   }
 
   /**
-   * Test if an identity hub has been configured.
+   * Test if an identity halo has been configured.
    * @return {boolean}
    */
   async isInitialized () {
@@ -146,16 +146,16 @@ export class IdentityManager extends EventEmitter {
   }
 
   /**
-   * Creates an IdentityHub.
+   * Creates an Halo.
    */
   // TODO(dboreham): Better name for this method.
   async initializeForNewIdentity (props = {}) {
     assert(this.keyRecord);
     assert(this.deviceManager.keyRecord);
-    const hasHub = await this.isInitialized();
-    assert(!hasHub, 'IdentityHub already exists');
+    const hasHalo = await this.isInitialized();
+    assert(!hasHalo, 'Halo already exists');
 
-    // Create base identity hub party.
+    // Create base identity halo party.
     const party = await this._partyManager._createParty(this.keyRecord, this.deviceManager.keyRecord, props);
     await this.waitForIdentity();
 
@@ -164,19 +164,19 @@ export class IdentityManager extends EventEmitter {
   }
 
   /**
-   * Returns a Promise that resolves when the IdentityHub has been opened and all the messages needed for the
+   * Returns a Promise that resolves when the Halo has been opened and all the messages needed for the
    * current device's KeyChain have been processed.
    * @returns {Promise<*>}
    * @package
    */
   async waitForIdentity () {
-    const hasHub = await this.isInitialized();
-    if (!hasHub) {
+    const hasHalo = await this.isInitialized();
+    if (!hasHalo) {
       return Promise.resolve();
     }
 
     return Promise.all([
-      waitForCondition(() => this.identityHub),
+      waitForCondition(() => this.halo),
       waitForCondition(() => this.identityGenesisMessage),
       waitForCondition(() => this.deviceManager.keyChain)
     ]);

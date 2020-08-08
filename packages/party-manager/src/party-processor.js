@@ -1,5 +1,5 @@
 //
-// Copyright 2020 DxOS
+// Copyright 2020 DXOS.org
 //
 
 import assert from 'assert';
@@ -18,7 +18,8 @@ import {
   isIdentityInfoMessage,
   isIdentityMessage,
   isJoinedPartyMessage,
-  isPartyCredentialMessage
+  isPartyCredentialMessage,
+  isPartyInvitationMessage
 } from '@dxos/credentials';
 
 import { waitForCondition } from './util';
@@ -42,6 +43,9 @@ const log = debug('dxos:party-manager:party-processor');
  * @type {IdentityInfo}
  *
  * @event PartyProcessor#'@package:identity:joinedparty' fires when a JoinedParty message has been processed.
+ * @type {PublicKey}
+ *
+ * @event PartyProcessor#'@package:sync' fires whenever the underlying message stream fires a 'sync' event.
  * @type {PublicKey}
  *
  * @event PartyProcessor#'@private:party:message' fires when any PartyCredentialMessage has been processed.
@@ -99,7 +103,11 @@ export class PartyProcessor extends EventEmitter {
     // Open a "fat" stream over all the Feeds in the store.
     // TODO(telackey): Would we ever need some start position other than 0?
     this._messageStream = this._feedStore.createReadStream(() => {
-      return { live: true, start: 0, feedStoreInfo: true };
+      return { live: true, start: 0 };
+    });
+
+    this._messageStream.on('sync', () => {
+      this.emit('@package:sync');
     });
 
     this._messageStream.on('data', async (streamData) => {
@@ -114,6 +122,8 @@ export class PartyProcessor extends EventEmitter {
         const partyKey = keyToBuffer(metadata.topic);
         const message = data; // TODO(dboreham): Hack.
         if (isPartyCredentialMessage(message)) {
+          await this._processPartyMessage(partyKey, message);
+        } else if (isPartyInvitationMessage(message)) {
           await this._processPartyMessage(partyKey, message);
         } else if (isIdentityMessage(message)) {
           await this._processIdentityMessage(partyKey, message);
@@ -204,26 +214,25 @@ export class PartyProcessor extends EventEmitter {
   }
 
   /**
-   * Processes a single IdentityHub IdentityInfo or DeviceInfo message.
+   * Processes a single Halo IdentityInfo or DeviceInfo message.
    * @param {PublicKey} partyKey
    * @param {Message} message
    * @return {Promise<*>}
    * @private
    */
-  async _processIdentityHubMessage (partyKey, message) {
+  async _processHaloMessage (partyKey, message) {
     assert(isIdentityMessage(message));
     assert(isDeviceInfoMessage(message) || isIdentityInfoMessage(message));
-    assert(this._partyManager.isIdentityHub(partyKey));
+    assert(this._partyManager.isHalo(partyKey));
 
     const { payload: signedMessage, payload: { signed: { payload: info } } } = message;
 
     const processThisMessage = async () => {
-      const hub = this._partyManager.identityManager.identityHub;
-      if (!hub || !hub.isMemberKey(info.publicKey)) {
+      const halo = this._partyManager.identityManager.halo;
+      if (!halo || !halo.isMemberKey(info.publicKey)) {
         return false;
       }
-      const keyring = await hub.getKeyringForMembers();
-      if (keyring.verify(signedMessage)) {
+      if (halo.keyring.verify(signedMessage)) {
         if (isDeviceInfoMessage(message)) {
           this._partyManager.identityManager.deviceManager.setDeviceInfo(info);
           this.emit('@package:device:info', info);
@@ -241,9 +250,9 @@ export class PartyProcessor extends EventEmitter {
       this.emit('@private:identity:message', partyKey, message);
     } else {
       // Looks like an out-of-order message. Set a self-canceling listener to process it as soon as we are ready.
-      log('Not ready to process IdentityHub message yet, delaying:', JSON.stringify(message));
+      log('Not ready to process Halo message yet, delaying:', JSON.stringify(message));
       this.__processWhenReady(partyKey, processThisMessage).then(() => {
-        log('Processed delayed IdentityHub message:', JSON.stringify(message));
+        log('Processed delayed Halo message:', JSON.stringify(message));
         this.emit('@private:identity:message', partyKey, message);
       });
     }
@@ -259,7 +268,7 @@ export class PartyProcessor extends EventEmitter {
   async _processJoinedParty (partyKey, message) {
     assert(Buffer.isBuffer(partyKey));
     assert(isJoinedPartyMessage(message));
-    assert(this._partyManager.isIdentityHub(partyKey));
+    assert(this._partyManager.isHalo(partyKey));
 
     const { payload: { partyKey: targetParty, deviceKey, feedKey, hints = [] } } = message;
 
@@ -273,7 +282,7 @@ export class PartyProcessor extends EventEmitter {
         { publicKey: feedKey, type: KeyType.FEED }
       ]);
 
-      if (!party.isOpen()) {
+      if (this._needsOpen(party)) {
         // Opening the Party may require credential messages that are still in our queue to process,
         // so do not 'await' on the opening here.
         // TODO(telackey): This promise will need to be saved when we implement full party life cycle support.
@@ -296,10 +305,10 @@ export class PartyProcessor extends EventEmitter {
   async _processIdentityMessage (partyKey, message) {
     assert(isIdentityMessage(message));
 
-    if (this._partyManager.isIdentityHub(partyKey)) {
+    if (this._partyManager.isHalo(partyKey)) {
       return isJoinedPartyMessage(message)
         ? this._processJoinedParty(partyKey, message)
-        : this._processIdentityHubMessage(partyKey, message);
+        : this._processHaloMessage(partyKey, message);
     }
     if (isIdentityInfoMessage(message)) {
       const { payload: signedMessage, payload: { signed: { payload: info } } } = message;
@@ -312,8 +321,7 @@ export class PartyProcessor extends EventEmitter {
           return false;
         }
 
-        const keyring = await party.getKeyringForMembers();
-        if (keyring.verify(signedMessage)) {
+        if (party.keyring.verify(signedMessage)) {
           const memberInfo = partyInfo.members.find(member => member.publicKey.equals(info.publicKey));
           memberInfo.setDisplayName(info.displayName);
         } else {
@@ -345,15 +353,18 @@ export class PartyProcessor extends EventEmitter {
    * @private
    */
   async _processPartyMessage (partyKey, message) {
-    assert(isPartyCredentialMessage(message));
-    {
-      // Check that the Party from the Feed and the Party in the message match.
+    if (isPartyCredentialMessage(message)) {
       const { payload: { signed: { payload: { contents: { partyKey: messagePartyKey } } } } } = message;
       assert(partyKey.equals(messagePartyKey), 'Mismatched party key.');
+    } else if (isPartyInvitationMessage(message)) {
+      const { payload: { signed: { payload: { partyKey: messagePartyKey } } } } = message;
+      assert(partyKey.equals(messagePartyKey), 'Mismatched party key.');
+    } else {
+      throw new Error(`Wrong message type: ${message}`);
     }
 
     const party = await this._safeGetOrInitParty(partyKey);
-    if (!party.isOpen()) {
+    if (this._needsOpen(party)) {
       // Opening the Party may require credential messages that are still in our queue to process,
       // so do not 'await' on the opening here.
       // TODO(telackey): This promise will need to be saved when we implement full party life cycle support.
@@ -363,8 +374,8 @@ export class PartyProcessor extends EventEmitter {
     }
 
     // We can always process the GENESIS right away.
-    const messageType = getPartyCredentialMessageType(message);
-    if (messageType === PartyCredential.Type.PARTY_GENESIS) {
+    const credentialType = isPartyCredentialMessage(message) && getPartyCredentialMessageType(message);
+    if (credentialType === PartyCredential.Type.PARTY_GENESIS) {
       await party.processMessages([message]);
       this.emit('@private:party:message', partyKey, message);
       return;
@@ -377,7 +388,7 @@ export class PartyProcessor extends EventEmitter {
           await party.processMessages([message]);
 
           // If this is a FEED, update the PartyMemberInfo of the owner to include it in their "feeds" list.
-          if (!this._partyManager.isIdentityHub(partyKey) && messageType === PartyCredential.Type.FEED_ADMIT) {
+          if (!this._partyManager.isHalo(partyKey) && credentialType === PartyCredential.Type.FEED_ADMIT) {
             const [feedKey] = admitsKeys(message);
             const admittedBy = party.getAdmittedBy(feedKey);
             if (!admittedBy.equals(partyKey)) {
@@ -408,5 +419,21 @@ export class PartyProcessor extends EventEmitter {
         this.emit('@private:party:message', partyKey, message);
       });
     }
+  }
+
+  /**
+   * Does this Party need to be opened?
+   * @param {Party} party
+   * @returns {boolean}
+   * @private
+   */
+  _needsOpen (party) {
+    let needsOpen = !party.isOpen();
+    // Always open the Halo, but for everything else we can check the subscription status.
+    if (needsOpen && !this._partyManager.isHalo(party.publicKey)) {
+      const info = this._partyManager.getPartyInfo(party.publicKey);
+      needsOpen = info.subscribed;
+    }
+    return needsOpen;
   }
 }

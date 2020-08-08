@@ -1,5 +1,5 @@
 //
-// Copyright 2020 DxOS
+// Copyright 2020 DXOS.org
 //
 
 import waitForExpect from 'wait-for-expect';
@@ -7,6 +7,7 @@ import waitForExpect from 'wait-for-expect';
 import { createId, keyToString } from '@dxos/crypto';
 import { Keyring, KeyType } from '@dxos/credentials';
 
+import { InviteDetails, InviteType } from '../invite-details';
 import { TestModel } from './test-model';
 import { TestNetworkNode } from './test-network-node';
 
@@ -37,18 +38,20 @@ export const checkReplication = async (partyKey, nodes) => {
   }
 
   // And then check that each one has every message.
-  for await (const model of models) {
-    await waitForExpect(() => {
-      const messages = model.messages.map(message => message.value);
-      for (const value of values) {
-        expect(messages).toContain(value);
-      }
-    }, 5000);
-  }
-
-  for await (const model of models) {
-    // TODO(dboreham): This call isn't async which seems odd: how do we know it is closed?
-    model.destroy();
+  try {
+    for await (const model of models) {
+      await waitForExpect(() => {
+        const messages = model.messages.map(message => message.value);
+        for (const value of values) {
+          expect(messages).toContain(value);
+        }
+      }, 2000);
+    }
+  } finally {
+    for await (const model of models) {
+      // TODO(dboreham): This call isn't async which seems odd: how do we know it is closed?
+      model.destroy();
+    }
   }
 };
 
@@ -75,6 +78,29 @@ export const checkPartyInfo = async (partyKey, nodes) => {
           expect(them.isMe).toBe(false);
           expect(them.feeds.length).toBe(other.partyManager.identityManager.deviceManager.devices.length);
           expect(them.displayName).toEqual(other.partyManager.identityManager.displayName);
+        }
+      }
+    });
+  }
+};
+
+/**
+ * Makes sure the Contact details match what is expected across all nodes.
+ */
+export const checkContacts = async (nodes) => {
+  for await (const node of nodes) {
+    await waitForExpect(async () => {
+      const contacts = await node.partyManager.getContacts();
+      const expectedContacts = nodes.length - 1;
+      if (contacts.length > expectedContacts) {
+        console.warn(contacts);
+      }
+      expect(contacts.length).toEqual(expectedContacts);
+      for (const other of nodes) {
+        if (other !== node) {
+          const match = contacts.find(contact => contact.publicKey.equals(other.partyManager.identityManager.publicKey));
+          expect(match).toBeTruthy();
+          expect(match.displayName).toEqual(other.partyManager.identityManager.displayName);
         }
       }
     });
@@ -117,7 +143,10 @@ export const addNodeToParty = async (party, nodes) => {
   const inviteeSecretProvider = async () => Buffer.from(secret);
 
   const invitation = await nodes[nodes.length - 1].partyManager.inviteToParty(party.publicKey,
-    greeterSecretProvider, greeterSecretValidator);
+    new InviteDetails(InviteType.INTERACTIVE, {
+      secretProvider: greeterSecretProvider,
+      secretValidator: greeterSecretValidator
+    }));
 
   // And then redeem it on nodeB.
   await node.partyManager.joinParty(invitation, inviteeSecretProvider);
