@@ -1,2 +1,3 @@
-# halo
-HALO
+# HALO
+
+DXOS Identity and Access Control.
