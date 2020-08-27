@@ -18,7 +18,7 @@ import { Command } from './constants';
 
 const log = debug('dxos:creds:greet:plugin'); // eslint-disable-line no-unused-vars
 
-const EXTENSION_NAME = 'dxos.credentials.greeting';
+const EXTENSION_NAME = 'dxos.halo.credentials.greeting';
 const DEFAULT_TIMEOUT = 30000;
 
 const getPeerId = (protocol) => {
@@ -112,7 +112,7 @@ export class GreetingCommandPlugin extends EventEmitter {
     log('Sent request to %s: %o', peerIdStr, message);
 
     const encoded = codec.encode({
-      __type_url: 'dxos.credentials.Message',
+      __type_url: 'dxos.halo.HaloEnvelope',
       payload: message
     });
 

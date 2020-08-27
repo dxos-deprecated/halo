@@ -424,7 +424,7 @@ export class Keyring {
     });
 
     return canonicalStringify({
-      __type_url: 'dxos.credentials.keys.Keyring',
+      __type_url: 'dxos.halo.credentials.keys.Keyring',
       keys
     });
   }

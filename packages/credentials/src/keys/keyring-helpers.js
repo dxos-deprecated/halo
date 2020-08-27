@@ -179,7 +179,7 @@ export const signMessage = (message, keys, keyChainMap, nonce, created) => {
   });
 
   return {
-    __type_url: 'dxos.credentials.SignedMessage',
+    __type_url: 'dxos.halo.SignedMessage',
     signed,
     signatures
   };

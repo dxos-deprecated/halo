@@ -178,9 +178,9 @@ export class Greeter {
     await invitation.begin();
 
     return {
-      __type_url: 'dxos.credentials.Message',
+      __type_url: 'dxos.halo.HaloEnvelope',
       payload: {
-        __type_url: 'dxos.credentials.greet.BeginResponse',
+        __type_url: 'dxos.halo.credentials.greet.BeginResponse',
         info: {
           id: {
             __type_url: 'google.protobuf.BytesValue',
@@ -202,9 +202,9 @@ export class Greeter {
 
     await invitation.handshake();
     return {
-      __type_url: 'dxos.credentials.Message',
+      __type_url: 'dxos.halo.HaloEnvelope',
       payload: {
-        __type_url: 'dxos.credentials.greet.HandshakeResponse',
+        __type_url: 'dxos.halo.credentials.greet.HandshakeResponse',
         partyKey: invitation.partyKey,
         nonce: invitation.nonce
       }
@@ -247,9 +247,9 @@ export class Greeter {
 
     await invitation.notarize();
     return {
-      __type_url: 'dxos.credentials.Message',
+      __type_url: 'dxos.halo.HaloEnvelope',
       payload: {
-        __type_url: 'dxos.credentials.greet.NotarizeResponse',
+        __type_url: 'dxos.halo.credentials.greet.NotarizeResponse',
         copies,
         hints
       }

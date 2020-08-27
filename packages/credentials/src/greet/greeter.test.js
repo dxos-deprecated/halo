@@ -52,7 +52,7 @@ test('Good invitation', async () => {
   {
     const message = validate({
       payload: {
-        __type_url: 'dxos.credentials.greet.Command',
+        __type_url: 'dxos.halo.credentials.greet.Command',
         command: Command.Type.BEGIN
       }
     });
@@ -67,7 +67,7 @@ test('Good invitation', async () => {
   {
     const message = validate({
       payload: {
-        __type_url: 'dxos.credentials.greet.Command',
+        __type_url: 'dxos.halo.credentials.greet.Command',
         command: Command.Type.HANDSHAKE,
         secret: await secretProvider()
       }
@@ -86,7 +86,7 @@ test('Good invitation', async () => {
   {
     const message = {
       payload: {
-        __type_url: 'dxos.credentials.greet.Command',
+        __type_url: 'dxos.halo.credentials.greet.Command',
         command: Command.Type.NOTARIZE,
         secret: await secretProvider(),
         params: [
@@ -109,7 +109,7 @@ test('Good invitation', async () => {
     {
       const message = validate({
         payload: {
-          __type_url: 'dxos.credentials.greet.Command',
+          __type_url: 'dxos.halo.credentials.greet.Command',
           command: Command.Type.FINISH,
           secret: await secretProvider()
         }
@@ -134,7 +134,7 @@ test('Bad invitation secret', async (done) => {
   {
     const message = validate({
       payload: {
-        __type_url: 'dxos.credentials.greet.Command',
+        __type_url: 'dxos.halo.credentials.greet.Command',
         command: Command.Type.BEGIN
       }
     });
@@ -146,7 +146,7 @@ test('Bad invitation secret', async (done) => {
   {
     const message = validate({
       payload: {
-        __type_url: 'dxos.credentials.greet.Command',
+        __type_url: 'dxos.halo.credentials.greet.Command',
         command: Command.Type.HANDSHAKE,
         secret: Buffer.from('wrong')
       }
@@ -176,7 +176,7 @@ test('Attempt to re-use invitation', async (done) => {
   {
     const message = validate({
       payload: {
-        __type_url: 'dxos.credentials.greet.Command',
+        __type_url: 'dxos.halo.credentials.greet.Command',
         command: Command.Type.BEGIN
       }
     });
@@ -188,7 +188,7 @@ test('Attempt to re-use invitation', async (done) => {
   {
     const message = validate({
       payload: {
-        __type_url: 'dxos.credentials.greet.Command',
+        __type_url: 'dxos.halo.credentials.greet.Command',
         command: Command.Type.HANDSHAKE,
         secret: await secretProvider()
       }
@@ -203,7 +203,7 @@ test('Attempt to re-use invitation', async (done) => {
   {
     const message = {
       payload: {
-        __type_url: 'dxos.credentials.greet.Command',
+        __type_url: 'dxos.halo.credentials.greet.Command',
         command: Command.Type.NOTARIZE,
         secret: await secretProvider(),
         params: [
@@ -258,9 +258,9 @@ test('WellKnownType params - BytesValue', async () => {
   const value = randomBytes();
 
   const command = validate({
-    __type_url: 'dxos.credentials.Message',
+    __type_url: 'dxos.halo.HaloEnvelope',
     payload: {
-      __type_url: 'dxos.credentials.greet.Command',
+      __type_url: 'dxos.halo.credentials.greet.Command',
       command: Command.Type.CLAIM,
       secret: Buffer.from('123'),
       params: [

@@ -66,8 +66,8 @@ export class PartyAuthenticator extends Authenticator {
    * @param credentials
    * @returns {boolean} true if authenticated, else false
    */
-  // TODO(dboreham): verify that credentials is a message of type dxos.credentials.SignedMessage signing a
-  //  message of type dxos.credentials.auth.Auth.
+  // TODO(dboreham): verify that credentials is a message of type dxos.halo.SignedMessage signing a
+  //  message of type dxos.halo.credentials.auth.Auth.
   async authenticate (credentials) {
     assert(credentials);
 

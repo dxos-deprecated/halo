@@ -7,7 +7,7 @@
 import { codec } from '../proto';
 
 export const KeyType = Object.freeze({
-  ...codec.getType('dxos.credentials.party.KeyType').values
+  ...codec.getType('dxos.halo.credentials.party.KeyType').values
 });
 
 export const keyTypeName = (keyType) => {

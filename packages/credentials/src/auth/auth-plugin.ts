@@ -15,7 +15,7 @@ import { PartyAuthenticator, Authenticator } from './authenticator';
 
 const log = debug('dxos:creds:auth');
 
-const EXTENSION_NAME = 'dxos.credentials.auth';
+const EXTENSION_NAME = 'dxos.halo.credentials.auth';
 
 /**
  * A Protocol extension to require nodes to be authenticated during handshake before being allowed to replicate.

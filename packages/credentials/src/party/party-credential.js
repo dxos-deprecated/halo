@@ -14,7 +14,7 @@ import { randomBytes } from '@dxos/crypto';
 // TODO(burdon): Use generated classes.
 export const PartyCredential = {
   Type: Object.freeze({
-    ...codec.getType('dxos.credentials.party.PartyCredential.Type').values
+    ...codec.getType('dxos.halo.credentials.party.PartyCredential.Type').values
   })
 };
 
@@ -22,7 +22,7 @@ export const PartyCredential = {
 // This needs to be done with a model filter that allows reaching into the signed message
 // to determine the signed payload message type.
 // Define current model type here to remove multiple definitions in various other places
-export const partyModelType = () => 'dxos.credentials.Message';
+export const partyModelType = () => 'dxos.halo.HaloEnvelope';
 
 /**
  * The start-of-authority record for the Party, admitting a single key (usually a identity) and a single feed.
@@ -43,10 +43,10 @@ export const createPartyGenesisMessage = (keyring, partyKeyPair, feedKeyPair, ad
   assert(typeof admitKeyPair.type !== 'undefined');
 
   const message = {
-    __type_url: 'dxos.credentials.party.PartyCredential',
+    __type_url: 'dxos.halo.credentials.party.PartyCredential',
     type: PartyCredential.Type.PARTY_GENESIS,
     contents: {
-      __type_url: 'dxos.credentials.party.PartyGenesis',
+      __type_url: 'dxos.halo.credentials.party.PartyGenesis',
       partyKey: partyKeyPair.publicKey,
       feedKey: feedKeyPair.publicKey,
       admitKey: admitKeyPair.publicKey,
@@ -56,7 +56,7 @@ export const createPartyGenesisMessage = (keyring, partyKeyPair, feedKeyPair, ad
 
   // TODO(burdon): Use any from codec-protobuf.
   return {
-    __type_url: 'dxos.credentials.Message',
+    __type_url: 'dxos.halo.HaloEnvelope',
     payload: keyring.sign(message, [partyKeyPair, feedKeyPair, admitKeyPair])
   };
 };
@@ -84,10 +84,10 @@ export const createKeyAdmitMessage = (keyring, partyKey, admitKeyPair, signingKe
   }
 
   const message = {
-    __type_url: 'dxos.credentials.party.PartyCredential',
+    __type_url: 'dxos.halo.credentials.party.PartyCredential',
     type: PartyCredential.Type.KEY_ADMIT,
     contents: {
-      __type_url: 'dxos.credentials.party.KeyAdmit',
+      __type_url: 'dxos.halo.credentials.party.KeyAdmit',
       partyKey,
       admitKey: admitKeyPair.publicKey,
       admitKeyType: admitKeyPair.type
@@ -95,7 +95,7 @@ export const createKeyAdmitMessage = (keyring, partyKey, admitKeyPair, signingKe
   };
 
   return {
-    __type_url: 'dxos.credentials.Message',
+    __type_url: 'dxos.halo.HaloEnvelope',
     payload: keyring.sign(message, [admitKeyPair, ...signingKeys], nonce)
   };
 };
@@ -121,17 +121,17 @@ export const createFeedAdmitMessage = (keyring, partyKey, feedKeyPair, signingKe
   }
 
   const message = {
-    __type_url: 'dxos.credentials.party.PartyCredential',
+    __type_url: 'dxos.halo.credentials.party.PartyCredential',
     type: PartyCredential.Type.FEED_ADMIT,
     contents: {
-      __type_url: 'dxos.credentials.party.FeedAdmit',
+      __type_url: 'dxos.halo.credentials.party.FeedAdmit',
       partyKey,
       feedKey: feedKeyPair.publicKey
     }
   };
 
   return {
-    __type_url: 'dxos.credentials.Message',
+    __type_url: 'dxos.halo.HaloEnvelope',
     payload: keyring.sign(message, [feedKeyPair, ...signingKeys], nonce)
   };
 };
@@ -161,18 +161,18 @@ export const createEnvelopeMessage = (keyring, partyKey, contents, signingKeys =
   }
 
   // The contents are always a Message.
-  if (contents.__type_url !== 'dxos.credentials.Message') {
+  if (contents.__type_url !== 'dxos.halo.HaloEnvelope') {
     contents = {
-      __type_url: 'dxos.credentials.Message',
+      __type_url: 'dxos.halo.HaloEnvelope',
       payload: contents
     };
   }
 
   const message = {
-    __type_url: 'dxos.credentials.party.PartyCredential',
+    __type_url: 'dxos.halo.credentials.party.PartyCredential',
     type: PartyCredential.Type.ENVELOPE,
     contents: {
-      __type_url: 'dxos.credentials.party.Envelope',
+      __type_url: 'dxos.halo.credentials.party.Envelope',
       partyKey,
       contents
     }
@@ -180,7 +180,7 @@ export const createEnvelopeMessage = (keyring, partyKey, contents, signingKeys =
 
   // TODO(burdon): This probably shouldn't be wrapped in a Message.
   return {
-    __type_url: 'dxos.credentials.Message',
+    __type_url: 'dxos.halo.HaloEnvelope',
     payload: keyring.sign(message, [...signingKeys], nonce) // TODO(burdon): Why copy the array? (Above too).
   };
 };
@@ -193,8 +193,8 @@ export const createEnvelopeMessage = (keyring, partyKey, contents, signingKeys =
 export const isPartyCredentialMessage = (message) => {
   const payloadType = get(message, 'payload.__type_url');
   const signedType = get(message, 'payload.signed.payload.__type_url');
-  return payloadType === 'dxos.credentials.SignedMessage' &&
-    signedType === 'dxos.credentials.party.PartyCredential';
+  return payloadType === 'dxos.halo.SignedMessage' &&
+    signedType === 'dxos.halo.credentials.party.PartyCredential';
 };
 
 /**
@@ -265,7 +265,7 @@ export const admitsKeys = (message) => {
 };
 
 /**
- * Create a `dxos.credentials.party.PartyInvitation` message.
+ * Create a `dxos.halo.credentials.party.PartyInvitation` message.
  * @param {Keyring} keyring
  * @param {PublicKey} partyKey
  * @param {PublicKey} inviteeKey
@@ -285,10 +285,10 @@ export const createPartyInvitationMessage = (keyring, partyKey, inviteeKey, issu
   assert(keyring.hasSecretKey(signingKey));
 
   return {
-    __type_url: 'dxos.credentials.Message',
+    __type_url: 'dxos.halo.HaloEnvelope',
     payload:
       keyring.sign({
-        __type_url: 'dxos.credentials.party.PartyInvitation',
+        __type_url: 'dxos.halo.credentials.party.PartyInvitation',
         id: randomBytes(),
         partyKey,
         issuerKey: issuerKey.publicKey,
@@ -309,6 +309,6 @@ export const isPartyInvitationMessage = (message) => {
 
   const payloadType = get(message, '__type_url');
   const signedType = get(message, 'signed.payload.__type_url');
-  return payloadType === 'dxos.credentials.SignedMessage' &&
-    signedType === 'dxos.credentials.party.PartyInvitation';
+  return payloadType === 'dxos.halo.SignedMessage' &&
+    signedType === 'dxos.halo.credentials.party.PartyInvitation';
 };

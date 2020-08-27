@@ -9,6 +9,6 @@ import { codec } from '../proto';
  */
 export const Command = {
   Type: Object.freeze({
-    ...codec.getType('dxos.credentials.greet.Command.Type').values
+    ...codec.getType('dxos.halo.credentials.greet.Command.Type').values
   })
 };

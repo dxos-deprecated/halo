@@ -72,9 +72,9 @@ const createProtocol = async (partyKey: PublicKey, authenticator: Authenticator,
 
   // TODO(dboreham): abstract or remove outer wrapping.
   const credentials = codec.encode({
-    __type_url: 'dxos.credentials.Message',
+    __type_url: 'dxos.halo.HaloEnvelope',
     payload: keyring.sign({
-      __type_url: 'dxos.credentials.auth.Auth',
+      __type_url: 'dxos.halo.credentials.auth.Auth',
       partyKey,
       deviceKey: peerId,
       identityKey: peerId

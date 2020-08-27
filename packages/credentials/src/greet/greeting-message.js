@@ -12,7 +12,7 @@ import { Command } from './constants';
  */
 export const createGreetingBeginMessage = () => {
   return {
-    __type_url: 'dxos.credentials.greet.Command',
+    __type_url: 'dxos.halo.credentials.greet.Command',
     command: Command.Type.BEGIN
   };
 };
@@ -28,7 +28,7 @@ export const createGreetingHandshakeMessage = (secret, params = []) => {
   assert(Array.isArray(params));
 
   return {
-    __type_url: 'dxos.credentials.greet.Command',
+    __type_url: 'dxos.halo.credentials.greet.Command',
     command: Command.Type.HANDSHAKE,
     params,
     secret
@@ -46,7 +46,7 @@ export const createGreetingNotarizeMessage = (secret, credentialMessages) => {
   assert(Array.isArray(credentialMessages));
 
   return {
-    __type_url: 'dxos.credentials.greet.Command',
+    __type_url: 'dxos.halo.credentials.greet.Command',
     command: Command.Type.NOTARIZE,
     params: credentialMessages,
     secret
@@ -62,7 +62,7 @@ export const createGreetingFinishMessage = (secret) => {
   assert(Buffer.isBuffer(secret));
 
   return {
-    __type_url: 'dxos.credentials.greet.Command',
+    __type_url: 'dxos.halo.credentials.greet.Command',
     command: Command.Type.FINISH,
     secret
   };
@@ -77,7 +77,7 @@ export const createGreetingClaimMessage = (invitationID) => {
   assert(Buffer.isBuffer(invitationID));
 
   return {
-    __type_url: 'dxos.credentials.greet.Command',
+    __type_url: 'dxos.halo.credentials.greet.Command',
     command: Command.Type.CLAIM,
     params: [
       {
@@ -99,9 +99,9 @@ export const createGreetingClaimResponse = (id, rendezvousKey) => {
   assert(Buffer.isBuffer(rendezvousKey));
 
   return {
-    __type_url: 'dxos.credentials.Message',
+    __type_url: 'dxos.halo.HaloEnvelope',
     payload: {
-      __type_url: 'dxos.credentials.greet.ClaimResponse',
+      __type_url: 'dxos.halo.credentials.greet.ClaimResponse',
       id,
       rendezvousKey
     }

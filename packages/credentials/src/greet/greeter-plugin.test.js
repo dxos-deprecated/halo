@@ -120,7 +120,7 @@ test('Greeting Flow using GreetingCommandPlugin', async () => {
   // Present the invitation (by showing up).
   {
     const command = {
-      __type_url: 'dxos.credentials.greet.Command',
+      __type_url: 'dxos.halo.credentials.greet.Command',
       command: Command.Type.BEGIN
     };
 
@@ -130,7 +130,7 @@ test('Greeting Flow using GreetingCommandPlugin', async () => {
   // Obtain the nonce and partyKey from the HANDSHAKE response.
   const { nonce, partyKey } = await (async () => {
     const command = {
-      __type_url: 'dxos.credentials.greet.Command',
+      __type_url: 'dxos.halo.credentials.greet.Command',
       command: Command.Type.HANDSHAKE,
       secret: await secretProvider(),
       params: []
@@ -146,7 +146,7 @@ test('Greeting Flow using GreetingCommandPlugin', async () => {
     const identityKey = await keyring.createKeyRecord({ type: KeyType.IDENTITY });
 
     const command = {
-      __type_url: 'dxos.credentials.greet.Command',
+      __type_url: 'dxos.halo.credentials.greet.Command',
       command: Command.Type.NOTARIZE,
       secret: await secretProvider(),
       params: [
@@ -167,7 +167,7 @@ test('Greeting Flow using GreetingCommandPlugin', async () => {
   }
 
   await plugin.send(rendezvousKey, {
-    __type_url: 'dxos.credentials.greet.Command',
+    __type_url: 'dxos.halo.credentials.greet.Command',
     command: Command.Type.FINISH,
     secret: await secretProvider()
   });

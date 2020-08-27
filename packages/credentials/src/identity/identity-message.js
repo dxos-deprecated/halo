@@ -26,7 +26,7 @@ export const createJoinedPartyMessage = (partyKey, deviceKey, feedKey, hints, cr
   }
 
   const payload = {
-    __type_url: 'dxos.credentials.identity.JoinedParty',
+    __type_url: 'dxos.halo.credentials.identity.JoinedParty',
     partyKey,
     deviceKey,
     feedKey,
@@ -35,7 +35,7 @@ export const createJoinedPartyMessage = (partyKey, deviceKey, feedKey, hints, cr
   };
 
   return {
-    __type_url: 'dxos.credentials.Message',
+    __type_url: 'dxos.halo.HaloEnvelope',
     payload
   };
 };
@@ -53,13 +53,13 @@ export const createDeviceInfoMessage = (keyring, displayName, deviceKey) => {
   assert(deviceKey);
 
   const message = {
-    __type_url: 'dxos.credentials.identity.DeviceInfo',
+    __type_url: 'dxos.halo.credentials.identity.DeviceInfo',
     publicKey: deviceKey.publicKey,
     displayName
   };
 
   return {
-    __type_url: 'dxos.credentials.Message',
+    __type_url: 'dxos.halo.HaloEnvelope',
     payload: keyring.sign(message, [deviceKey])
   };
 };
@@ -77,13 +77,13 @@ export const createIdentityInfoMessage = (keyring, displayName, identityKey) => 
   assert(identityKey);
 
   const message = {
-    __type_url: 'dxos.credentials.identity.IdentityInfo',
+    __type_url: 'dxos.halo.credentials.identity.IdentityInfo',
     publicKey: identityKey.publicKey,
     displayName
   };
 
   return {
-    __type_url: 'dxos.credentials.Message',
+    __type_url: 'dxos.halo.HaloEnvelope',
     payload: keyring.sign(message, [identityKey])
   };
 };
@@ -95,11 +95,11 @@ export const createIdentityInfoMessage = (keyring, displayName, identityKey) => 
  */
 export const isIdentityMessage = (message) => {
   let type = get(message, 'payload.__type_url');
-  if (type === 'dxos.credentials.SignedMessage') {
+  if (type === 'dxos.halo.SignedMessage') {
     type = get(message, 'payload.signed.payload.__type_url');
   }
   // Since message.payload may not exist, make safe and return false.
-  return (type !== undefined) ? type.startsWith('dxos.credentials.identity.') : false;
+  return (type !== undefined) ? type.startsWith('dxos.halo.credentials.identity.') : false;
 };
 
 /**
@@ -109,7 +109,7 @@ export const isIdentityMessage = (message) => {
  */
 export const isJoinedPartyMessage = (message) => {
   const type = get(message, 'payload.__type_url');
-  return type === 'dxos.credentials.identity.JoinedParty';
+  return type === 'dxos.halo.credentials.identity.JoinedParty';
 };
 
 /**
@@ -120,8 +120,8 @@ export const isJoinedPartyMessage = (message) => {
 export const isDeviceInfoMessage = (message) => {
   const payloadType = get(message, 'payload.__type_url');
   const signedType = get(message, 'payload.signed.payload.__type_url');
-  return payloadType === 'dxos.credentials.SignedMessage' &&
-    signedType === 'dxos.credentials.identity.DeviceInfo';
+  return payloadType === 'dxos.halo.SignedMessage' &&
+    signedType === 'dxos.halo.credentials.identity.DeviceInfo';
 };
 
 /**
@@ -132,6 +132,6 @@ export const isDeviceInfoMessage = (message) => {
 export const isIdentityInfoMessage = (message) => {
   const payloadType = get(message, 'payload.__type_url');
   const signedType = get(message, 'payload.signed.payload.__type_url');
-  return payloadType === 'dxos.credentials.SignedMessage' &&
-    signedType === 'dxos.credentials.identity.IdentityInfo';
+  return payloadType === 'dxos.halo.SignedMessage' &&
+    signedType === 'dxos.halo.credentials.identity.IdentityInfo';
 };

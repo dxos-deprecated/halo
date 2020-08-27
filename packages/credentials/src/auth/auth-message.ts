@@ -6,7 +6,7 @@ import assert from 'assert';
 import { Keyring } from '../keys';
 
 /**
- * Create `dxos.credentials.auth.Auth` credentials.
+ * Create `dxos.halo.credentials.auth.Auth` credentials.
  */
 export const createAuthMessage = (
   keyring: Keyring,
@@ -30,10 +30,10 @@ export const createAuthMessage = (
   }
 
   return {
-    __type_url: 'dxos.credentials.Message',
+    __type_url: 'dxos.halo.HaloEnvelope',
     payload:
       keyring.sign({
-        __type_url: 'dxos.credentials.auth.Auth',
+        __type_url: 'dxos.halo.credentials.auth.Auth',
         partyKey,
         identityKey: identityKey.publicKey,
         deviceKey: deviceKey.publicKey,
