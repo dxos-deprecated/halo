@@ -885,9 +885,9 @@
     minimist "^1.2.0"
 
 "@dxos/async@^1.0.0-beta.1":
-  version "1.0.0-beta.1"
-  resolved "https://registry.yarnpkg.com/@dxos/async/-/async-1.0.0-beta.1.tgz#53978e0be8f88915ce901a0619bd12041b2fb4dc"
-  integrity sha512-0orf1DtPKmS/eIkz9LWJ4FDtnHN4HhV1y8+Di33z7FW622rScK8eBT/W/wiKG1uORhQ2OgEZE8PUidpEpZr0jg==
+  version "1.0.0-beta.6"
+  resolved "https://registry.yarnpkg.com/@dxos/async/-/async-1.0.0-beta.6.tgz#f65f73f2207c2b98055347a365b1a08961ea299f"
+  integrity sha512-SFyYPJLxqqETvpok7qnvDMGPpIM0qqj4o7aB3RwJA8n45eLAhzjwLZO6ks1Ruzkehe8P2Uq3puIXjuYocHnFdg==
 
 "@dxos/codec-protobuf@^1.1.0-beta.0", "@dxos/codec-protobuf@^1.1.0-beta.10", "@dxos/codec-protobuf@^1.1.0-beta.9":
   version "1.1.0-beta.10"
