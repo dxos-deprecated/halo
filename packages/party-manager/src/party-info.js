@@ -6,6 +6,7 @@ import assert from 'assert';
 import EventEmitter from 'events';
 
 import { humanize, keyToString } from '@dxos/crypto';
+import { Presence } from '@dxos/protocol-plugin-presence';
 
 import { PartyMemberInfo } from './party-member-info';
 
@@ -45,6 +46,8 @@ export class PartyInfo extends EventEmitter {
 
     this._publicKey = publicKey;
     this.__partyManager = partyManager;
+    const peerId = partyManager.identityManager.deviceManager.publicKey;
+    this._presence = new Presence(peerId);
 
     // Any change to the Party may mean a change in membership.
     this.__partyManager.on('party:update', (partyKey) => {
@@ -78,6 +81,10 @@ export class PartyInfo extends EventEmitter {
   get subscribed () {
     const { subscribed = true } = this.getSettings();
     return subscribed;
+  }
+
+  get presence () {
+    return this._presence;
   }
 
   /**

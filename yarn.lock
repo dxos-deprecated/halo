@@ -889,6 +889,17 @@
   resolved "https://registry.yarnpkg.com/@dxos/async/-/async-1.0.0-beta.1.tgz#53978e0be8f88915ce901a0619bd12041b2fb4dc"
   integrity sha512-0orf1DtPKmS/eIkz9LWJ4FDtnHN4HhV1y8+Di33z7FW622rScK8eBT/W/wiKG1uORhQ2OgEZE8PUidpEpZr0jg==
 
+"@dxos/broadcast@^1.0.0-beta.6":
+  version "1.0.0-beta.10"
+  resolved "https://registry.yarnpkg.com/@dxos/broadcast/-/broadcast-1.0.0-beta.10.tgz#a4590aacd36f3e91bfd1b4aee5f964bb68206e32"
+  integrity sha512-XBG/vjNErXw15kEf8pjEVgGO4Fk6gB6Y4cE6KUdmAqLvGV7zBZgN/h4CsLrTIqfBhssesoenRPf9yxhBEQJi+w==
+  dependencies:
+    "@dxos/codec-protobuf" "^1.1.0-beta.2"
+    debug "^4.1.1"
+    nanoresource-promise "^2.0.0"
+    source-map-support "^0.5.12"
+    tiny-lru "^7.0.6"
+
 "@dxos/codec-protobuf@^1.1.0-beta.0", "@dxos/codec-protobuf@^1.1.0-beta.10", "@dxos/codec-protobuf@^1.1.0-beta.9":
   version "1.1.0-beta.10"
   resolved "https://registry.yarnpkg.com/@dxos/codec-protobuf/-/codec-protobuf-1.1.0-beta.10.tgz#f217e871a4e4a8c4665ae02ac1a9dfba1b264c44"
@@ -899,6 +910,16 @@
     lodash.merge "^4.6.2"
     protobufjs "^6.9.0"
     source-map-support "^0.5.12"
+
+"@dxos/codec-protobuf@^1.1.0-beta.2":
+  version "1.1.0-beta.11"
+  resolved "https://registry.yarnpkg.com/@dxos/codec-protobuf/-/codec-protobuf-1.1.0-beta.11.tgz#2325420040ce97a450390e097ae60f525a62b80c"
+  integrity sha512-8TlF1BrGSymjcKnvrbFJA1WS3PwTofhbXSTe38f4ydyghBSqZ52u8fVC7v1vxLrOHtST+irqG+T8zzAFGCuWRg==
+  dependencies:
+    assert "^2.0.0"
+    buffer "^5.4.3"
+    lodash.merge "^4.6.2"
+    protobufjs "^6.9.0"
 
 "@dxos/crypto@^0.0.1":
   version "0.0.1"
@@ -1033,6 +1054,19 @@
     debug "^4.1.1"
     wrtc "^0.4.3"
 
+"@dxos/protocol-plugin-presence@^1.1.0-beta.15":
+  version "1.1.0-beta.15"
+  resolved "https://registry.yarnpkg.com/@dxos/protocol-plugin-presence/-/protocol-plugin-presence-1.1.0-beta.15.tgz#42f4f89ddabeb1c46130e88aedc1c978abf8eb20"
+  integrity sha512-uh9DkUX6orE0zzi/ldBANEMEdaydBx7amBFaFUCZUYQmpPqQOSPv+ftkTdZP/rM+/vKlPLeKhT40ZQLuqj7E0w==
+  dependencies:
+    "@dxos/broadcast" "^1.0.0-beta.6"
+    "@dxos/codec-protobuf" "^1.1.0-beta.9"
+    "@dxos/protocol" "^1.1.0-beta.15"
+    debug "^4.1.1"
+    ngraph.graph "^19.0.1"
+    queue-microtask "^1.1.2"
+    source-map-support "^0.5.12"
+
 "@dxos/protocol-plugin-replicator@^1.1.0-beta.1":
   version "1.1.0-beta.10"
   resolved "https://registry.yarnpkg.com/@dxos/protocol-plugin-replicator/-/protocol-plugin-replicator-1.1.0-beta.10.tgz#8f37158b2d796e9841cd3d6bfa6ede204bb860f1"
@@ -1077,6 +1111,24 @@
     nanoerror "^1.1.0"
     nanomessage "^5.2.5"
     nanoresource-promise "^1.2.0"
+    signal-promise "^1.0.3"
+    source-map-support "^0.5.12"
+
+"@dxos/protocol@^1.1.0-beta.15":
+  version "1.1.0-beta.15"
+  resolved "https://registry.yarnpkg.com/@dxos/protocol/-/protocol-1.1.0-beta.15.tgz#b176a1938908308230fa3bb67d03fab0b5c5b955"
+  integrity sha512-j4TMc2dH3FvndOfXO+KxbZPQd8domB4gMvsMp8kEqCRcadRZ9qeluhdHTf2PPZ+KDglTnOxCktAIFQxCKrJt7g==
+  dependencies:
+    "@dxos/codec-protobuf" "^1.1.0-beta.9"
+    assert "^2.0.0"
+    buffer-json-encoding "^1.0.2"
+    debug "^4.1.1"
+    end-of-stream "^1.4.1"
+    humanhash "^1.0.4"
+    hypercore-protocol "^6.11.1"
+    nanoerror "^1.2.1"
+    nanomessage "^5.4.0"
+    nanoresource-promise "^2.0.0"
     signal-promise "^1.0.3"
     source-map-support "^0.5.12"
 
@@ -8427,6 +8479,13 @@ nanoerror@^1.0.0, nanoerror@^1.1.0:
   dependencies:
     quick-format-unescaped "^3.0.3"
 
+nanoerror@^1.2.1:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/nanoerror/-/nanoerror-1.2.1.tgz#4a4d98e21f5f0b2222e85aff1be170ef825aa23f"
+  integrity sha512-pCXtdyUZUqkyJjrfKxSMCzdblgVbXOXPdFC+Th80IuQzuoaSwLmMu8rJID92VStrv7sMyqMj86PJMoj//bKcsg==
+  dependencies:
+    quick-format-unescaped "^3.0.3"
+
 nanoguard@^1.2.0:
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/nanoguard/-/nanoguard-1.3.0.tgz#9b38a2a69f30a848f8ed1e4f0dabee8ff506e54c"
@@ -8482,12 +8541,28 @@ nanomessage@^5.2.5, nanomessage@^5.3.0:
     nanoresource-promise "^1.2.1"
     p-queue "^6.3.0"
 
+nanomessage@^5.4.0:
+  version "5.4.0"
+  resolved "https://registry.yarnpkg.com/nanomessage/-/nanomessage-5.4.0.tgz#df4c8ad09c23befd3b8d6d1fe204a2b44e181fad"
+  integrity sha512-3ZlRZkbo2ltJOk0R4O0zXIH7vsXmjWQ3b+YSoShFXzzYXTYWmSg0F8jA5GXcI19yj/PJXNDK+EOxaYVLN1apBA==
+  dependencies:
+    hyperid "^2.0.2"
+    nanocustomassert "^1.0.0"
+    nanoerror "^1.1.0"
+    nanoresource-promise "^2.0.0-beta.2"
+    p-queue "^6.3.0"
+
 nanoresource-promise@^1.2.0, nanoresource-promise@^1.2.1:
   version "1.2.2"
   resolved "https://registry.yarnpkg.com/nanoresource-promise/-/nanoresource-promise-1.2.2.tgz#4b57abcdbfffd2acde8ff93b17c9c137c9fb28e8"
   integrity sha512-XCRcRrCoTifA6XJqYaMqlHgWFrAq6aGNnXboRa/Dxa0TNkm3S13+RWCD7/XaB4ySunAmZzx81++OS4kqkDynuA==
   dependencies:
     nanoresource "^1.3.0"
+
+nanoresource-promise@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/nanoresource-promise/-/nanoresource-promise-2.0.0.tgz#421e3eb563fe4997f97eaaee820b91b914e4edef"
+  integrity sha512-C4nHaVqhpRYaSiKfXPC3bOiz5mnS3N1gkDhGaWmYLxr4KTAQdWqOr2pEVw4xVmAHJgA9n9anbfuVOacS/skbIA==
 
 nanoresource-promise@^2.0.0-beta.2, nanoresource-promise@^v2.0.0-beta.2:
   version "2.0.0-beta.2"
@@ -8540,12 +8615,24 @@ ngraph.events@1.0.0:
   resolved "https://registry.yarnpkg.com/ngraph.events/-/ngraph.events-1.0.0.tgz#260b638f1d8b1394a10ce1dda9e5d9d9c85001b1"
   integrity sha512-Z7wyywdw8IKjOW0bDiOG4FUqX5fwqW7SDMO1huemDXho7Qy1b02RoBkPS43KLIZU2wrW2orju99k8wIr+xXvVA==
 
+ngraph.events@^1.2.1:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/ngraph.events/-/ngraph.events-1.2.1.tgz#6e40425ef9dec1e074bbef6da56c8d79b9188fd8"
+  integrity sha512-D4C+nXH/RFxioGXQdHu8ELDtC6EaCiNsZtih0IvyGN81OZSUby4jXoJ5+RNWasfsd0FnKxxpAROyUMzw64QNsw==
+
 ngraph.graph@^18.0.1:
   version "18.0.3"
   resolved "https://registry.yarnpkg.com/ngraph.graph/-/ngraph.graph-18.0.3.tgz#5cab1502be4b3d5ac5470083596a070bd85ec8ba"
   integrity sha512-IjGOWvYSUi1Oj3V1JrhhLGPY/rqvbvhUOa5tgOzIQo/LxO4wcBOSjZGZWeTTBUNLPt6R5hpkWKrUBaqPxgY4Ew==
   dependencies:
     ngraph.events "1.0.0"
+
+ngraph.graph@^19.0.1:
+  version "19.1.0"
+  resolved "https://registry.yarnpkg.com/ngraph.graph/-/ngraph.graph-19.1.0.tgz#88910ed53f6b4bc374f1b67296f4f81aab814e24"
+  integrity sha512-9cws84qfPkrYa7BaBtT+KgZfLXrd6pNL9Gl5Do+MBO/0Hm6rOM7qK78MZaO1uEoIK6p2pgUs6lu29zn/6tP59w==
+  dependencies:
+    ngraph.events "^1.2.1"
 
 ngraph.path@^1.2.0:
   version "1.3.1"
@@ -11098,6 +11185,11 @@ thunky@^1.0.1, thunky@^1.0.2:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/thunky/-/thunky-1.1.0.tgz#5abaf714a9405db0504732bbccd2cedd9ef9537d"
   integrity sha512-eHY7nBftgThBqOyHGVN+l8gF0BucP09fMo0oO/Lb0w1OF80dJv+lDVpXG60WMQvkcxAkNybKsrEIE3ZtKGmPrA==
+
+tiny-lru@^7.0.6:
+  version "7.0.6"
+  resolved "https://registry.yarnpkg.com/tiny-lru/-/tiny-lru-7.0.6.tgz#b0c3cdede1e5882aa2d1ae21cb2ceccf2a331f24"
+  integrity sha512-zNYO0Kvgn5rXzWpL0y3RS09sMK67eGaQj9805jlK9G6pSadfriTczzLHFXa/xcW4mIRfmlB9HyQ/+SgL0V1uow==
 
 tmp@^0.0.33:
   version "0.0.33"
