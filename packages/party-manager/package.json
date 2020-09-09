@@ -36,6 +36,7 @@
     "@dxos/model-factory": "^1.0.0-beta.21",
     "@dxos/network-manager": "^1.0.0-beta.97",
     "@dxos/protocol": "^1.1.0-beta.1",
+    "@dxos/protocol-plugin-presence": "^1.1.0-beta.15",
     "@dxos/protocol-plugin-replicator": "^1.1.0-beta.1",
     "assert": "^2.0.0",
     "crypto-js": "^3.1.9-1",
