@@ -1054,16 +1054,18 @@
     debug "^4.1.1"
     wrtc "^0.4.3"
 
-"@dxos/protocol-plugin-presence@^1.1.0-beta.15":
-  version "1.1.0-beta.15"
-  resolved "https://registry.yarnpkg.com/@dxos/protocol-plugin-presence/-/protocol-plugin-presence-1.1.0-beta.15.tgz#42f4f89ddabeb1c46130e88aedc1c978abf8eb20"
-  integrity sha512-uh9DkUX6orE0zzi/ldBANEMEdaydBx7amBFaFUCZUYQmpPqQOSPv+ftkTdZP/rM+/vKlPLeKhT40ZQLuqj7E0w==
+"@dxos/protocol-plugin-presence@^1.1.0-beta.17":
+  version "1.1.0-beta.17"
+  resolved "https://registry.yarnpkg.com/@dxos/protocol-plugin-presence/-/protocol-plugin-presence-1.1.0-beta.17.tgz#26d3ad56694fe1d1899695f007a7552611c24fae"
+  integrity sha512-z6q0/zw8oCp8HZ2MXtsnKRQczzaoV9b+fBuQLmzOVQOxPrdYJtvOeDK9juw9Rh+8Iklt43fjOv8ERvcREFgZ7w==
   dependencies:
     "@dxos/broadcast" "^1.0.0-beta.6"
     "@dxos/codec-protobuf" "^1.1.0-beta.9"
-    "@dxos/protocol" "^1.1.0-beta.15"
+    "@dxos/protocol" "^1.1.0-beta.17"
+    buffer-json-encoding "^1.0.2"
     debug "^4.1.1"
     ngraph.graph "^19.0.1"
+    p-limit "^3.0.2"
     queue-microtask "^1.1.2"
     source-map-support "^0.5.12"
 
@@ -1114,10 +1116,10 @@
     signal-promise "^1.0.3"
     source-map-support "^0.5.12"
 
-"@dxos/protocol@^1.1.0-beta.15":
-  version "1.1.0-beta.15"
-  resolved "https://registry.yarnpkg.com/@dxos/protocol/-/protocol-1.1.0-beta.15.tgz#b176a1938908308230fa3bb67d03fab0b5c5b955"
-  integrity sha512-j4TMc2dH3FvndOfXO+KxbZPQd8domB4gMvsMp8kEqCRcadRZ9qeluhdHTf2PPZ+KDglTnOxCktAIFQxCKrJt7g==
+"@dxos/protocol@^1.1.0-beta.17":
+  version "1.1.0-beta.17"
+  resolved "https://registry.yarnpkg.com/@dxos/protocol/-/protocol-1.1.0-beta.17.tgz#2eb1f16abda74214624e5c96a4d940c93d501b20"
+  integrity sha512-DEXHRteJCTIgl1620GkgzuFCDIKhKtGAjHCS0JB73R7IyBM594wbfN3vjW3yFFB2BWMZPA3F42FADUjgnCFBUg==
   dependencies:
     "@dxos/codec-protobuf" "^1.1.0-beta.9"
     assert "^2.0.0"
@@ -9112,6 +9114,13 @@ p-limit@^3.0.1:
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/p-limit/-/p-limit-3.0.1.tgz#584784ac0722d1aed09f19f90ed2999af6ce2839"
   integrity sha512-mw/p92EyOzl2MhauKodw54Rx5ZK4624rNfgNaBguFZkHzyUG9WsDzFF5/yQVEJinbJDdP4jEfMN+uBquiGnaLg==
+  dependencies:
+    p-try "^2.0.0"
+
+p-limit@^3.0.2:
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/p-limit/-/p-limit-3.0.2.tgz#1664e010af3cadc681baafd3e2a437be7b0fb5fe"
+  integrity sha512-iwqZSOoWIW+Ew4kAGUlN16J4M7OB3ysMLSZtnhmqx7njIHFPlxWBX8xo3lVTyFVq6mI/lL9qt2IsN1sHwaxJkg==
   dependencies:
     p-try "^2.0.0"
 
