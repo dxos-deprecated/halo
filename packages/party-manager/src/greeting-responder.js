@@ -251,7 +251,7 @@ export class GreetingResponder extends EventEmitter {
     const memberKeys = this._party.memberKeys.map(publicKey => {
       return {
         publicKey,
-        type: this._party.keyring.getKey(publicKey).type
+        type: this._keyring.getKey(publicKey).type
       };
     });
 

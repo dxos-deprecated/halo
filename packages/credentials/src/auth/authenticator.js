@@ -105,7 +105,7 @@ export class PartyAuthenticator extends Authenticator {
       return false;
     }
 
-    const verified = this._party.keyring.verify(credentials);
+    const verified = this._party.verifySignatures(credentials);
 
     // TODO(telackey): Find a better place to do this, since doing it here could be considered a side-effect.
     if (verified &&

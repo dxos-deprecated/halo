@@ -84,7 +84,7 @@ export class PartyInvitationManager {
     assert(invitationMessage);
 
     // Verify Message
-    if (!this._party.keyring.verify(invitationMessage)) {
+    if (!this._party.verifySignatures(invitationMessage)) {
       throw new Error(`Unverifiable message: ${invitationMessage}`);
     }
 
