@@ -86,14 +86,6 @@ export class Party extends EventEmitter {
   }
 
   /**
-   * Returns the Party's keyring (note, this Keyring may contain other keys not belonging to this Party).
-   * @return {Keyring}
-   */
-  get keyring () {
-    return this._keyring;
-  }
-
-  /**
    * @return {Buffer[]} of public keys for the feeds admitted to the Party.
    */
   get memberFeeds () {
@@ -384,6 +376,17 @@ export class Party extends EventEmitter {
     const { feedKey } = message.signed.payload.contents;
 
     return this._admitKey(feedKey, { type: KeyType.FEED });
+  }
+
+  /**
+   * Verify that the signatures on this message are present, correct, and from trusted members of this Party.
+   * @param {SignedMessage} message
+   * @return {boolean}
+   */
+  verifySignatures (message) {
+    assert(message, 'message null or undefined');
+
+    return this._keyring.verify(message);
   }
 
   /**
