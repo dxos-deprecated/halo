@@ -4,8 +4,8 @@
 
 import assert from 'assert';
 
-import { KeyChain, KeyRecord, PublicKey, Message } from '../typedefs'
 import { Keyring } from '../keys';
+import { KeyChain, KeyRecord, PublicKey, Message } from '../typedefs';
 
 /**
  * Create `dxos.credentials.auth.Auth` credentials.

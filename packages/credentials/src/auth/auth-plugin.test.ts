@@ -18,9 +18,9 @@ import { Replicator } from '@dxos/protocol-plugin-replicator';
 
 import { Keyring, KeyType } from '../keys';
 import { codec } from '../proto';
+import { PublicKey } from '../typedefs';
 import { AuthPlugin } from './auth-plugin';
 import { Authenticator } from './authenticator';
-import { PublicKey } from '../typedefs';
 
 const log = debug('dxos:creds:auth:test');
 
