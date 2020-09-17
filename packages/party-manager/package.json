@@ -46,6 +46,9 @@
     "mississippi": "^4.0.0"
   },
   "devDependencies": {
+    "@babel/plugin-proposal-class-properties": "^7.10.4",
+    "@babel/plugin-proposal-export-default-from": "^7.10.4",
+    "@babel/plugin-transform-runtime": "^7.11.5",
     "@dxos/feed-store": "^1.2.0-beta.23",
     "babel-eslint": "^10.1.0",
     "babel-jest": "^25.1.0",
