@@ -11,15 +11,16 @@ import pump from 'pump';
 import ram from 'random-access-memory';
 import waitForExpect from 'wait-for-expect';
 
+import { keyToString, randomBytes } from '@dxos/crypto';
 import { FeedStore } from '@dxos/feed-store';
 import { Protocol } from '@dxos/protocol';
 import { Replicator } from '@dxos/protocol-plugin-replicator';
-import { keyToString, randomBytes } from '@dxos/crypto';
 
-import { codec } from '../proto';
-import { Authenticator } from './authenticator';
-import { AuthPlugin } from './auth-plugin';
 import { Keyring, KeyType } from '../keys';
+import { codec } from '../proto';
+import { AuthPlugin } from './auth-plugin';
+import { Authenticator } from './authenticator';
+import { PublicKey } from '../typedefs';
 
 const log = debug('dxos:creds:auth:test');
 
@@ -40,7 +41,7 @@ const createTestKeyring = async () => {
 class ExpectedKeyAuthenticator extends Authenticator {
   constructor (
     private _keyring: Keyring,
-    private _expectedKey: PublicKey,
+    private _expectedKey: PublicKey
   ) {
     super();
   }

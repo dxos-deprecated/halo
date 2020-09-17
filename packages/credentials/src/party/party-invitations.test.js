@@ -10,8 +10,8 @@ import waitForExpect from 'wait-for-expect';
 import { randomBytes } from '@dxos/crypto';
 
 import { createGreetingClaimMessage } from '../greet';
-import { Filter, Keyring, KeyType } from '../keys';
 import { PartyInvitationClaimHandler } from '../greet/party-invitation-claim-handler';
+import { Filter, Keyring, KeyType } from '../keys';
 import { Party } from './party';
 import {
   createKeyAdmitMessage, createPartyGenesisMessage,

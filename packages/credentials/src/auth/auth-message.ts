@@ -3,6 +3,8 @@
 //
 
 import assert from 'assert';
+
+import { KeyChain, KeyRecord, PublicKey, Message } from '../typedefs'
 import { Keyring } from '../keys';
 
 /**
@@ -14,7 +16,7 @@ export const createAuthMessage = (
   identityKey: KeyRecord,
   deviceKey: KeyRecord | KeyChain,
   feedKey?: KeyRecord,
-  nonce?: Buffer,
+  nonce?: Buffer
 ): Message => {
   assert(keyring);
   assert(Buffer.isBuffer(partyKey));

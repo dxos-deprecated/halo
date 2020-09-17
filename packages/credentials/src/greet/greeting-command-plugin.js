@@ -9,12 +9,12 @@ import assert from 'assert';
 import debug from 'debug';
 import { EventEmitter } from 'events';
 
-import { Extension, ERR_EXTENSION_RESPONSE_FAILED } from '@dxos/protocol';
 import { keyToString } from '@dxos/crypto';
+import { Extension, ERR_EXTENSION_RESPONSE_FAILED } from '@dxos/protocol';
 
 import { codec } from '../proto';
-import { ERR_GREET_GENERAL } from './error-codes';
 import { Command } from './constants';
+import { ERR_GREET_GENERAL } from './error-codes';
 
 const log = debug('dxos:creds:greet:plugin'); // eslint-disable-line no-unused-vars
 

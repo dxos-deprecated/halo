@@ -8,8 +8,8 @@ import memdown from 'memdown';
 
 import { keyToString } from '@dxos/crypto';
 
-import { createKeyRecord, stripSecrets } from './keyring-helpers';
 import { Keyring } from './keyring';
+import { createKeyRecord, stripSecrets } from './keyring-helpers';
 import { KeyStore } from './keystore';
 import { KeyType } from './keytype';
 

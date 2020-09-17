@@ -5,8 +5,9 @@
 import assert from 'assert';
 import get from 'lodash.get';
 
-import { codec } from '../proto';
 import { randomBytes } from '@dxos/crypto';
+
+import { codec } from '../proto';
 
 /**
  * Constants

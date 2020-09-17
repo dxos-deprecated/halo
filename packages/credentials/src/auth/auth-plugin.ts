@@ -6,12 +6,12 @@ import assert from 'assert';
 import debug from 'debug';
 import { EventEmitter } from 'events';
 
-import { Extension, ERR_EXTENSION_RESPONSE_FAILED } from '@dxos/protocol';
 import { keyToString } from '@dxos/crypto';
+import { Extension, ERR_EXTENSION_RESPONSE_FAILED } from '@dxos/protocol';
 
-import { ERR_AUTH_GENERAL, ERR_AUTH_REJECTED } from './error-codes';
 import { codec } from '../proto';
 import { PartyAuthenticator, Authenticator } from './authenticator';
+import { ERR_AUTH_GENERAL, ERR_AUTH_REJECTED } from './error-codes';
 
 const log = debug('dxos:creds:auth');
 
@@ -30,7 +30,7 @@ export class AuthPlugin extends EventEmitter {
   constructor (
     private _peerId: Buffer,
     private _authenticator: Authenticator,
-    /** (default is always) */ requireAuthForExtensions: string[] = [],
+    /** (default is always) */ requireAuthForExtensions: string[] = []
   ) {
     super();
     assert(Buffer.isBuffer(_peerId));
@@ -136,5 +136,5 @@ export class AuthPlugin extends EventEmitter {
     // TODO(dboreham): should this be a callback rather than an event, or communicated some other way to
     //   code that needs to know about auth success events?
     this.emit('authenticated', credsPeerId);
-  };
+  }
 }

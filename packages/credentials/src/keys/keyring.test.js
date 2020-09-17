@@ -51,15 +51,9 @@ test('Update a key', async () => {
   }
 });
 
-test('Bad key attributes', async (done) => {
+test('Bad key attributes', async () => {
   const keyring = new Keyring();
-  try {
-    await keyring.createKeyRecord({ id: 'xxx' });
-    done.fail('Allowed invalid attributes.');
-  } catch (err) {
-    expect(err).toBeTruthy();
-  }
-  done();
+  await expect(() => keyring.createKeyRecord({ id: 'xxx' })).rejects.toThrow();
 });
 
 test('Add/retrieve single keyRecord from an external source', async () => {
@@ -72,18 +66,11 @@ test('Add/retrieve single keyRecord from an external source', async () => {
   expect(keyring.hasSecretKey(internal)).toBe(true);
 });
 
-test('Try to add/retrieve a publicKey from an external source (with secret present)', async (done) => {
+test('Try to add/retrieve a publicKey from an external source (with secret present)', async () => {
   const external = createKeyPair();
   const keyring = new Keyring();
 
-  try {
-    await keyring.addPublicKey(external);
-    done.fail('Allowed addPublicKey with secretKey present.');
-  } catch (err) {
-    expect(err).toBeTruthy();
-  }
-
-  done();
+  await expect(() => keyring.addPublicKey(external)).rejects.toThrow();
 });
 
 test('Add/retrieve a publicKey from an external source (without secret present)', async () => {

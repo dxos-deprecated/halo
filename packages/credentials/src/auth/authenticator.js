@@ -8,8 +8,8 @@ import moment from 'moment';
 
 import { keyToString } from '@dxos/crypto';
 
-import { codec } from '../proto';
 import { Keyring, KeyType } from '../keys';
+import { codec } from '../proto';
 
 const log = debug('dxos:creds:auth');
 
