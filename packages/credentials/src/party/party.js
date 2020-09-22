@@ -266,6 +266,7 @@ export class Party extends EventEmitter {
       case PartyCredential.Type.PARTY_GENESIS: {
         const { admitKey, feedKey } = await this._processGenesisMessage(message);
         this._keyMessages.set(admitKey.key, original);
+        this._keyMessages.set(feedKey.key, original);
 
         // There is no question of who is admitting on the GENESIS.
         this._admittedBy.set(admitKey.key, this._publicKey);
