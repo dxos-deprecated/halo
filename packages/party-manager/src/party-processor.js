@@ -232,7 +232,7 @@ export class PartyProcessor extends EventEmitter {
       if (!halo || !halo.isMemberKey(info.publicKey)) {
         return false;
       }
-      if (halo.keyring.verify(signedMessage)) {
+      if (halo.verifySignatures(signedMessage)) {
         if (isDeviceInfoMessage(message)) {
           this._partyManager.identityManager.deviceManager.setDeviceInfo(info);
           this.emit('@package:device:info', info);
@@ -321,7 +321,7 @@ export class PartyProcessor extends EventEmitter {
           return false;
         }
 
-        if (party.keyring.verify(signedMessage)) {
+        if (party.verifySignatures(signedMessage)) {
           const memberInfo = partyInfo.members.find(member => member.publicKey.equals(info.publicKey));
           memberInfo.setDisplayName(info.displayName);
         } else {

@@ -249,9 +249,10 @@ export class GreetingResponder extends EventEmitter {
     assert(this._state === GreetingState.SUCCEEDED);
 
     const memberKeys = this._party.memberKeys.map(publicKey => {
+      // Since this record is used only to provide bootstrapping hints, only the publicKey is required,
+      // not the other attributes (eg, type).
       return {
-        publicKey,
-        type: this._party.keyring.getKey(publicKey).type
+        publicKey
       };
     });
 

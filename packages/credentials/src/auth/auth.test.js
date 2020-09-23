@@ -9,6 +9,7 @@ import moment from 'moment';
 
 import { randomBytes, keyToString } from '@dxos/crypto';
 
+import { Filter, Keyring, KeyType } from '../keys';
 import {
   admitsKeys,
   createEnvelopeMessage,
@@ -17,10 +18,8 @@ import {
   Party
 } from '../party';
 import { validate } from '../proto';
-import { Filter, Keyring, KeyType } from '../keys';
-
-import { PartyAuthenticator } from './authenticator';
 import { createAuthMessage } from './auth-message';
+import { PartyAuthenticator } from './authenticator';
 
 // eslint-disable-next-line no-unused-vars
 const log = debug('dxos:creds:auth:test');

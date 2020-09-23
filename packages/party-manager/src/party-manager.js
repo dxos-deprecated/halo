@@ -999,9 +999,10 @@ export class PartyManager extends EventEmitter {
     const haloFeed = await this.getWritableFeed(this._identityManager.publicKey);
 
     const memberKeys = party.memberKeys.map(publicKey => {
+      // Since this record is used only to provide bootstrapping hints to other devices, only the
+      // publicKey is required, not the other attributes (eg, type).
       return {
-        publicKey,
-        type: party.keyring.getKey(publicKey).type
+        publicKey
       };
     });
 

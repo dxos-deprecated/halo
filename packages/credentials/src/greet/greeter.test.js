@@ -7,8 +7,8 @@
 import { randomBytes } from '@dxos/crypto';
 import { ERR_EXTENSION_RESPONSE_FAILED } from '@dxos/protocol';
 
-import { createKeyRecord, stripSecrets } from '../keys/keyring-helpers';
 import { Filter, Keyring, KeyType } from '../keys';
+import { createKeyRecord, stripSecrets } from '../keys/keyring-helpers';
 import { createKeyAdmitMessage, createPartyInvitationMessage } from '../party';
 import { validate } from '../proto';
 import { Command } from './constants';
@@ -120,6 +120,7 @@ test('Good invitation', async () => {
   }
 });
 
+// eslint-disable-next-line jest/no-test-callback
 test('Bad invitation secret', async (done) => {
   const keyring = await createKeyring();
   const greeter = createGreeter(keyring);
@@ -152,17 +153,13 @@ test('Bad invitation secret', async (done) => {
       }
     });
 
-    try {
-      await greeter.handleMessage(invitation.id, message.payload);
-      done.fail('Bad secret was allowed.');
-    } catch (err) {
-      expect(err).toBeInstanceOf(ERR_EXTENSION_RESPONSE_FAILED);
-    }
+    await expect(() => greeter.handleMessage(invitation.id, message.payload)).rejects.toThrow(ERR_EXTENSION_RESPONSE_FAILED);
   }
 
   done();
 });
 
+// eslint-disable-next-line jest/no-test-callback
 test('Attempt to re-use invitation', async (done) => {
   const keyring = await createKeyring();
   const greeter = createGreeter(keyring);
@@ -219,12 +216,7 @@ test('Attempt to re-use invitation', async (done) => {
     await greeter.handleMessage(invitation.id, message.payload);
 
     // Now it is all used up, try submitting another command. It should fail.
-    try {
-      await greeter.handleMessage(invitation.id, message.payload);
-      done.fail('Invitation re-use was allowed.');
-    } catch (err) {
-      expect(err).toBeInstanceOf(ERR_EXTENSION_RESPONSE_FAILED);
-    }
+    await expect(() => greeter.handleMessage(invitation.id, message.payload)).rejects.toThrow(ERR_EXTENSION_RESPONSE_FAILED);
   }
 
   done();

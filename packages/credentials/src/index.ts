@@ -8,3 +8,4 @@ export * from './identity';
 export * from './keys';
 export * from './party';
 export * from './proto';
+export { KeyRecord, KeyChain } from './typedefs';

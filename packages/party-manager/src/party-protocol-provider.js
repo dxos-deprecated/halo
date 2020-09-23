@@ -119,6 +119,7 @@ const replicatorProtocolFactory = ({ session = {}, plugins = [], getTopics, part
  * @return {function({channel?: *, protocolContext: *}): *}
  */
 export const partyProtocolProvider = (peerId, credentials, party, partyManager) => {
+  const partyInfo = partyManager.getPartyInfo(party.publicKey);
   return replicatorProtocolFactory({
     getTopics: () => {
       return [keyToBuffer(party.topic)];
@@ -133,9 +134,10 @@ export const partyProtocolProvider = (peerId, credentials, party, partyManager) 
     plugins: [
       new AuthPlugin(peerId, new PartyAuthenticator(party), [Replicator.extension]),
       // Only deals with written PartyInvitation messages, handing them over to the regular Greeting flow.
-      new GreetingCommandPlugin(peerId, makePartyInvitationClaimHandler(party, partyManager))
+      new GreetingCommandPlugin(peerId, makePartyInvitationClaimHandler(party, partyManager)),
       // TODO(dboreham): add back removed ability for the client.js caller to specify additional plugins.
       // ...plugins
+      ...(partyInfo ? [partyInfo.presence] : []) // make sure to not add undefined element to the array
     ],
 
     party

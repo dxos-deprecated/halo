@@ -59,7 +59,7 @@ const createGreeter = async (targetPartyKey) => {
  * @param {Buffer} rendezvousKey
  * @param {string} invitationId
  */
-export const createInvitee = async (rendezvousKey, invitationId) => {
+const createInvitee = async (rendezvousKey, invitationId) => {
   const peerId = keyToBuffer(invitationId);
 
   const invitee = new Greeter();

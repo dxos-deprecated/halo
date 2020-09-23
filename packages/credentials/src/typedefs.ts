@@ -2,16 +2,16 @@
 // Copyright 2019 DXOS.org
 //
 
-type PublicKey = Buffer;
-type SecretKey = Buffer;
+export type PublicKey = Buffer;
+export type SecretKey = Buffer;
 
-interface KeyChain {
+export interface KeyChain {
     publicKey: PublicKey;
     message: Message | SignedMessage;
     parents: KeyChain[];
 }
 
-interface KeyRecord {
+export interface KeyRecord {
     /**
      * - The `KeyType` type of the key. This is often unknown for keys from other sources.
      */
@@ -51,33 +51,33 @@ interface KeyRecord {
     created?: string;
 }
 
-interface Message {
-    __type_url: string;
+export interface Message {
+    __type_url: string; // eslint-disable-line camelcase
     payload: any;
 }
 
-interface Signed {
+export interface Signed {
     created: string;
     nonce: Buffer;
     payload: object;
 }
 
-interface Signature {
+export interface Signature {
     key: PublicKey;
     signatures: Buffer[];
     keyChain?: KeyChain;
 }
 
-interface SignedMessage {
+export interface SignedMessage {
     signed: Signed;
     signatures: Signature[];
 }
 
-interface AuthMessage {
+export interface AuthMessage {
   partyKey: PublicKey
   identetyKey: PublicKey
-  deviceKey: PublicKey  
+  deviceKey: PublicKey
 }
 
-type LevelDB = any;
-type LevelDB_Factory = (topic: string) => LevelDB;
+export type LevelDB = any;
+export type LevelDB_Factory = (topic: string) => LevelDB; // eslint-disable-line camelcase

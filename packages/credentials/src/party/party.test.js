@@ -10,7 +10,6 @@ import { expectToThrow } from '@dxos/async';
 
 import { Filter, Keyring, KeyType } from '../keys';
 import { validate } from '../proto';
-
 import { Party } from './party';
 import {
   createEnvelopeMessage,

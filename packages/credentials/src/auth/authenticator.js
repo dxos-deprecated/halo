@@ -8,8 +8,8 @@ import moment from 'moment';
 
 import { keyToString } from '@dxos/crypto';
 
-import { codec } from '../proto';
 import { Keyring, KeyType } from '../keys';
+import { codec } from '../proto';
 
 const log = debug('dxos:creds:auth');
 
@@ -105,7 +105,7 @@ export class PartyAuthenticator extends Authenticator {
       return false;
     }
 
-    const verified = this._party.keyring.verify(credentials);
+    const verified = this._party.verifySignatures(credentials);
 
     // TODO(telackey): Find a better place to do this, since doing it here could be considered a side-effect.
     if (verified &&
