@@ -5,6 +5,7 @@
 import assert from 'assert';
 import debug from 'debug';
 import { diff, applyChange } from 'deep-diff';
+
 import { keyToString } from '@dxos/crypto';
 
 export const CONTACT_TYPE = 'dxos.halo.Contact';

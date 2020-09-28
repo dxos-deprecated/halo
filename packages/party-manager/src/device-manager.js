@@ -6,8 +6,8 @@ import assert from 'assert';
 import debug from 'debug';
 
 import { waitForEvent } from '@dxos/async';
-import { keyToString } from '@dxos/crypto';
 import { Keyring, KeyType, createDeviceInfoMessage } from '@dxos/credentials';
+import { keyToString } from '@dxos/crypto';
 
 import { InvitationDescriptor, InvitationDescriptorType } from './invitation-descriptor';
 import { InviteDetails, InviteType } from './invite-details';

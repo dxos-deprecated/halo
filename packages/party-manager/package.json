@@ -16,7 +16,7 @@
   "scripts": {
     "build": "npm run clean && tsc",
     "clean": "del-cli dist && del-cli ./src/proto/gen",
-    "lint": "semistandard",
+    "lint": "eslint 'src/**/*.{js,ts}'",
     "lint:fix": "semistandard --fix",
     "prepublishOnly": "npm run test && npm run build",
     "test": "jest --rootDir ./src --verbose --forceExit",
@@ -46,40 +46,21 @@
     "mississippi": "^4.0.0"
   },
   "devDependencies": {
-    "@babel/plugin-proposal-class-properties": "^7.10.4",
-    "@babel/plugin-proposal-export-default-from": "^7.10.4",
-    "@babel/plugin-transform-runtime": "^7.11.5",
-    "@babel/preset-env": "^7.11.5",
+    "@dxos/eslint-plugin": "^1.0.4",
     "@dxos/feed-store": "^1.2.0-beta.23",
-    "babel-eslint": "^10.1.0",
-    "babel-jest": "^25.1.0",
-    "babel-plugin-add-module-exports": "^1.0.2",
-    "babel-plugin-inline-import": "^3.0.0",
-    "babel-watch": "^7.0.0",
     "buffer-json-encoding": "^1.0.2",
     "del-cli": "^3.0.1",
-    "eslint": "^5.16.0",
+    "eslint": "^7.9.0",
     "jest": "^25.1.0",
     "ngraph.path": "^1.2.0",
     "pumpify": "^2.0.1",
     "random-access-memory": "^3.1.1",
-    "semistandard": "14.2.0",
     "through2": "^3.0.1",
     "typescript": "^3.9.6",
     "wait-for-expect": "^3.0.0"
   },
-  "semistandard": {
-    "parser": "babel-eslint",
-    "env": [
-      "jest",
-      "node",
-      "browser"
-    ],
-    "ignore": [
-      "/node_modules/",
-      "**/node_modules/",
-      "**/dist/"
-    ]
+  "eslintConfig": {
+    "extends": "plugin:@dxos/recomended"
   },
   "publishConfig": {
     "access": "public"

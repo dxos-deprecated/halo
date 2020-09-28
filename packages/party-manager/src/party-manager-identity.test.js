@@ -12,7 +12,7 @@ import { TestNetworkNode } from './testing/test-network-node';
 
 const log = debug('dxos:party-manager:test');
 
-test('Create initial node with new Identity', async (done) => {
+test('Create initial node with new Identity', async () => {
   // Create empty keyring and node objects (FeedStore, PartyManager, NetworkProvider).
   const keyring = new Keyring();
   const node = new TestNetworkNode(keyring);
@@ -51,5 +51,4 @@ test('Create initial node with new Identity', async (done) => {
   expect(device.displayName).toEqual(deviceDisplayName);
 
   await node.destroy();
-  done();
 });

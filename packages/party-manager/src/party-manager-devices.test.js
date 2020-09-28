@@ -8,8 +8,8 @@ import waitForExpect from 'wait-for-expect';
 import { Keyring, KeyType } from '@dxos/credentials';
 
 import { InviteDetails, InviteType } from './invite-details';
-import { TestNetworkNode } from './testing/test-network-node';
 import { checkContacts, checkReplication, destroyNodes } from './testing/test-common';
+import { TestNetworkNode } from './testing/test-network-node';
 
 // eslint-disable-next-line no-unused-vars
 const log = debug('dxos:party-manager:test');
@@ -67,8 +67,8 @@ const createTwoDeviceIdentity = async (props) => {
       const halo = node.partyManager.identityManager.halo;
       const identityKey = node.partyManager.identityManager.publicKey;
       const deviceKey = node.partyManager.identityManager.deviceManager.publicKey;
-      expect(halo.memberKeys.find(key => key.equals(identityKey)));
-      expect(halo.memberKeys.find(key => key.equals(deviceKey)));
+      expect(halo.memberKeys.find(key => key.equals(identityKey))).toBeTruthy();
+      expect(halo.memberKeys.find(key => key.equals(deviceKey))).toBeTruthy();
     }
   });
 
