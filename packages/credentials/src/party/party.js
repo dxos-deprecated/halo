@@ -42,9 +42,10 @@ export class Party extends EventEmitter {
     this._invitationManager = new PartyInvitationManager(this);
     this._open = false;
 
-    /** @type {Map<string, Message>} */
+    // TODO(telackey): Switch both these to Buffer-aware maps.
+    /** @type {Map<string, SignedMessage>} */
     this._credentialMessages = new Map();
-    /** @type {Map<string, Message>} */
+    /** @type {Map<string, SignedMessage>} */
     this._infoMessages = new Map();
 
     /** @type {Map<string, PublicKey>} */
@@ -110,9 +111,9 @@ export class Party extends EventEmitter {
   }
 
   /**
-   * Returns a map signed IdentityInfo messages used to describe keys. The messages are needed in two cases,
-   * to prove the signatures, and to obtain the original for copying into a new Party, as when the original
-   * IdentityInfo message is copied from the HALO Party into a new Party that is being joined.
+   * Returns a map of SignedMessages used to describe keys. In many cases the contents are enough (see: getInfo)
+   * but the original message is needed for copying into a new Party, as when an IdentityInfo message is copied
+   * from the HALO Party to a Party that is being joined.
    * @return {Map<string, Message>}
    */
   get infoMessages () {
@@ -142,6 +143,11 @@ export class Party extends EventEmitter {
     this._open = false;
   }
 
+  /**
+   * Retrieve an PartyInvitation by its ID.
+   * @param {Buffer} invitationID
+   * @return {SignedMessage}
+   */
   getInvitation (invitationID) {
     assert(invitationID);
 
@@ -157,6 +163,19 @@ export class Party extends EventEmitter {
     assert(Buffer.isBuffer(publicKey));
 
     return this._admittedBy.get(keyToString(publicKey));
+  }
+
+  /**
+   * Get info for the specified key (if available).
+   * @param {Buffer} publicKey
+   * @return {IdentityInfo | DeviceInfo | undefined}
+   */
+  getInfo (publicKey) {
+    assert(publicKey);
+
+    const message = this._infoMessages.get(keyToString(publicKey));
+    // The saved copy is a SignedMessage, but we only want to return the contents.
+    return message ? message.signed.payload : undefined;
   }
 
   /**

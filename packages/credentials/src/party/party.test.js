@@ -101,6 +101,9 @@ test('Process basic message types', async () => {
   // We did not write and IdentityInfo message for IdentityA.
   expect(party.infoMessages.has(identityKeyA.key)).toBe(false);
   expect(party.infoMessages.has(identityKeyB.key)).toBe(true);
+
+  const identityInfo = party.getInfo(identityKeyB.publicKey);
+  expect(identityInfo.displayName).toEqual('IdentityB');
 });
 
 test('GreetingCommandPlugin envelopes', async () => {
