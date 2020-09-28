@@ -18,9 +18,9 @@ import {
   GreetingCommandPlugin
 } from '@dxos/credentials';
 import { keyToString, discoveryKey, keyToBuffer } from '@dxos/crypto';
+import { protocolFactory } from '@dxos/network-manager';
 import { Protocol } from '@dxos/protocol';
 import { Replicator } from '@dxos/protocol-plugin-replicator';
-import { protocolFactory } from '@dxos/network-manager';
 
 import { makePartyInvitationClaimHandler } from './party-invitation-claims';
 

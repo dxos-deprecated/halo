@@ -2,9 +2,9 @@
 // Copyright 2020 DXOS.org
 //
 
+import bufferJson from 'buffer-json-encoding';
 import debug from 'debug';
 import ram from 'random-access-memory';
-import bufferJson from 'buffer-json-encoding';
 import waitForExpect from 'wait-for-expect';
 
 import { Filter, Keyring, KeyType } from '@dxos/credentials';

@@ -13,7 +13,6 @@ import {
   createGreetingHandshakeMessage,
   createGreetingNotarizeMessage
 } from '@dxos/credentials';
-
 import { keyToString } from '@dxos/crypto';
 
 import { GreetingState } from './greeting-responder';

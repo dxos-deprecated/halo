@@ -3,12 +3,11 @@
 //
 
 import assert from 'assert';
-import EventEmitter from 'events';
 import debug from 'debug';
+import EventEmitter from 'events';
 import miss from 'mississippi';
 
 import { waitForEvent } from '@dxos/async';
-import { keyToString, keyToBuffer } from '@dxos/crypto';
 import {
   Keyring,
   KeyType,
@@ -23,20 +22,21 @@ import {
   createDeviceInfoMessage,
   createPartyInvitationMessage
 } from '@dxos/credentials';
+import { keyToString, keyToBuffer } from '@dxos/crypto';
 import { ObjectModel } from '@dxos/echo-db';
 import { ModelFactory } from '@dxos/model-factory';
 
-import { GreetingResponder } from './greeting-responder';
+import { CONTACT_TYPE, ContactManager } from './contact-manager';
 import { GreetingInitiator } from './greeting-initiator';
+import { GreetingResponder } from './greeting-responder';
 import { IdentityManager } from './identity-manager';
 import { InvitationDescriptor, InvitationDescriptorType } from './invitation-descriptor';
 import { InviteType } from './invite-details';
 import { PartyInfo } from './party-info';
+import { PartyInvitationClaimer } from './party-invitation-claims';
 import { PartyProcessor } from './party-processor';
 import { partyProtocolProvider } from './party-protocol-provider';
 import { waitForCondition } from './util';
-import { CONTACT_TYPE, ContactManager } from './contact-manager';
-import { PartyInvitationClaimer } from './party-invitation-claims';
 
 const log = debug('dxos:party-manager');
 

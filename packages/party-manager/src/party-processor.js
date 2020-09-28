@@ -7,7 +7,6 @@ import debug from 'debug';
 import EventEmitter from 'events';
 
 import { useValue } from '@dxos/async';
-import { keyToBuffer, keyToString, createId } from '@dxos/crypto';
 import {
   Keyring,
   KeyType,
@@ -21,6 +20,7 @@ import {
   isPartyCredentialMessage,
   isPartyInvitationMessage
 } from '@dxos/credentials';
+import { keyToBuffer, keyToString, createId } from '@dxos/crypto';
 
 import { waitForCondition } from './util';
 

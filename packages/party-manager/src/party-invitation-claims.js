@@ -16,9 +16,9 @@ import {
 } from '@dxos/credentials';
 import { keyToString, randomBytes } from '@dxos/crypto';
 
+import { GreetingState } from './greeting-responder';
 import { InvitationDescriptor, InvitationDescriptorType } from './invitation-descriptor';
 import { InviteDetails, InviteType } from './invite-details';
-import { GreetingState } from './greeting-responder';
 import { greetingProtocolProvider } from './party-protocol-provider';
 
 const log = debug('dxos:party-manager:party-invitation-claimer');
