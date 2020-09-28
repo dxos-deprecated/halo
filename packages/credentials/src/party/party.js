@@ -8,6 +8,7 @@ import EventEmitter from 'events';
 
 import { discoveryKey, keyToString } from '@dxos/crypto';
 
+import { isIdentityInfoMessage, isIdentityMessage, isDeviceInfoMessage } from '../identity/identity-message';
 import { KeyType, Keyring, keyTypeName } from '../keys';
 import { PartyCredential, isEnvelope, isPartyInvitationMessage } from './party-credential';
 import { PartyInvitationManager } from './party-invitation-manager';
@@ -18,9 +19,6 @@ const log = debug('dxos:creds:party');
 
 /**
  * The party state is constructed via signed messages on the feeds.
- *
- * @event Party#'admit:genesis' fires on a the party key admitted from the Genesis message
- * @type {KeyRecord}
  *
  * @event Party#'admit:key' fires on a new entity key admitted
  * @type {KeyRecord}
@@ -45,7 +43,10 @@ export class Party extends EventEmitter {
     this._open = false;
 
     /** @type {Map<string, Message>} */
-    this._keyMessages = new Map();
+    this._credentialMessages = new Map();
+    /** @type {Map<string, Message>} */
+    this._infoMessages = new Map();
+
     /** @type {Map<string, PublicKey>} */
     this._memberKeys = new Map();
     /** @type {Map<string, PublicKey>} */
@@ -104,8 +105,18 @@ export class Party extends EventEmitter {
    * This is necessary information for demonstrating the trust relationship between keys.
    * @returns {Map<string, Message>}
    */
-  get memberCredentials () {
-    return this._keyMessages;
+  get credentialMessages () {
+    return this._credentialMessages;
+  }
+
+  /**
+   * Returns a map signed IdentityInfo messages used to describe keys. The messages are needed in two cases,
+   * to prove the signatures, and to obtain the original for copying into a new Party, as when the original
+   * IdentityInfo message is copied from the HALO Party into a new Party that is being joined.
+   * @return {Map<string, Message>}
+   */
+  get infoMessages () {
+    return this._infoMessages;
   }
 
   /**
@@ -237,7 +248,7 @@ export class Party extends EventEmitter {
   }
 
   /**
-   * Process a replicated Party credential message, admitting keys or feeds to the Party.
+   * Process a Party message.
    * @param {SignedMessage} message
    * @returns {void}
    */
@@ -249,6 +260,108 @@ export class Party extends EventEmitter {
       return this._invitationManager.recordInvitation(message);
     }
 
+    if (isIdentityMessage(message)) {
+      return this._processIdentityMessage(message);
+    }
+
+    return this._processCredentialMessage(message);
+  }
+
+  /**
+   * Process "Identity" message (IdentityInfo, DeviceInfo, etc.)
+   * @param {SignedMessage} message
+   * @return {Promise<void>}
+   * @private
+   */
+  async _processIdentityMessage (message) {
+    assert(message);
+    if (!message.signed || !message.signed.payload ||
+      !message.signatures || !Array.isArray(message.signatures)) {
+      throw new Error(`Invalid message: ${JSON.stringify(message)}`);
+    }
+
+    if (!this.verifySignatures(message)) {
+      throw new Error(`Unverifiable message: ${JSON.stringify(message)}`);
+    }
+
+    if (isIdentityInfoMessage(message)) {
+      return this._processIdentityInfoMessage(message);
+    }
+
+    if (isDeviceInfoMessage(message)) {
+      log('WARNING: Not yet implemented.');
+    }
+  }
+
+  /**
+   * Process an IdentityInfo message.
+   * @param {SignedMessage} message
+   * @return {Promise<void>}
+   * @private
+   */
+  async _processIdentityInfoMessage (message) {
+    let partyKey;
+    let signedIdentityInfo;
+    let identityKey;
+
+    if (isEnvelope(message)) {
+      // If this message has an Envelope, the Envelope must match this Party.
+      signedIdentityInfo = message.signed.payload.contents.contents.payload;
+      identityKey = signedIdentityInfo.signed.payload.publicKey;
+      partyKey = message.signed.payload.contents.partyKey;
+
+      // Make sure the Envelope is signed with that particular Identity key or a chain that leads back to it.
+      let signatureMatch = false;
+      for await (const signature of message.signatures) {
+        // By default, check this exact key.
+        let signingKey = signature.key;
+        // But if this has a KeyChain, check its trusted parent key instead.
+        if (signature.keyChain) {
+          const trustedKey = await this._keyring.findTrusted(signature.keyChain);
+          if (trustedKey) {
+            signingKey = trustedKey.publicKey;
+          }
+        }
+        if (signingKey && signingKey.equals(identityKey)) {
+          signatureMatch = true;
+          break;
+        }
+      }
+
+      if (!signatureMatch) {
+        throw new Error(`Invalid Envelope for IdentityInfo, not signed by proper key: ${JSON.stringify(message)}`);
+      }
+    } else {
+      // If this message has no Envelope, the Identity key itself must match the Party.
+      signedIdentityInfo = message;
+      identityKey = signedIdentityInfo.signed.payload.publicKey;
+      partyKey = identityKey;
+    }
+
+    // Check the inner message signature.
+    if (Keyring.signingKeys(signedIdentityInfo).find(key => key.equals(identityKey)) < 0) {
+      throw new Error(`Invalid IdentityInfo, not signed by Identity key: ${JSON.stringify(signedIdentityInfo)}`);
+    }
+
+    // Check the target Party matches.
+    if (!partyKey || !partyKey.equals(this._publicKey)) {
+      throw new Error(`Invalid party: ${keyToString(partyKey)}`);
+    }
+
+    // Check membership.
+    if (!identityKey || !this.isMemberKey(identityKey)) {
+      throw new Error(`Invalid IdentityInfo, not a member: ${keyToString(identityKey)}`);
+    }
+
+    this._infoMessages.set(keyToString(identityKey), signedIdentityInfo);
+  }
+
+  /**
+   * Process a replicated Party credential message, admitting keys or feeds to the Party.
+   * @param {SignedMessage} message
+   * @returns {void}
+   */
+  async _processCredentialMessage (message) {
     assert(message);
     const original = message;
 
@@ -265,8 +378,8 @@ export class Party extends EventEmitter {
     switch (message.signed.payload.type) {
       case PartyCredential.Type.PARTY_GENESIS: {
         const { admitKey, feedKey } = await this._processGenesisMessage(message);
-        this._keyMessages.set(admitKey.key, original);
-        this._keyMessages.set(feedKey.key, original);
+        this._credentialMessages.set(admitKey.key, original);
+        this._credentialMessages.set(feedKey.key, original);
 
         // There is no question of who is admitting on the GENESIS.
         this._admittedBy.set(admitKey.key, this._publicKey);
@@ -279,7 +392,7 @@ export class Party extends EventEmitter {
 
       case PartyCredential.Type.KEY_ADMIT: {
         const admitKey = await this._processKeyAdmitMessage(message, !envelopedMessage, !envelopedMessage);
-        this._keyMessages.set(admitKey.key, original);
+        this._credentialMessages.set(admitKey.key, original);
 
         const admittedBy = this._determineAdmittingMember(admitKey.publicKey, original);
         assert(admittedBy);
@@ -292,7 +405,7 @@ export class Party extends EventEmitter {
 
       case PartyCredential.Type.FEED_ADMIT: {
         const feedKey = await this._processFeedAdmitMessage(message, !envelopedMessage);
-        this._keyMessages.set(feedKey.key, original);
+        this._credentialMessages.set(feedKey.key, original);
 
         // This uses 'message' rather than 'original', since in a Greeting/Envelope case we want to record the
         // feed's actual owner, not the Greeter writing the message on their behalf.
@@ -462,7 +575,6 @@ export class Party extends EventEmitter {
    * @returns {boolean} true if added, false if already present
    * @private
    *
-   * @fires Party#'admit:genesis'
    * @fires Party#'admit:key'
    * @fires Party#'admit:feed'
    */

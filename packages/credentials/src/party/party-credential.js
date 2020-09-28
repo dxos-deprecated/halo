@@ -106,8 +106,8 @@ export const createKeyAdmitMessage = (keyring, partyKey, admitKeyPair, signingKe
  * key which has already been admitted (usually by a device identity key).
  * @param {Keyring} keyring
  * @param {Buffer} partyKey
- * @param {KeyPair} feedKeyPair
- * @param {KeyPair[]} signingKeys
+ * @param {KeyRecord} feedKeyPair
+ * @param {KeyRecord[]} signingKeys
  * @param {Buffer} [nonce]
  * @returns {SignedMessage}
  */

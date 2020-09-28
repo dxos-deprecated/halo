@@ -8,6 +8,7 @@ import debug from 'debug';
 
 import { expectToThrow } from '@dxos/async';
 
+import { createIdentityInfoMessage } from '../identity';
 import { Filter, Keyring, KeyType } from '../keys';
 import { validate } from '../proto';
 import { Party } from './party';
@@ -37,38 +38,69 @@ const createPartyKeyrings = async () => {
 };
 
 test('Process basic message types', async () => {
-  const { keyring, partyKey } = await createPartyKeyrings();
+  const { keyring } = await createPartyKeyrings();
+  await keyring.createKeyRecord({ type: KeyType.IDENTITY });
+  await keyring.createKeyRecord({ type: KeyType.FEED });
   await keyring.createKeyRecord({ type: KeyType.FEED });
 
-  const party = new Party(partyKey);
+  const [identityKeyA, identityKeyB] = keyring.findKeys(Keyring.signingFilter({ type: KeyType.IDENTITY }));
+  const deviceKey = keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE }));
+  const partyKey = keyring.findKey(Keyring.signingFilter({ type: KeyType.PARTY }));
+  const [feedKeyA, feedKeyB, haloFeedKey] = keyring.findKeys(Keyring.signingFilter({ type: KeyType.FEED }));
+
+  // Create a KeyChain for the device to use similar to when using the HALO.
+  let deviceKeyChain;
+  {
+    const haloMessages = new Map();
+    const haloGenesis = createPartyGenesisMessage(keyring, identityKeyB, haloFeedKey, deviceKey);
+    haloMessages.set(identityKeyB.key, haloGenesis);
+    haloMessages.set(haloFeedKey.key, haloGenesis);
+    haloMessages.set(deviceKey.key, haloGenesis);
+    deviceKeyChain = Keyring.buildKeyChain(deviceKey.publicKey, haloMessages, [haloFeedKey.publicKey]);
+  }
+
+  const party = new Party(partyKey.publicKey);
 
   const messages = [
-    // The Genesis message is signed by the party private key, the feed key, and one admitted key.
-    createPartyGenesisMessage(keyring,
-      keyring.findKey(Filter.matches({ type: KeyType.PARTY })),
-      keyring.findKeys(Keyring.signingFilter({ type: KeyType.FEED }))[0],
-      keyring.findKey(Keyring.signingFilter({ type: KeyType.IDENTITY }))),
-    // A user (represented by the identity key) will also need a device.
-    createKeyAdmitMessage(keyring,
-      keyring.findKey(Filter.matches({ type: KeyType.PARTY })).publicKey,
-      keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE })),
-      [keyring.findKey(Keyring.signingFilter({ type: KeyType.IDENTITY }))]),
-    // We don't actually need this feed, since the initial feed is in the Genesis message, but we want to test all types.
-    createFeedAdmitMessage(keyring,
-      keyring.findKey(Filter.matches({ type: KeyType.PARTY })).publicKey,
-      keyring.findKeys(Keyring.signingFilter({ type: KeyType.FEED }))[1],
-      [keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE }))])
+    // The Genesis message is signed by the party private key, the feed key, and one admitted key (IdentityA).
+    createPartyGenesisMessage(keyring, partyKey, feedKeyA, identityKeyA),
+    // Admit IdentityB using a KeyAdmit message.
+    createKeyAdmitMessage(keyring, partyKey.publicKey, identityKeyB, [identityKeyA]),
+    // Add another feed, and sign for it using the Device KeyChain associated with IdentityB.
+    createFeedAdmitMessage(keyring, partyKey.publicKey, feedKeyB, [deviceKeyChain]),
+    // Add an IdentityInfo, wrapped in an Envelope signed by the device KeyChain, as when copied from the HALO.
+    createEnvelopeMessage(
+      keyring,
+      partyKey.publicKey,
+      createIdentityInfoMessage(keyring, 'IdentityB', identityKeyB),
+      [deviceKeyChain]
+    )
   ].map(validate);
 
   expect(party.memberKeys.length).toEqual(0);
   expect(party.memberFeeds.length).toEqual(0);
+  expect(party.infoMessages.size).toEqual(0);
+  expect(party.credentialMessages.size).toEqual(0);
 
   await party.processMessages(messages);
 
-  expect(party.memberKeys).toContainEqual(keyring.findKey(Keyring.signingFilter({ type: KeyType.IDENTITY })).publicKey);
-  expect(party.memberKeys).toContainEqual(keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE })).publicKey);
-  expect(party.memberFeeds).toContainEqual(keyring.findKeys(Keyring.signingFilter({ type: KeyType.FEED }))[0].publicKey);
-  expect(party.memberFeeds).toContainEqual(keyring.findKeys(Keyring.signingFilter({ type: KeyType.FEED }))[1].publicKey);
+  expect(party.memberKeys).toContainEqual(identityKeyA.publicKey);
+  expect(party.memberKeys).toContainEqual(identityKeyB.publicKey);
+  expect(party.memberKeys).not.toContainEqual(deviceKey.publicKey);
+
+  expect(party.memberFeeds).toContainEqual(feedKeyA.publicKey);
+  expect(party.memberFeeds).toContainEqual(feedKeyB.publicKey);
+
+  expect(party.credentialMessages.size).toBe(4);
+  expect(party.credentialMessages.has(identityKeyA.key)).toBe(true);
+  expect(party.credentialMessages.has(identityKeyB.key)).toBe(true);
+  expect(party.credentialMessages.has(feedKeyA.key)).toBe(true);
+  expect(party.credentialMessages.has(deviceKey.key)).toBe(false);
+
+  expect(party.infoMessages.size).toBe(1);
+  // We did not write and IdentityInfo message for IdentityA.
+  expect(party.infoMessages.has(identityKeyA.key)).toBe(false);
+  expect(party.infoMessages.has(identityKeyB.key)).toBe(true);
 });
 
 test('GreetingCommandPlugin envelopes', async () => {
