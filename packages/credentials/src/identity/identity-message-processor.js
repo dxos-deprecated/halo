@@ -26,6 +26,7 @@ export class IdentityMessageProcessor {
     /** @type {Party} */
     this._party = party;
 
+    // TODO(telackey): Switch to Buffer-aware maps.
     /** @type {Map<string, SignedMessage>} */
     this._infoMessages = new Map();
   }
@@ -71,6 +72,7 @@ export class IdentityMessageProcessor {
     }
 
     if (isDeviceInfoMessage(message)) {
+      // TODO(telackey): Implement.
       log('WARNING: Not yet implemented.');
     }
   }

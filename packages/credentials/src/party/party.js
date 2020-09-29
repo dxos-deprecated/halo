@@ -44,7 +44,7 @@ export class Party extends EventEmitter {
     this._identityMessageProcessor = new IdentityMessageProcessor(this);
     this._open = false;
 
-    // TODO(telackey): Switch both these to Buffer-aware maps.
+    // TODO(telackey): Switch to Buffer-aware maps.
     /** @type {Map<string, SignedMessage>} */
     this._credentialMessages = new Map();
 
