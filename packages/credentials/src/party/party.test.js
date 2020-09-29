@@ -8,7 +8,7 @@ import debug from 'debug';
 
 import { expectToThrow } from '@dxos/async';
 
-import { createIdentityInfoMessage } from '../identity';
+import { createIdentityInfoMessage } from '../identity/identity-message';
 import { Filter, Keyring, KeyType } from '../keys';
 import { validate } from '../proto';
 import { Party } from './party';
