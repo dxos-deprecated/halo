@@ -8,7 +8,8 @@ import EventEmitter from 'events';
 
 import { discoveryKey, keyToString } from '@dxos/crypto';
 
-import { isIdentityInfoMessage, isIdentityMessage, isDeviceInfoMessage } from '../identity/identity-message';
+import { isIdentityMessage } from '../identity/identity-message';
+import { IdentityMessageProcessor } from '../identity/identity-message-processor';
 import { KeyType, Keyring, keyTypeName } from '../keys';
 import { PartyCredential, isEnvelope, isPartyInvitationMessage } from './party-credential';
 import { PartyInvitationManager } from './party-invitation-manager';
@@ -40,13 +41,12 @@ export class Party extends EventEmitter {
     this._publicKey = publicKey;
     this._keyring = new Keyring();
     this._invitationManager = new PartyInvitationManager(this);
+    this._identityMessageProcessor = new IdentityMessageProcessor(this);
     this._open = false;
 
     // TODO(telackey): Switch both these to Buffer-aware maps.
     /** @type {Map<string, SignedMessage>} */
     this._credentialMessages = new Map();
-    /** @type {Map<string, SignedMessage>} */
-    this._infoMessages = new Map();
 
     /** @type {Map<string, PublicKey>} */
     this._memberKeys = new Map();
@@ -117,7 +117,7 @@ export class Party extends EventEmitter {
    * @return {Map<string, Message>}
    */
   get infoMessages () {
-    return this._infoMessages;
+    return this._identityMessageProcessor.infoMessages;
   }
 
   /**
@@ -171,16 +171,26 @@ export class Party extends EventEmitter {
    * @return {IdentityInfo | DeviceInfo | undefined}
    */
   getInfo (publicKey) {
-    assert(publicKey);
+    assert(Buffer.isBuffer(publicKey));
 
-    const message = this._infoMessages.get(keyToString(publicKey));
-    // The saved copy is a SignedMessage, but we only want to return the contents.
-    return message ? message.signed.payload : undefined;
+    return this._identityMessageProcessor.getInfo(publicKey);
+  }
+
+  /**
+   * Lookup the PublicKey for the Party member associated with this KeyChain.
+   * @param {KeyChain} chain
+   * @return {Promise<PublicKey>}
+   */
+  findMemberKey (chain) {
+    assert(chain);
+
+    const trustedKey = this._keyring.findTrusted(chain);
+    return trustedKey && this.isMemberKey(trustedKey.publicKey) ? trustedKey.publicKey : undefined;
   }
 
   /**
    * Is the indicated key a trusted key associated with this party.
-   * @param {Buffer} publicKey
+   * @param {PublicKey} publicKey
    * @returns {boolean}
    */
   isMemberKey (publicKey) {
@@ -193,7 +203,7 @@ export class Party extends EventEmitter {
 
   /**
    * Is the indicated key a trusted feed associated with this party.
-   * @param {Buffer} feedKey
+   * @param {PublicKey} feedKey
    * @returns {boolean}
    */
   isMemberFeed (feedKey) {
@@ -280,99 +290,10 @@ export class Party extends EventEmitter {
     }
 
     if (isIdentityMessage(message)) {
-      return this._processIdentityMessage(message);
+      return this._identityMessageProcessor.processMessage(message);
     }
 
     return this._processCredentialMessage(message);
-  }
-
-  /**
-   * Process "Identity" message (IdentityInfo, DeviceInfo, etc.)
-   * @param {SignedMessage} message
-   * @return {Promise<void>}
-   * @private
-   */
-  async _processIdentityMessage (message) {
-    assert(message);
-    if (!message.signed || !message.signed.payload ||
-      !message.signatures || !Array.isArray(message.signatures)) {
-      throw new Error(`Invalid message: ${JSON.stringify(message)}`);
-    }
-
-    if (!this.verifySignatures(message)) {
-      throw new Error(`Unverifiable message: ${JSON.stringify(message)}`);
-    }
-
-    if (isIdentityInfoMessage(message)) {
-      return this._processIdentityInfoMessage(message);
-    }
-
-    if (isDeviceInfoMessage(message)) {
-      log('WARNING: Not yet implemented.');
-    }
-  }
-
-  /**
-   * Process an IdentityInfo message.
-   * @param {SignedMessage} message
-   * @return {Promise<void>}
-   * @private
-   */
-  async _processIdentityInfoMessage (message) {
-    let partyKey;
-    let signedIdentityInfo;
-    let identityKey;
-
-    if (isEnvelope(message)) {
-      // If this message has an Envelope, the Envelope must match this Party.
-      signedIdentityInfo = message.signed.payload.contents.contents.payload;
-      identityKey = signedIdentityInfo.signed.payload.publicKey;
-      partyKey = message.signed.payload.contents.partyKey;
-
-      // Make sure the Envelope is signed with that particular Identity key or a chain that leads back to it.
-      let signatureMatch = false;
-      for await (const signature of message.signatures) {
-        // By default, check this exact key.
-        let signingKey = signature.key;
-        // But if this has a KeyChain, check its trusted parent key instead.
-        if (signature.keyChain) {
-          const trustedKey = await this._keyring.findTrusted(signature.keyChain);
-          if (trustedKey) {
-            signingKey = trustedKey.publicKey;
-          }
-        }
-        if (signingKey && signingKey.equals(identityKey)) {
-          signatureMatch = true;
-          break;
-        }
-      }
-
-      if (!signatureMatch) {
-        throw new Error(`Invalid Envelope for IdentityInfo, not signed by proper key: ${JSON.stringify(message)}`);
-      }
-    } else {
-      // If this message has no Envelope, the Identity key itself must match the Party.
-      signedIdentityInfo = message;
-      identityKey = signedIdentityInfo.signed.payload.publicKey;
-      partyKey = identityKey;
-    }
-
-    // Check the inner message signature.
-    if (Keyring.signingKeys(signedIdentityInfo).find(key => key.equals(identityKey)) < 0) {
-      throw new Error(`Invalid IdentityInfo, not signed by Identity key: ${JSON.stringify(signedIdentityInfo)}`);
-    }
-
-    // Check the target Party matches.
-    if (!partyKey || !partyKey.equals(this._publicKey)) {
-      throw new Error(`Invalid party: ${keyToString(partyKey)}`);
-    }
-
-    // Check membership.
-    if (!identityKey || !this.isMemberKey(identityKey)) {
-      throw new Error(`Invalid IdentityInfo, not a member: ${keyToString(identityKey)}`);
-    }
-
-    this._infoMessages.set(keyToString(identityKey), signedIdentityInfo);
   }
 
   /**
@@ -589,7 +510,7 @@ export class Party extends EventEmitter {
 
   /**
    * Admit the key to the allowed list.
-   * @param {Buffer} publicKey
+   * @param {PublicKey} publicKey
    * @param attributes
    * @returns {boolean} true if added, false if already present
    * @private

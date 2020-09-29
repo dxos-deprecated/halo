@@ -5,34 +5,8 @@
 import assert from 'assert';
 import get from 'lodash.get';
 
-import { isEnvelope } from '../party/party-credential';
+import { unwrapEnvelopes, extractContents } from '../party/party-credential';
 import { createDateTimeString } from '../proto/datetime';
-
-/**
- * Unwrap a SignedMessage from its Envelopes.
- * @param {SignedMessage} message
- * @return {SignedMessage} message
- */
-const unwrapEnvelopes = (message) => {
-  // Unwrap any Envelopes
-  while (isEnvelope(message)) {
-    message = message.signed.payload.contents.contents.payload;
-  }
-  return message;
-};
-
-/**
- * Extract the contents of a SignedMessage
- * @param {SignedMessage} message
- * @return {Message} message
- */
-const extractContents = (message) => {
-  // Unwrap any payload.
-  while (message.signed || message.payload) {
-    message = message.signed || message.payload;
-  }
-  return message;
-};
 
 /**
  * Creates a JoinedParty message for writing to the Halo so that all devices belonging to

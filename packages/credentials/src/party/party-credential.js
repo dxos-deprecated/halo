@@ -212,6 +212,42 @@ export const isEnvelope = (message) => {
 };
 
 /**
+ * Is this a SignedMessage?
+ * @param {Object} message
+ * @return {boolean}
+ * @private
+ */
+export const isSignedMessage = (message) => {
+  return message && message.signed && message.signed.payload && message.signatures && Array.isArray(message.signatures);
+};
+
+/**
+ * Unwrap a SignedMessage from its Envelopes.
+ * @param {SignedMessage} message
+ * @return {SignedMessage} message
+ */
+export const unwrapEnvelopes = (message) => {
+  // Unwrap any Envelopes
+  while (isEnvelope(message)) {
+    message = message.signed.payload.contents.contents.payload;
+  }
+  return message;
+};
+
+/**
+ * Extract the contents of a SignedMessage
+ * @param {SignedMessage} message
+ * @return {Message} message
+ */
+export const extractContents = (message) => {
+  // Unwrap any payload.
+  while (message.signed || message.payload) {
+    message = message.signed || message.payload;
+  }
+  return message;
+};
+
+/**
  * Returns the PartyCredential.Type for the message.
  * @param {SignedMessage} message
  * @param {boolean} [deep=true] Whether to return the inner type of a message if it is in an ENVELOPE.
