@@ -181,7 +181,7 @@ export class Party extends EventEmitter {
    * @param {KeyChain} chain
    * @return {Promise<PublicKey>}
    */
-  findMemberKey (chain) {
+  findMemberKeyFromChain (chain) {
     assert(chain);
 
     const trustedKey = this._keyring.findTrusted(chain);

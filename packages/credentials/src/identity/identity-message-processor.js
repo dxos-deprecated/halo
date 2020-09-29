@@ -97,7 +97,7 @@ export class IdentityMessageProcessor {
       for (const signature of message.signatures) {
         // If this has a KeyChain, check its trusted parent key, else use this exact key.
         const signingKey = signature.keyChain
-          ? this._party.findMemberKey(signature.keyChain)
+          ? this._party.findMemberKeyFromChain(signature.keyChain)
           : signature.key;
         if (signingKey && signingKey.equals(identityKey)) {
           signatureMatch = true;
