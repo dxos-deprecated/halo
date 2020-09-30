@@ -4,8 +4,8 @@
 
 import waitForExpect from 'wait-for-expect';
 
-import { createId, keyToString } from '@dxos/crypto';
 import { Keyring, KeyType } from '@dxos/credentials';
+import { createId, keyToString } from '@dxos/crypto';
 
 import { InviteDetails, InviteType } from '../invite-details';
 import { TestModel } from './test-model';

@@ -9,8 +9,8 @@ import { Keyring, KeyType, codec, createAuthMessage } from '@dxos/credentials';
 import { createKeyPair, keyToBuffer, randomBytes, sign, verify, SIGNATURE_LENGTH } from '@dxos/crypto';
 
 import { InviteDetails, InviteType } from './invite-details';
-import { TestNetworkNode } from './testing/test-network-node';
 import { checkReplication, checkPartyInfo, createTestParty, destroyNodes, checkContacts } from './testing/test-common';
+import { TestNetworkNode } from './testing/test-network-node';
 
 // eslint-disable-next-line no-unused-vars
 const log = debug('dxos:party-manager:test');
@@ -134,7 +134,7 @@ test('Create a party with 3 identities each having one device (secret invitation
   await destroyNodes(nodes);
 });
 
-test('Check subscribe/unsubscribe', async (done) => {
+test('Check subscribe/unsubscribe', async () => {
   const { party: { publicKey: partyKey }, nodes } = await createTestParty(3);
   await checkReplication(partyKey, nodes);
   await checkPartyInfo(partyKey, nodes);
@@ -151,12 +151,7 @@ test('Check subscribe/unsubscribe', async (done) => {
   await checkReplication(partyKey, [nodeB, nodeC]);
 
   // It should not work to and from A.
-  try {
-    await checkReplication(partyKey, nodes);
-    done.fail();
-  } catch (err) {
-    expect(err).toBeInstanceOf(Error);
-  }
+  await expect(() => checkReplication(partyKey, nodes)).rejects.toThrow();
 
   // Re-subscribe.
   await nodeA.partyManager.subscribe(partyKey);
@@ -169,7 +164,6 @@ test('Check subscribe/unsubscribe', async (done) => {
   await checkReplication(partyKey, nodes);
 
   await destroyNodes(nodes);
-  done();
 });
 
 test('Create a party with 2 Identities each having one device (PartInvitationMessage invite)', async () => {

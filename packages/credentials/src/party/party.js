@@ -8,6 +8,8 @@ import EventEmitter from 'events';
 
 import { discoveryKey, keyToString } from '@dxos/crypto';
 
+import { isIdentityMessage } from '../identity/identity-message';
+import { IdentityMessageProcessor } from '../identity/identity-message-processor';
 import { KeyType, Keyring, keyTypeName } from '../keys';
 import { PartyCredential, isEnvelope, isPartyInvitationMessage } from './party-credential';
 import { PartyInvitationManager } from './party-invitation-manager';
@@ -18,9 +20,6 @@ const log = debug('dxos:creds:party');
 
 /**
  * The party state is constructed via signed messages on the feeds.
- *
- * @event Party#'admit:genesis' fires on a the party key admitted from the Genesis message
- * @type {KeyRecord}
  *
  * @event Party#'admit:key' fires on a new entity key admitted
  * @type {KeyRecord}
@@ -42,10 +41,13 @@ export class Party extends EventEmitter {
     this._publicKey = publicKey;
     this._keyring = new Keyring();
     this._invitationManager = new PartyInvitationManager(this);
+    this._identityMessageProcessor = new IdentityMessageProcessor(this);
     this._open = false;
 
-    /** @type {Map<string, Message>} */
-    this._keyMessages = new Map();
+    // TODO(telackey): Switch to Buffer-aware maps.
+    /** @type {Map<string, SignedMessage>} */
+    this._credentialMessages = new Map();
+
     /** @type {Map<string, PublicKey>} */
     this._memberKeys = new Map();
     /** @type {Map<string, PublicKey>} */
@@ -104,8 +106,18 @@ export class Party extends EventEmitter {
    * This is necessary information for demonstrating the trust relationship between keys.
    * @returns {Map<string, Message>}
    */
-  get memberCredentials () {
-    return this._keyMessages;
+  get credentialMessages () {
+    return this._credentialMessages;
+  }
+
+  /**
+   * Returns a map of SignedMessages used to describe keys. In many cases the contents are enough (see: getInfo)
+   * but the original message is needed for copying into a new Party, as when an IdentityInfo message is copied
+   * from the HALO Party to a Party that is being joined.
+   * @return {Map<string, Message>}
+   */
+  get infoMessages () {
+    return this._identityMessageProcessor.infoMessages;
   }
 
   /**
@@ -131,6 +143,11 @@ export class Party extends EventEmitter {
     this._open = false;
   }
 
+  /**
+   * Retrieve an PartyInvitation by its ID.
+   * @param {Buffer} invitationID
+   * @return {SignedMessage}
+   */
   getInvitation (invitationID) {
     assert(invitationID);
 
@@ -149,8 +166,31 @@ export class Party extends EventEmitter {
   }
 
   /**
-   * Is the indicated key a trusted key associated with this party.
+   * Get info for the specified key (if available).
    * @param {Buffer} publicKey
+   * @return {IdentityInfo | DeviceInfo | undefined}
+   */
+  getInfo (publicKey) {
+    assert(Buffer.isBuffer(publicKey));
+
+    return this._identityMessageProcessor.getInfo(publicKey);
+  }
+
+  /**
+   * Lookup the PublicKey for the Party member associated with this KeyChain.
+   * @param {KeyChain} chain
+   * @return {Promise<PublicKey>}
+   */
+  findMemberKeyFromChain (chain) {
+    assert(chain);
+
+    const trustedKey = this._keyring.findTrusted(chain);
+    return trustedKey && this.isMemberKey(trustedKey.publicKey) ? trustedKey.publicKey : undefined;
+  }
+
+  /**
+   * Is the indicated key a trusted key associated with this party.
+   * @param {PublicKey} publicKey
    * @returns {boolean}
    */
   isMemberKey (publicKey) {
@@ -163,7 +203,7 @@ export class Party extends EventEmitter {
 
   /**
    * Is the indicated key a trusted feed associated with this party.
-   * @param {Buffer} feedKey
+   * @param {PublicKey} feedKey
    * @returns {boolean}
    */
   isMemberFeed (feedKey) {
@@ -237,7 +277,7 @@ export class Party extends EventEmitter {
   }
 
   /**
-   * Process a replicated Party credential message, admitting keys or feeds to the Party.
+   * Process a Party message.
    * @param {SignedMessage} message
    * @returns {void}
    */
@@ -249,6 +289,19 @@ export class Party extends EventEmitter {
       return this._invitationManager.recordInvitation(message);
     }
 
+    if (isIdentityMessage(message)) {
+      return this._identityMessageProcessor.processMessage(message);
+    }
+
+    return this._processCredentialMessage(message);
+  }
+
+  /**
+   * Process a replicated Party credential message, admitting keys or feeds to the Party.
+   * @param {SignedMessage} message
+   * @returns {void}
+   */
+  async _processCredentialMessage (message) {
     assert(message);
     const original = message;
 
@@ -265,8 +318,8 @@ export class Party extends EventEmitter {
     switch (message.signed.payload.type) {
       case PartyCredential.Type.PARTY_GENESIS: {
         const { admitKey, feedKey } = await this._processGenesisMessage(message);
-        this._keyMessages.set(admitKey.key, original);
-        this._keyMessages.set(feedKey.key, original);
+        this._credentialMessages.set(admitKey.key, original);
+        this._credentialMessages.set(feedKey.key, original);
 
         // There is no question of who is admitting on the GENESIS.
         this._admittedBy.set(admitKey.key, this._publicKey);
@@ -279,7 +332,7 @@ export class Party extends EventEmitter {
 
       case PartyCredential.Type.KEY_ADMIT: {
         const admitKey = await this._processKeyAdmitMessage(message, !envelopedMessage, !envelopedMessage);
-        this._keyMessages.set(admitKey.key, original);
+        this._credentialMessages.set(admitKey.key, original);
 
         const admittedBy = this._determineAdmittingMember(admitKey.publicKey, original);
         assert(admittedBy);
@@ -292,7 +345,7 @@ export class Party extends EventEmitter {
 
       case PartyCredential.Type.FEED_ADMIT: {
         const feedKey = await this._processFeedAdmitMessage(message, !envelopedMessage);
-        this._keyMessages.set(feedKey.key, original);
+        this._credentialMessages.set(feedKey.key, original);
 
         // This uses 'message' rather than 'original', since in a Greeting/Envelope case we want to record the
         // feed's actual owner, not the Greeter writing the message on their behalf.
@@ -457,12 +510,11 @@ export class Party extends EventEmitter {
 
   /**
    * Admit the key to the allowed list.
-   * @param {Buffer} publicKey
+   * @param {PublicKey} publicKey
    * @param attributes
    * @returns {boolean} true if added, false if already present
    * @private
    *
-   * @fires Party#'admit:genesis'
    * @fires Party#'admit:key'
    * @fires Party#'admit:feed'
    */

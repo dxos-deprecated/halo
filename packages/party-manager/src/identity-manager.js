@@ -86,7 +86,7 @@ export class IdentityManager extends EventEmitter {
    */
   get identityGenesisMessage () {
     return this.halo
-      ? this.halo.memberCredentials.get(this.keyRecord.key)
+      ? this.halo.credentialMessages.get(this.keyRecord.key)
       : undefined;
   }
 

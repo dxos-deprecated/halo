@@ -6,8 +6,8 @@ import assert from 'assert';
 import debug from 'debug';
 
 import { waitForEvent } from '@dxos/async';
-import { keyToString } from '@dxos/crypto';
 import { Keyring, KeyType, createDeviceInfoMessage } from '@dxos/credentials';
+import { keyToString } from '@dxos/crypto';
 
 import { InvitationDescriptor, InvitationDescriptorType } from './invitation-descriptor';
 import { InviteDetails, InviteType } from './invite-details';
@@ -67,7 +67,7 @@ export class DeviceManager {
     try {
       const halo = this._partyManager.identityManager.halo;
       if (halo) {
-        keyChain = Keyring.buildKeyChain(this.publicKey, halo.memberCredentials, halo.memberFeeds);
+        keyChain = Keyring.buildKeyChain(this.publicKey, halo.credentialMessages, halo.memberFeeds);
       }
     } catch (err) {
       // It is not unexpected to have an error building the key chain, as we may not have all the messages loaded yet,
