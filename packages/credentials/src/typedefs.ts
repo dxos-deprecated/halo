@@ -75,7 +75,7 @@ export interface SignedMessage {
 
 export interface AuthMessage {
   partyKey: PublicKey
-  identetyKey: PublicKey
+  identityKey: PublicKey
   deviceKey: PublicKey
 }
 

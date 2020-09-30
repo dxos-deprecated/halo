@@ -106,8 +106,8 @@ export const createKeyAdmitMessage = (keyring, partyKey, admitKeyPair, signingKe
  * key which has already been admitted (usually by a device identity key).
  * @param {Keyring} keyring
  * @param {Buffer} partyKey
- * @param {KeyPair} feedKeyPair
- * @param {KeyPair[]} signingKeys
+ * @param {KeyRecord} feedKeyPair
+ * @param {KeyRecord[]} signingKeys
  * @param {Buffer} [nonce]
  * @returns {SignedMessage}
  */
@@ -209,6 +209,42 @@ export const isEnvelope = (message) => {
   // TODO: Test it is a PartyCredential
   const { signed: { payload: { type } = {} } = {} } = message;
   return type === PartyCredential.Type.ENVELOPE;
+};
+
+/**
+ * Is this a SignedMessage?
+ * @param {Object} message
+ * @return {boolean}
+ * @private
+ */
+export const isSignedMessage = (message) => {
+  return message && message.signed && message.signed.payload && message.signatures && Array.isArray(message.signatures);
+};
+
+/**
+ * Unwrap a SignedMessage from its Envelopes.
+ * @param {SignedMessage} message
+ * @return {SignedMessage} message
+ */
+export const unwrapEnvelopes = (message) => {
+  // Unwrap any Envelopes
+  while (isEnvelope(message)) {
+    message = message.signed.payload.contents.contents.payload;
+  }
+  return message;
+};
+
+/**
+ * Extract the contents of a SignedMessage
+ * @param {SignedMessage} message
+ * @return {Message} message
+ */
+export const extractContents = (message) => {
+  // Unwrap any payload.
+  while (message.signed || message.payload) {
+    message = message.signed || message.payload;
+  }
+  return message;
 };
 
 /**

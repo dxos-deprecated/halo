@@ -67,7 +67,7 @@ export class DeviceManager {
     try {
       const halo = this._partyManager.identityManager.halo;
       if (halo) {
-        keyChain = Keyring.buildKeyChain(this.publicKey, halo.memberCredentials, halo.memberFeeds);
+        keyChain = Keyring.buildKeyChain(this.publicKey, halo.credentialMessages, halo.memberFeeds);
       }
     } catch (err) {
       // It is not unexpected to have an error building the key chain, as we may not have all the messages loaded yet,

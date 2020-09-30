@@ -5,6 +5,7 @@
 import assert from 'assert';
 import get from 'lodash.get';
 
+import { unwrapEnvelopes, extractContents } from '../party/party-credential';
 import { createDateTimeString } from '../proto/datetime';
 
 /**
@@ -94,10 +95,9 @@ export const createIdentityInfoMessage = (keyring, displayName, identityKey) => 
  * @return {boolean}
  */
 export const isIdentityMessage = (message) => {
-  let type = get(message, 'payload.__type_url');
-  if (type === 'dxos.credentials.SignedMessage') {
-    type = get(message, 'payload.signed.payload.__type_url');
-  }
+  message = extractContents(unwrapEnvelopes(message));
+  const type = get(message, '__type_url');
+
   // Since message.payload may not exist, make safe and return false.
   return (type !== undefined) ? type.startsWith('dxos.credentials.identity.') : false;
 };
@@ -114,24 +114,22 @@ export const isJoinedPartyMessage = (message) => {
 
 /**
  * Returns true if the message is a DeviceInfo message, else false.
- * @param {Message} message
+ * @param {SignedMessage} message
  * @return {boolean}
  */
 export const isDeviceInfoMessage = (message) => {
-  const payloadType = get(message, 'payload.__type_url');
-  const signedType = get(message, 'payload.signed.payload.__type_url');
-  return payloadType === 'dxos.credentials.SignedMessage' &&
-    signedType === 'dxos.credentials.identity.DeviceInfo';
+  message = extractContents(unwrapEnvelopes(message));
+
+  return message.__type_url === 'dxos.credentials.identity.DeviceInfo';
 };
 
 /**
  * Returns true if the message is a IdentityInfo message, else false.
- * @param {Message} message
+ * @param {SignedMessage} message
  * @return {boolean}
  */
 export const isIdentityInfoMessage = (message) => {
-  const payloadType = get(message, 'payload.__type_url');
-  const signedType = get(message, 'payload.signed.payload.__type_url');
-  return payloadType === 'dxos.credentials.SignedMessage' &&
-    signedType === 'dxos.credentials.identity.IdentityInfo';
+  message = extractContents(unwrapEnvelopes(message));
+
+  return message.__type_url === 'dxos.credentials.identity.IdentityInfo';
 };
