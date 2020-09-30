@@ -43,6 +43,10 @@
     "lint-staged": "^9.5.0",
     "pre-commit": "^1.2.2"
   },
+  "resolutions": {
+    "@dxos/echo-db": "1.0.0-beta.28",
+    "@dxos/model-factory": "1.0.0-beta.28"
+  },
   "semistandard": {
     "parser": "babel-eslint",
     "env": [
