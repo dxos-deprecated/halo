@@ -10,7 +10,7 @@ import levelup from 'levelup';
 import memdown from 'memdown';
 import toArray from 'stream-to-array';
 
-const log = debug('dxos:creds:keys:keystore'); // eslint-disable-line no-unused-vars
+const log = debug('dxos:creds:keys:keystore'); // eslint-disable-line @typescript-eslint/no-unused-vars
 
 /**
  * LevelDB key storage.

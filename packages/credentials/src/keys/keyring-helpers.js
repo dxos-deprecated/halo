@@ -61,6 +61,7 @@ export const assertNoSecrets = (keyRecord) => {
  */
 export const stripSecrets = (keyRecord) => {
   assert(keyRecord);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { secretKey, seedPhrase, ...stripped } = keyRecord;
   return stripped;
 };

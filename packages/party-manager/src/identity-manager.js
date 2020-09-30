@@ -11,7 +11,7 @@ import { Filter, KeyType } from '@dxos/credentials';
 import { DeviceManager } from './device-manager';
 import { waitForCondition } from './util';
 
-// eslint-disable-next-line no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const log = debug('dxos:party-manager:identity-manager');
 
 /**

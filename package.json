@@ -29,7 +29,8 @@
     ]
   },
   "lint-staged": {
-    "*.js": "semistandard"
+    "*.ts": "eslint --cache --fix",
+    "*.js": "eslint --cache --fix"
   },
   "pre-commit": [
     "lint:staged"
@@ -40,8 +41,7 @@
   "devDependencies": {
     "babel-eslint": "^10.1.0",
     "lint-staged": "^9.5.0",
-    "pre-commit": "^1.2.2",
-    "semistandard": "^14.2.0"
+    "pre-commit": "^1.2.2"
   },
   "semistandard": {
     "parser": "babel-eslint",

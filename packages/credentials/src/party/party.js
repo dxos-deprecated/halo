@@ -462,7 +462,7 @@ export class Party extends EventEmitter {
       throw new Error(`Invalid message: ${message}`);
     }
 
-    const { partyKey, admitKey, feedKey } = message.signed.payload.contents; // eslint-disable-line no-unused-vars
+    const { partyKey, admitKey, feedKey } = message.signed.payload.contents; // eslint-disable-line @typescript-eslint/no-unused-vars
     if (requirePartyMatch && !partyKey.equals(this._publicKey)) {
       throw new Error(`Invalid party: ${keyToString(partyKey)}`);
     }

@@ -21,7 +21,7 @@ import { validate } from '../proto';
 import { createAuthMessage } from './auth-message';
 import { PartyAuthenticator } from './authenticator';
 
-// eslint-disable-next-line no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const log = debug('dxos:creds:auth:test');
 
 const createPartyKeyrings = async () => {
@@ -50,7 +50,7 @@ const createPartyKeyrings = async () => {
   };
 };
 
-// eslint-disable-next-line no-unused-vars
+/* eslint-disable @typescript-eslint/no-unused-vars */
 const chainToString = (chain, depth = 0) => {
   let ret = keyToString(chain.publicKey) + '\n';
   if (chain.parents.length) {
@@ -65,6 +65,7 @@ const chainToString = (chain, depth = 0) => {
   }
   return ret;
 };
+/* eslint-enable @typescript-eslint/no-unused-vars */
 
 const messageMap = (messages) => {
   const map = new Map();

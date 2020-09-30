@@ -17,7 +17,7 @@
     "build": "npm run clean && tsc",
     "clean": "del-cli dist && del-cli ./src/proto/gen",
     "lint": "eslint 'src/**/*.{js,ts}'",
-    "lint:fix": "semistandard --fix",
+    "lint:fix": "yarn lint --fix",
     "prepublishOnly": "npm run test && npm run build",
     "test": "jest --rootDir ./src --verbose --forceExit",
     "watch": "babel-watch ./src --out-dir ./dist --source-maps=both"

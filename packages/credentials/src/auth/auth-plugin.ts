@@ -10,7 +10,7 @@ import { keyToString } from '@dxos/crypto';
 import { Extension, ERR_EXTENSION_RESPONSE_FAILED } from '@dxos/protocol';
 
 import { codec } from '../proto';
-import { PartyAuthenticator, Authenticator } from './authenticator';
+import { Authenticator } from './authenticator';
 import { ERR_AUTH_GENERAL, ERR_AUTH_REJECTED } from './error-codes';
 
 const log = debug('dxos:creds:auth');

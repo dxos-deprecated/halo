@@ -23,7 +23,7 @@ import {
 import { KeyStore } from './keystore';
 import { KeyType } from './keytype';
 
-const log = debug('dxos:creds:keys'); // eslint-disable-line no-unused-vars
+const log = debug('dxos:creds:keys'); // eslint-disable-line @typescript-eslint/no-unused-vars
 
 const unwrapMessage = (message) => {
   if (message && message.payload && !message.signed && !Array.isArray(message.signatures)) {
@@ -272,6 +272,7 @@ export class Keyring {
     assertValidPublicKey(keyRecord.publicKey);
 
     // Do not allow updating/changing secrets.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { secretKey, seedPhrase, ...cleaned } = keyRecord;
 
     const existing = this._getFullKey(cleaned.publicKey) || {};

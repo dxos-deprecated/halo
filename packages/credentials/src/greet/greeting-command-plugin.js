@@ -16,7 +16,7 @@ import { codec } from '../proto';
 import { Command } from './constants';
 import { ERR_GREET_GENERAL } from './error-codes';
 
-const log = debug('dxos:creds:greet:plugin'); // eslint-disable-line no-unused-vars
+const log = debug('dxos:creds:greet:plugin'); // eslint-disable-line @typescript-eslint/no-unused-vars
 
 const EXTENSION_NAME = 'dxos.credentials.greeting';
 const DEFAULT_TIMEOUT = 30000;

@@ -545,7 +545,7 @@ export class PartyManager extends EventEmitter {
    */
   getPartyKeys (opts) {
     this._assertValid();
-    // eslint-disable-next-line no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { openOnly = false } = opts;
     // TODO(dboreham): implement openOnly check, verify party manager knowing about not-open parties makes sense.
     return Array.from(this._parties.values()).map(party => party.publicKey);

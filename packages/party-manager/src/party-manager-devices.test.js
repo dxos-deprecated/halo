@@ -11,7 +11,7 @@ import { InviteDetails, InviteType } from './invite-details';
 import { checkContacts, checkReplication, destroyNodes } from './testing/test-common';
 import { TestNetworkNode } from './testing/test-network-node';
 
-// eslint-disable-next-line no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const log = debug('dxos:party-manager:test');
 
 jest.setTimeout(100000);

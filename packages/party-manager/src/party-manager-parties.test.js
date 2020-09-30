@@ -12,7 +12,7 @@ import { InviteDetails, InviteType } from './invite-details';
 import { checkReplication, checkPartyInfo, createTestParty, destroyNodes, checkContacts } from './testing/test-common';
 import { TestNetworkNode } from './testing/test-network-node';
 
-// eslint-disable-next-line no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const log = debug('dxos:party-manager:test');
 
 test('Create a party with 2 Identities each having one device (signature invitation)', async () => {

@@ -10,7 +10,7 @@ import { createId } from '@dxos/crypto';
 
 import { checkPartyInfo, checkReplication, destroyNodes, createTestParty, addNodeToParty } from './testing/test-common';
 
-// eslint-disable-next-line no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const log = debug('dxos:party-manager:test');
 
 test('Check the PartyInfo of a party with 3 identities', async () => {
