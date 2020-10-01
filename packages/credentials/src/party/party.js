@@ -65,7 +65,7 @@ export class Party extends EventEmitter {
 
   /**
    * The Party's public key.
-   * @returns Buffer
+   * @returns {PublicKey}
    */
   get publicKey () {
     return this._publicKey;
@@ -73,7 +73,7 @@ export class Party extends EventEmitter {
 
   /**
    * The Party's discovery key.
-   * @returns Buffer
+   * @returns {PublicKey}
    */
   get discoveryKey () {
     return discoveryKey(this.publicKey);

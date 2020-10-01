@@ -4,6 +4,7 @@
 
 export type PublicKey = Buffer;
 export type SecretKey = Buffer;
+export type DiscoveryKey = Buffer;
 
 export interface KeyChain {
     publicKey: PublicKey;

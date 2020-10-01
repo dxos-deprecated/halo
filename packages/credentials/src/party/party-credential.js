@@ -68,8 +68,8 @@ export const createPartyGenesisMessage = (keyring, partyKeyPair, feedKeyPair, ad
  * @param {Keyring} keyring
  * @param {Buffer} partyKey
  * @param {KeyRecord} admitKeyPair
- * @param {KeyRecord[]} signingKeys
- * @param {Buffer} [nonce]
+ * @param {KeyChain|KeyChain[]|KeyRecord|KeyRecord[]} signingKeys
+ * @param {Buffer|undefined|null} [nonce]
  * @returns {SignedMessage}
  */
 export const createKeyAdmitMessage = (keyring, partyKey, admitKeyPair, signingKeys = [], nonce = null) => {
@@ -107,8 +107,8 @@ export const createKeyAdmitMessage = (keyring, partyKey, admitKeyPair, signingKe
  * @param {Keyring} keyring
  * @param {Buffer} partyKey
  * @param {KeyRecord} feedKeyPair
- * @param {KeyRecord[]} signingKeys
- * @param {Buffer} [nonce]
+ * @param {KeyChain|KeyChain[]|KeyRecord|KeyRecord[]} signingKeys
+ * @param {Buffer|undefined|null} [nonce]
  * @returns {SignedMessage}
  */
 export const createFeedAdmitMessage = (keyring, partyKey, feedKeyPair, signingKeys = [], nonce = null) => {
@@ -138,17 +138,14 @@ export const createFeedAdmitMessage = (keyring, partyKey, feedKeyPair, signingKe
 };
 
 /**
- * A signed message containing a signed message. This is used by a Greeter to write, and sign using its key, a
- * message provided to it, signed by the Invitee to the Party. The signature on the Envelope is that of the Greeter,
- * while the signature(s) on the interior message are those of the Invitee, demonstrating ownership by the Invitee
- * of the keys or feeds to be admitted. The interior message can only be of types:
- *   KEY_ADMIT
- *   FEED_ADMIT
- * Any other message type (eg, PARTY_GENESIS) is invalid and must be rejected.
- * @param keyring
- * @param partyKey
- * @param contents
- * @param signingKeys
+ * A signed message containing a signed message. This is used when wishing to write a message on behalf of another,
+ * as in Greeting, or when copying a message from Party to another, such as copying an IdentityInfo message from the
+ * HALO to a Party that is being joined.
+ * @param {Keyring} keyring
+ * @param {Buffer} partyKey
+ * @param {SignedMessage} contents
+ * @param {KeyChain|KeyChain[]|KeyRecord|KeyRecord[]} signingKeys
+ * @param {Buffer|undefined|null} [nonce]
  * @returns {SignedMessage}
  */
 // TODO(burdon): What is an envelope, distinct from above?
