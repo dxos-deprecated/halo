@@ -25,6 +25,7 @@ jobs:
           yarn build
           yarn test
           yarn lerna version `echo "${{ github.event.release.tag_name }}" | sed 's/^v//'` --no-git-tag-version -y
+          git commit -m "${{ github.event.release.tag_name }}"
           yarn lerna publish from-git --no-git-reset --force-publish -y
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
