@@ -27,6 +27,6 @@ jobs:
           git reset --hard
           yarn lerna version `echo "${{ github.event.release.tag_name }}" | sed 's/^v//'` --no-git-tag-version -y
           git commit -am "${{ github.event.release.tag_name }}"
-          yarn lerna publish from-git --force-publish -y
+          yarn lerna publish from-package --force-publish -y
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
