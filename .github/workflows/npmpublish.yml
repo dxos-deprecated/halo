@@ -1,7 +1,7 @@
 # This workflow will run tests using node and then publish a package to GitHub Packages when a release is created
 # For more information see: https://help.github.com/actions/language-and-framework-guides/publishing-nodejs-packages
 
-name: Publish Master to NPM on Release
+name: Publish to NPM on Release
 
 on:
   release:
@@ -20,16 +20,13 @@ jobs:
         run: |
           git config --global user.email "npm@dxos.network"
           git config --global user.name "DXOS"
-          git checkout master
           yarn
           yarn lint
           yarn build
           yarn test
           git reset --hard
-          yarn lerna version `echo "${{ github.event.release.tag_name }}" | sed 's/^v//'` --no-git-tag-version -y --force-publish
+          yarn lerna version `echo "${{ github.event.release.tag_name }}" | sed 's/^v//'` --no-git-tag-version -y
           git commit -am "${{ github.event.release.tag_name }}"
-          git tag -f "${{ github.event.release.tag_name }}"
           yarn lerna publish from-package --force-publish -y
-          git push
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
