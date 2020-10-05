@@ -25,7 +25,7 @@ jobs:
           yarn build
           yarn test
           git reset --hard
-          yarn lerna version `echo "${{ github.event.release.tag_name }}" | sed 's/^v//'` --no-git-tag-version -y
+          yarn lerna version `echo "${{ github.event.release.tag_name }}" | sed 's/^v//'` --no-git-tag-version -y --force-publish
           git commit -am "${{ github.event.release.tag_name }}"
           git tag -f "${{ github.event.release.tag_name }}"
           yarn lerna publish from-package --force-publish -y
