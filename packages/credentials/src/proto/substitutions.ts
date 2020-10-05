@@ -10,10 +10,10 @@ import { DecodedAny } from './any';
 export default {
   'google.protobuf.Any': {
     encode: (value: DecodedAny, schema: CodecSchema<any>) => {
-      const codec = schema.tryGetCodecForType(value.typeUrl);
+      const codec = schema.tryGetCodecForType(value.__type_url);
       const data = codec.encode(value);
       return {
-        type_url: value.typeUrl,
+        type_url: value.__type_url,
         value: data
       };
     },
@@ -22,7 +22,7 @@ export default {
       const data = codec.decode(value.value);
       return {
         ...data,
-        typeUrl: value.type_url
+        __type_url: value.type_url
       };
     }
   }

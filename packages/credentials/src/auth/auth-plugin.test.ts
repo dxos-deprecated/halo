@@ -29,7 +29,9 @@ const createTestKeyring = async () => {
   await keyring.load();
 
   for (const type of Object.keys(KeyType)) {
-    await keyring.createKeyRecord({ type: KeyType[type] });
+    if(typeof type === 'string') {
+      await keyring.createKeyRecord({ type: KeyType[type as any] });
+    }
   }
 
   return keyring;
@@ -72,15 +74,14 @@ const createProtocol = async (partyKey: PublicKey, authenticator: Authenticator,
   const append = pify(feed.append.bind(feed));
 
   // TODO(dboreham): abstract or remove outer wrapping.
-  const credentials = codec.encode({
-    __type_url: 'dxos.credentials.Message',
+  const credentials = Buffer.from(codec.encode({
     payload: keyring.sign({
       __type_url: 'dxos.credentials.auth.Auth',
       partyKey,
       deviceKey: peerId,
       identityKey: peerId
     }, [keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE }))])
-  }).toString('base64');
+  })).toString('base64');
 
   const auth = new AuthPlugin(peerId, authenticator, [Replicator.extension]);
   const authPromise = new Promise((resolve) => {

@@ -481,7 +481,7 @@ export class Keyring {
    * @param {(KeyRecord|KeyChain)[]} keys
    * @param {Buffer} [nonce]
    * @param {string} [created]
-   * @returns {{ signed, signatures }}
+   * @returns {{ signed, signatures, __type_url: 'dxos.credentials.SignedMessage' }}
    */
   sign (message, keys, nonce, created) {
     assert(typeof message === 'object');

@@ -303,10 +303,10 @@
     chalk "^4.1.0"
     read-pkg "^5.2.0"
 
-"@dxos/codec-experimental-runtime@^1.0.3":
-  version "1.0.3"
-  resolved "http://npm.dev.dxos.network:5736/@dxos%2fcodec-experimental-runtime/-/codec-experimental-runtime-1.0.3.tgz#85f99ed91a7867083aaebb1849c72751d237ad3d"
-  integrity sha512-m/eupm2tDmGpn5SiJFDKkOCw2L5/scMaHrXEsBPUq3rVmC0sBiZOdBvkVUSbdrBWDliOLcmzWC3V/Wk2zkj2rg==
+"@dxos/codec-experimental-runtime@^1.0.4":
+  version "1.0.4"
+  resolved "http://npm.dev.dxos.network:5736/@dxos%2fcodec-experimental-runtime/-/codec-experimental-runtime-1.0.4.tgz#55df019b5aa4ce9abaed5445f650395bffd8a078"
+  integrity sha512-M23RCmszk0f3Hhq1xE4Ao7L1pXucMQl5+vEkR6N+XSGEkQgMqy0PvpDC9Ge2MjZ6a/4zI2s5kFGt/lDi7spGjA==
   dependencies:
     protobufjs "^6.10.1"
 

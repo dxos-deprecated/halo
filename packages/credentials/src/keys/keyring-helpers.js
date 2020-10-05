@@ -138,7 +138,7 @@ export const canonicalStringify = (obj) => {
  * @param {Map<string, KeyChain>} [keyChainMap]
  * @param {Buffer} [nonce]
  * @param {string} [created]
- * @returns {{ signed, signatures }}
+ * @returns {{ signed, signatures, __type_url: 'dxos.credentials.SignedMessage' }}
  */
 export const signMessage = (message, keys, keyChainMap, nonce, created) => {
   assert(typeof message === 'object');

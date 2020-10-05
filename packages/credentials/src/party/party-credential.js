@@ -7,17 +7,8 @@ import get from 'lodash.get';
 
 import { randomBytes } from '@dxos/crypto';
 
-import { codec } from '../proto';
-
-/**
- * Constants
- */
-// TODO(burdon): Use generated classes.
-export const PartyCredential = {
-  Type: Object.freeze({
-    ...codec.getType('dxos.credentials.party.PartyCredential.Type').values
-  })
-};
+import { PartyCredential } from '../proto/gen/dxos/credentials/party';
+export { PartyCredential };
 
 // TODO(dboreham): Temporary
 // This needs to be done with a model filter that allows reaching into the signed message
