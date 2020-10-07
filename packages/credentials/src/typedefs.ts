@@ -2,9 +2,16 @@
 // Copyright 2019 DXOS.org
 //
 
+import { KeyType } from './keys';
+
 export type PublicKey = Buffer;
 export type SecretKey = Buffer;
 export type DiscoveryKey = Buffer;
+
+export interface KeyHint {
+    publicKey: PublicKey;
+    type: KeyType;
+}
 
 export interface KeyChain {
     publicKey: PublicKey;
