@@ -2,7 +2,6 @@
 // Copyright 2020 DXOS.org
 //
 
-declare module '@dxos/codec-protobuf';
 declare module '@dxos/protocol';
 declare module '@dxos/crypto';
 declare module '@dxos/feed-store';

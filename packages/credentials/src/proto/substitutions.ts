@@ -3,7 +3,7 @@
 // Copyright 2020 DXOS.org
 //
 
-import { Schema as CodecSchema } from '@dxos/codec-experimental-runtime';
+import { Schema as CodecSchema } from '@dxos/codec-protobuf';
 
 import { DecodedAny } from './any';
 
