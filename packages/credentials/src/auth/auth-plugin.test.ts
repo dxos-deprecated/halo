@@ -29,7 +29,7 @@ const createTestKeyring = async () => {
   await keyring.load();
 
   for (const type of Object.keys(KeyType)) {
-    if(typeof type === 'string') {
+    if (typeof type === 'string') {
       await keyring.createKeyRecord({ type: KeyType[type as any] });
     }
   }
