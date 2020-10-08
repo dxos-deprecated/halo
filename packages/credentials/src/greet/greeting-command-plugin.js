@@ -8,7 +8,6 @@
 import assert from 'assert';
 import debug from 'debug';
 import { EventEmitter } from 'events';
-import { inspect } from 'util'
 
 import { keyToString } from '@dxos/crypto';
 import { Extension, ERR_EXTENSION_RESPONSE_FAILED } from '@dxos/protocol';
@@ -160,16 +159,13 @@ export class GreetingCommandPlugin extends EventEmitter {
 
     // peerId is a Buffer, but here we only need its string form.
     const { peerIdStr } = getPeerId(protocol);
-    console.log('decode', data.data)
     const decoded = codec.decode(data.data);
-    console.log({ decoded })
 
     log('Received request from %s: %o', peerIdStr, decoded.payload);
 
     const response = await this._peerMessageHandler(peerIdStr, decoded.payload);
     if (response) {
       log('Sent response to %s: %o', peerIdStr, response.payload);
-      console.log(inspect({ response }, false, null, true))
       return codec.encode(response);
     }
     log('No response to %s', peerIdStr);
