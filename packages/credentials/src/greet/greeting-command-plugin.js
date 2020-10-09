@@ -111,10 +111,7 @@ export class GreetingCommandPlugin extends EventEmitter {
 
     log('Sent request to %s: %o', peerIdStr, message);
 
-    const encoded = codec.encode({
-      __type_url: 'dxos.credentials.Message',
-      payload: message
-    });
+    const encoded = codec.encode({ payload: message });
 
     if (oneway) {
       await extension.send(encoded, { oneway });

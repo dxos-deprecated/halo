@@ -113,7 +113,7 @@ export class AuthPlugin extends EventEmitter {
     const { payload } = wrappedCredentials;
 
     // The peerId in the normal session info should match that in the signed credentials.
-    const { payload: { deviceKey: credsPeerId } } = payload.signed || {};
+    const { payload: { deviceKey: credsPeerId } } = payload?.signed || {};
     if (!sessionPeerId || !credsPeerId || keyToString(sessionPeerId) !== keyToString(credsPeerId)) {
       protocol.stream.destroy();
       throw new ERR_EXTENSION_RESPONSE_FAILED(ERR_AUTH_REJECTED, 'Authentication rejected: bad peerId.');
