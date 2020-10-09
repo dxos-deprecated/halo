@@ -20,6 +20,12 @@ export interface KeyChain {
     parents: KeyChain[];
 }
 
+export interface KeyPair {
+    publicKey: PublicKey;
+    secretKey?: SecretKey;
+}
+
+// TODO(marik-d): Use protobuf type.
 export interface KeyRecord {
     /**
      * - The `KeyType` type of the key. This is often unknown for keys from other sources.

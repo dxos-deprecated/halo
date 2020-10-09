@@ -12,33 +12,33 @@ import stableStringify from 'json-stable-stringify';
 
 import { createKeyPair, keyToString, randomBytes, sign } from '@dxos/crypto';
 
+import { WithTypeUrl } from '../proto/any';
 import { createDateTimeString } from '../proto/datetime';
+import { KeyChain, SignedMessage } from '../proto/gen/dxos/credentials';
+import { KeyPair, KeyRecord } from '../typedefs';
 import { KeyType } from './keytype';
 
 /**
  * Checks for a valid publicKey Buffer.
- * @param {Buffer} key
  */
-export const assertValidPublicKey = (key) => {
+export const assertValidPublicKey = (key?: Buffer) => {
   assert(Buffer.isBuffer(key));
   assert(key.length === 32);
 };
 
 /**
  * Checks for a valid secretKey Buffer.
- * @param {Buffer} key
  */
-export const assertValidSecretKey = (key) => {
+export const assertValidSecretKey = (key?: Buffer) => {
   assert(Buffer.isBuffer(key));
   assert(key.length === 64);
 };
 
 /**
  * Checks for a valid publicKey/secretKey KeyPair.
- * @param {KeyPair} keyRecord
  */
 // TODO(burdon): This should only happen in tests.
-export const assertValidKeyPair = (keyRecord) => {
+export const assertValidKeyPair = (keyRecord: KeyPair) => {
   const { publicKey, secretKey } = keyRecord;
   assertValidPublicKey(publicKey);
   assertValidSecretKey(secretKey);
@@ -46,23 +46,22 @@ export const assertValidKeyPair = (keyRecord) => {
 
 /**
  * Checks that the KeyRecord contains no secrets (ie, secretKey and seedPhrase).
- * @param {KeyRecord} keyRecord
  */
-export const assertNoSecrets = (keyRecord) => {
+export const assertNoSecrets = (keyRecord: KeyRecord) => {
   assert(keyRecord);
-  assert(!keyRecord.secretKey || keyRecord.secretKey === true);
-  assert(!keyRecord.seedPhrase || keyRecord.seedPhrase === true);
+  // TODO(marik-d): Check if booleans are used anywhere.
+  // TODO(marik-d): Check if seed phrase is stored in key records.
+  assert(!keyRecord.secretKey || (keyRecord.secretKey as any) === true);
+  assert(!(keyRecord as any).seedPhrase || ((keyRecord as any).seedPhrase as any) === true);
 };
 
 /**
  * Obscures the value of secretKey and seedPhrase with a boolean.
- * @param {KeyRecord} keyRecord
- * @return {KeyRecord}
  */
-export const stripSecrets = (keyRecord) => {
+export const stripSecrets = (keyRecord: KeyRecord): KeyRecord => {
   assert(keyRecord);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { secretKey, seedPhrase, ...stripped } = keyRecord;
+  const { secretKey, seedPhrase, ...stripped } = keyRecord as any;
   return stripped;
 };
 
@@ -73,9 +72,8 @@ const ALLOWED_FIELDS = [
 
 /**
  * Checks that there are no unknown attributes on the KeyRecord.
- * @returns {KeyRecord}
  */
-export const assertValidAttributes = (keyRecord) => {
+export const assertValidAttributes = (keyRecord: Partial<KeyRecord>) => {
   Object.keys(keyRecord).forEach(key => {
     assert(ALLOWED_FIELDS.find(k => k === key));
   });
@@ -83,11 +81,10 @@ export const assertValidAttributes = (keyRecord) => {
 
 /**
  * Create a new KeyRecord with the indicated attributes.
- * @param {Object} attributes - Valid attributes above.
- * @param {KeyPair|undefined} keyPair - If undefined then a public/private key pair will be generated.
- * @returns {KeyRecord}
+ * @param attributes Valid attributes above.
+ * @param keyPair If undefined then a public/private key pair will be generated.
  */
-export const createKeyRecord = (attributes = {}, keyPair = undefined) => {
+export const createKeyRecord = (attributes: Partial<KeyRecord> = {}, keyPair?: KeyPair) => {
   const { publicKey, secretKey } = keyPair || createKeyPair();
 
   // Disallow invalid attributes.
@@ -112,16 +109,14 @@ export const createKeyRecord = (attributes = {}, keyPair = undefined) => {
 
 /**
  * Utility method to produce stable output for signing/verifying.
- * @param obj
- * @returns {string}
  */
-export const canonicalStringify = (obj) => {
+export const canonicalStringify = (obj: any) => {
   return stableStringify(obj, {
     // The point of signing and verifying is not that the internal, private state of the objects be
     // identical, but that the public contents can be verified not to have been altered. For that reason,
     // really private fields (indicated by '__') are not included in the signature. In practice, this skips __type_url,
     // and it also gives a mechanism for attaching other attributes to an object without breaking the signature.
-    replacer: (key, value) => {
+    replacer: (key: any, value: any) => {
       return key.toString().startsWith('__') ? undefined : value;
     }
   });
@@ -133,14 +128,8 @@ export const canonicalStringify = (obj) => {
  *   signed: { ... }, // The message as signed, including timestamp and nonce.
  *   signatures: []   // An array with signature and publicKey of each signing key.
  * }
- * @param {Object} message
- * @param {KeyRecord[]} keys
- * @param {Map<string, KeyChain>} [keyChainMap]
- * @param {Buffer} [nonce]
- * @param {string} [created]
- * @returns {{ signed, signatures, __type_url: 'dxos.credentials.SignedMessage' }}
  */
-export const signMessage = (message, keys, keyChainMap, nonce, created) => {
+export const signMessage = (message: any, keys: KeyRecord, keyChainMap: Map<string, KeyChain>, nonce?: Buffer, created?: string): WithTypeUrl<SignedMessage> => {
   assert(typeof message === 'object');
   assert(keys);
   assert(Array.isArray(keys));
@@ -167,7 +156,7 @@ export const signMessage = (message, keys, keyChainMap, nonce, created) => {
   };
 
   // Sign with each key, adding to the signatures list.
-  const signatures = [];
+  const signatures: SignedMessage.Signature[] = [];
   const buffer = Buffer.from(canonicalStringify(signed));
   keys.forEach(({ publicKey, secretKey }) => {
     // TODO(burdon): Already tested above?
@@ -188,19 +177,15 @@ export const signMessage = (message, keys, keyChainMap, nonce, created) => {
 
 /**
  * Is object `key` a KeyChain?
- * @param {object} key
- * @return {boolean}
  */
-export const isKeyChain = (key = {}) => {
+export const isKeyChain = (key: any = {}): key is KeyChain => {
   return Buffer.isBuffer(key.publicKey) && key.message && key.message.signed && Array.isArray(key.message.signatures);
 };
 
 /**
  * Is object `message` a SignedMessage?
- * @param {object} message
- * @returns {boolean}
  */
-export const isSignedMessage = (message = {}) => {
+export const isSignedMessage = (message: any = {}): message is SignedMessage => {
   if (!message || typeof message !== 'object') {
     return false;
   }
@@ -210,10 +195,9 @@ export const isSignedMessage = (message = {}) => {
 
 /**
  * Checks conformity and normalizes the KeyRecord. (Used before storing, so that only well-formed records are stored.)
- * @param {KeyRecord} keyRecord
- * @return {KeyRecord} A normalized copy of keyRecord.
+ * @return A normalized copy of keyRecord.
  */
-export const checkAndNormalizeKeyRecord = (keyRecord) => {
+export const checkAndNormalizeKeyRecord = (keyRecord: KeyRecord) => {
   assert(keyRecord);
   assertValidAttributes(keyRecord);
 
