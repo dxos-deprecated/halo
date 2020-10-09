@@ -1,10 +1,10 @@
 # On every push to the desgnated branch, build test and publish to private npm registry using lerna.
 
-name: Build and Publish Canary Branch to DXOS NPM
+name: Build and Publish Dev Branch to DXOS NPM
 
 on:
   push:
-    branches: [canary-experimental]
+    branches: [dev]
 
 jobs:
   build-publish-npm:
@@ -35,7 +35,7 @@ jobs:
           # Don't allow lerna to parallelize our world because pbjs isn't concurrency-safe at present.
           yarn build --concurrency 1
           yarn lint
-          yarn test
+          yarn test --concurrency 1
           # Make lerna happy below by restoring consistency with git origin.
           git checkout -- yarn.lock
       - name: Publish to NPM registry
