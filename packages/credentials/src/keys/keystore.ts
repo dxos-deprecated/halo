@@ -6,9 +6,11 @@ import assert from 'assert';
 import bufferJson from 'buffer-json-encoding';
 import debug from 'debug';
 import encode from 'encoding-down';
-import levelup from 'levelup';
+import levelup, { LevelUp } from 'levelup';
 import memdown from 'memdown';
 import toArray from 'stream-to-array';
+
+import { KeyRecord } from '../typedefs';
 
 const log = debug('dxos:creds:keys:keystore'); // eslint-disable-line @typescript-eslint/no-unused-vars
 
@@ -16,22 +18,20 @@ const log = debug('dxos:creds:keys:keystore'); // eslint-disable-line @typescrip
  * LevelDB key storage.
  */
 export class KeyStore {
+  private readonly _db: LevelUp
+
   /**
    * Takes the underlying to DB to use (eg, a leveldown, memdown, etc. instance).
    * If none is specified, memdown is used.
-   * @param {LevelDB} [db=memdown()]
    */
-  constructor (db) {
+  constructor (db: any = memdown()) {
     this._db = levelup(encode(db || memdown(), { valueEncoding: bufferJson }));
   }
 
   /**
    * Adds a KeyRecord to the KeyStore, indexed by `key`.
-   * @param {string} key
-   * @param {KeyRecord} record
-   * @returns {Promise<*>}
    */
-  async setRecord (key, record) {
+  async setRecord (key: string, record: KeyRecord) {
     assert(key);
     assert(record);
     return this._db.put(key, record);
@@ -39,45 +39,38 @@ export class KeyStore {
 
   /**
    * Deletes a KeyRecord from the KeyStore, indexed by `key`.
-   * @param {string} key
-   * @returns {Promise<*>}
    */
-  async deleteRecord (key) {
+  async deleteRecord (key: string) {
     assert(key);
     await this._db.del(key);
   }
 
   /**
    * Looks up a KeyRecord by `key`.
-   * @param {string} key
-   * @returns {Promise<KeyRecord>}
    */
-  async getRecord (key) {
+  async getRecord (key: string): Promise<KeyRecord> {
     assert(key);
     return this._db.get(key);
   }
 
   /**
    * Returns all lookup key strings.
-   * @returns {Promise<string[]>}
    */
-  async getKeys () {
+  async getKeys (): Promise<string[]> {
     return toArray(this._db.createKeyStream({ asBuffer: false }));
   }
 
   /**
    * Returns all KeyRecord values.
-   * @returns {Promise<KeyRecord[]>}
    */
-  async getRecords () {
+  async getRecords (): Promise<KeyRecord[]> {
     return toArray(this._db.createValueStream({ asBuffer: false }));
   }
 
   /**
    * Returns all entries as key/value pairs.
-   * @returns {Array.<[string, Object]>}
    */
-  async getRecordsWithKey () {
+  async getRecordsWithKey (): Promise<[string, KeyRecord][]> {
     const entries = await toArray(this._db.createReadStream({ keyAsBuffer: false, valueAsBuffer: false }));
     return entries.map(pair => [pair.key, pair.value]);
   }
