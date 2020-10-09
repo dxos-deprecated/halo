@@ -5,7 +5,9 @@
 import assert from 'assert';
 
 import { Keyring } from '../keys';
-import { KeyChain, KeyRecord, PublicKey, Message } from '../typedefs';
+import { WithTypeUrl } from '../proto/any';
+import { Message } from '../proto/gen/dxos/credentials';
+import { KeyChain, KeyRecord, PublicKey } from '../typedefs';
 
 /**
  * Create `dxos.credentials.auth.Auth` credentials.
@@ -17,7 +19,7 @@ export const createAuthMessage = (
   deviceKey: KeyRecord | KeyChain,
   feedKey?: KeyRecord,
   nonce?: Buffer
-): Message => {
+): WithTypeUrl<Message> => {
   assert(keyring);
   assert(Buffer.isBuffer(partyKey));
   assert(Buffer.isBuffer(identityKey.publicKey));

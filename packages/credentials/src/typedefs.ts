@@ -3,6 +3,7 @@
 //
 
 import { KeyType } from './keys';
+import { Message, SignedMessage } from './proto/gen/dxos/credentials';
 
 export type PublicKey = Buffer;
 export type SecretKey = Buffer;
@@ -19,6 +20,12 @@ export interface KeyChain {
     parents: KeyChain[];
 }
 
+export interface KeyPair {
+    publicKey: PublicKey;
+    secretKey?: SecretKey;
+}
+
+// TODO(marik-d): Use protobuf type.
 export interface KeyRecord {
     /**
      * - The `KeyType` type of the key. This is often unknown for keys from other sources.
@@ -58,34 +65,3 @@ export interface KeyRecord {
      */
     created?: string;
 }
-
-export interface Message {
-    __type_url: string; // eslint-disable-line camelcase
-    payload: any;
-}
-
-export interface Signed {
-    created: string;
-    nonce: Buffer;
-    payload: object;
-}
-
-export interface Signature {
-    key: PublicKey;
-    signatures: Buffer[];
-    keyChain?: KeyChain;
-}
-
-export interface SignedMessage {
-    signed: Signed;
-    signatures: Signature[];
-}
-
-export interface AuthMessage {
-  partyKey: PublicKey
-  identityKey: PublicKey
-  deviceKey: PublicKey
-}
-
-export type LevelDB = any;
-export type LevelDB_Factory = (topic: string) => LevelDB; // eslint-disable-line camelcase
