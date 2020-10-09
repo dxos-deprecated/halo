@@ -2090,6 +2090,18 @@
     "@types/abstract-leveldown" "*"
     "@types/node" "*"
 
+"@types/lodash.matches@^4.6.6":
+  version "4.6.6"
+  resolved "https://registry.npmjs.org/@types/lodash.matches/-/lodash.matches-4.6.6.tgz#542178a40d26a916f8971f2f3d0bd344180cd0fd"
+  integrity sha512-rs1P/R+4ExqZdmIlw6CcIeHUvyQVY/lDP8RiQVw9RnFK5GAQyZ2fLSvPwUtAp2fgqlCY0TOGT4Av69eIgu5HQg==
+  dependencies:
+    "@types/lodash" "*"
+
+"@types/lodash@*":
+  version "4.14.161"
+  resolved "https://registry.npmjs.org/@types/lodash/-/lodash-4.14.161.tgz#a21ca0777dabc6e4f44f3d07f37b765f54188b18"
+  integrity sha512-EP6O3Jkr7bXvZZSZYlsgt5DIjiGr0dXP1/jVEwVLTFgg0d+3lWVQkRavYVQszV7dYUwvg0B8R0MBDpcmXg7XIA==
+
 "@types/long@^4.0.1":
   version "4.0.1"
   resolved "https://registry.npmjs.org/@types/long/-/long-4.0.1.tgz#459c65fa1867dafe6a8f322c4c51695663cc55e9"

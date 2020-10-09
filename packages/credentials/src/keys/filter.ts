@@ -6,64 +6,53 @@ import matches from 'lodash.matches';
 
 import { keyToString } from '@dxos/crypto';
 
+import { PublicKey } from '../typedefs';
+
+export type FilterFuntion = (obj: any) => boolean;
+
 /**
  * Utility to create simple filtering predicates.
  */
 export class Filter {
   /**
    * Execute the filter over the supplied values.
-   * @param {Object} values
-   * @param {Function} filter
-   * @returns {Object}
    */
-  static filter (values, filter) {
+  static filter (values: any[], filter: FilterFuntion) {
     return Array.from(values).filter(value => filter(value));
   }
 
   /**
    * Negates a filter.
-   * @param {Function} filter
-   * @returns {Function}
    */
-  static not (filter) {
+  static not (filter: FilterFuntion): FilterFuntion {
     return value => !filter(value);
   }
 
   /**
    * ANDs all supplied filters.
-   * @param {Function[]} filters
-   * @returns {Function}
    */
-  static and (...filters) {
+  static and (...filters: FilterFuntion[]): FilterFuntion {
     return value => filters.every(filter => filter(value));
   }
 
   /**
    * Filters objects for required property.
-   * @param {string} property
-   * @returns {Function}
    */
-  static hasProperty (property) {
+  static hasProperty (property: string): FilterFuntion {
     return ({ [property]: value }) => value !== undefined;
   }
 
   /**
    * Filters objects for given property values.
-   * @param {string} property
-   * @param {any[]} values
-   * @returns {Function}
    */
-  static propertyIn (property, values) {
+  static propertyIn (property: string, values: any[]): FilterFuntion {
     return ({ [property]: value }) => values.includes(value);
   }
 
   /**
    * Filters objects for required key.
-   * @param {string} property
-   * @param {KeyPair} key
-   * @returns {Function}
    */
-  static hasKey (property, key) {
+  static hasKey (property: string, key: PublicKey): FilterFuntion {
     const str = keyToString(key);
     return ({ [property]: value }) => keyToString(value) !== str;
   }
@@ -71,10 +60,8 @@ export class Filter {
   /**
    * Filters objects for exact object.
    * https://lodash.com/docs/#matches
-   * @param {Object} attributes
-   * @returns {Function}
    */
-  static matches (attributes) {
+  static matches (attributes: any): FilterFuntion {
     return matches(attributes);
   }
 }
