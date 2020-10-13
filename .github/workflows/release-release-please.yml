@@ -2,7 +2,7 @@ on:
   push:
     branches:
       - release
-name: Main - Publish to NPM on merged release PR
+name: release - Publish to NPM on merged release PR
 jobs:
   release-please:
     runs-on: ubuntu-latest
