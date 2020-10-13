@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://www.github.com/dxos/halo/compare/v1.0.0...v2.0.0) (2020-10-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* Publish to NPM
+
+### Features
+
+* Publish to NPM ([f768167](https://www.github.com/dxos/halo/commit/f768167dd348664940c0e448e4c73d4a6e8fd5e9))
+
 ## 1.0.0 (2020-10-13)
 
 
