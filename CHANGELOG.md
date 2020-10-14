@@ -1,5 +1,12 @@
 # Changelog
 
+### [2.1.1](https://www.github.com/dxos/halo/compare/v2.1.0...v2.1.1) (2020-10-14)
+
+
+### Bug Fixes
+
+* Step name ([6c6b737](https://www.github.com/dxos/halo/commit/6c6b737829f6e23908951fa815d1ae82012872e3))
+
 ## [2.1.0](https://www.github.com/dxos/halo/compare/v2.0.0...v2.1.0) (2020-10-14)
 
 
