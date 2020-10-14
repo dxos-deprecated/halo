@@ -23,7 +23,7 @@ jobs:
           node-version: 12
           registry-url: 'https://registry.npmjs.org'
         if: ${{ steps.release.outputs.release_created }}
-      - name: Build and Publish to NPM
+      - name: Update Package Versions
         run: |
           git config --global user.email "npm@dxos.network"
           git config --global user.name "DXOS"
