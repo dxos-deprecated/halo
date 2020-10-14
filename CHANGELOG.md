@@ -1,5 +1,12 @@
 # Changelog
 
+### [2.1.6](https://www.github.com/dxos/halo/compare/v2.1.5...v2.1.6) (2020-10-14)
+
+
+### Bug Fixes
+
+* Bump patch. ([81a73ef](https://www.github.com/dxos/halo/commit/81a73ef9434022737a35e2226cf4184a4c36632f))
+
 ### [2.1.5](https://www.github.com/dxos/halo/compare/v2.1.4...v2.1.5) (2020-10-14)
 
 
