@@ -1,5 +1,12 @@
 # Changelog
 
+### [2.1.3](https://www.github.com/dxos/halo/compare/v2.1.2...v2.1.3) (2020-10-14)
+
+
+### Bug Fixes
+
+* missing build command. ([cb1df8e](https://www.github.com/dxos/halo/commit/cb1df8e245a07e53dc9304c6a34b50a9853dfb48))
+
 ### [2.1.2](https://www.github.com/dxos/halo/compare/v2.1.1...v2.1.2) (2020-10-14)
 
 
