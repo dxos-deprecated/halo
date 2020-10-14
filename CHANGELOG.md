@@ -1,5 +1,19 @@
 # Changelog
 
+### [2.1.5](https://www.github.com/dxos/halo/compare/v2.1.4...v2.1.5) (2020-10-14)
+
+
+### Bug Fixes
+
+* add beta publishing ([6a9efec](https://www.github.com/dxos/halo/commit/6a9efec59f7a778bdafee857c9fa6ecb65f0a3c6))
+
+### [2.1.4](https://www.github.com/dxos/halo/compare/v2.1.3...v2.1.4) (2020-10-14)
+
+
+### Bug Fixes
+
+* missing 'v' ([edfd307](https://www.github.com/dxos/halo/commit/edfd307894409dd826a45988662a71faed0541f6))
+
 ### [2.1.3](https://www.github.com/dxos/halo/compare/v2.1.2...v2.1.3) (2020-10-14)
 
 
