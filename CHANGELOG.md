@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://www.github.com/dxos/halo/compare/v2.0.0...v2.1.0) (2020-10-14)
+
+
+### Features
+
+* Use lerna to sync versions. ([1506016](https://www.github.com/dxos/halo/commit/150601627f90d9043e79151a2c7c6b0272cab7be))
+
 ## [2.0.0](https://www.github.com/dxos/halo/compare/v1.0.0...v2.0.0) (2020-10-14)
 
 
