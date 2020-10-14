@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://www.github.com/dxos/halo/compare/v2.0.0...v2.1.0) (2020-10-14)
+
+
+### Features
+
+* Export protobuf types ([#85](https://www.github.com/dxos/halo/issues/85)) ([731e939](https://www.github.com/dxos/halo/commit/731e939c759887d22c98c27dfc324ce4283c298c))
+
 ## [2.0.0](https://www.github.com/dxos/halo/compare/v1.0.0...v2.0.0) (2020-10-13)
 
 
