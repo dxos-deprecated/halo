@@ -1,3 +1,3 @@
 # HALO
 
-Secure decentralized identity and credentials.
+ * @dxos/credentials - Secure decentralized identity and credentials.
