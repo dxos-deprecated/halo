@@ -6,9 +6,10 @@
   "scripts": {
     "build": "lerna run build",
     "clean": "lerna run clean",
-    "lint": "lerna run lint",
+    "lint": "lerna run lint && npm run lint:lockfile",
     "lint:fix": "lerna run lint -- --fix",
     "lint:staged": "lint-staged",
+    "lint:lockfile": "lockfile-lint --path yarn.lock --allowed-hosts yarn npm --validate-https",
     "sort-package-json": "lerna exec npx sort-package-json",
     "test": "lerna run test"
   },
@@ -33,7 +34,8 @@
     "*.js": "eslint --cache --fix"
   },
   "pre-commit": [
-    "lint:staged"
+    "lint:staged",
+    "lint:lockfile"
   ],
   "dependencies": {
     "lerna": "^3.19.0"
@@ -41,6 +43,7 @@
   "devDependencies": {
     "babel-eslint": "^10.1.0",
     "lint-staged": "^9.5.0",
+    "lockfile-lint": "^4.3.7",
     "pre-commit": "^1.2.2"
   },
   "semistandard": {
