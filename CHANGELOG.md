@@ -1,5 +1,21 @@
 # Changelog
 
+### [2.1.7](https://www.github.com/dxos/halo/compare/v2.1.6...v2.1.7) (2020-10-23)
+
+
+### Bug Fixes
+
+* Emit an event when IdentityInfo is processed. ([#98](https://www.github.com/dxos/halo/issues/98)) ([625fcfb](https://www.github.com/dxos/halo/commit/625fcfb1dc389f029d244e86d985275f11a58497))
+* lockfile-lint ([57ae12e](https://www.github.com/dxos/halo/commit/57ae12ed666ec3af039185aa11ebce33e1ba78a4))
+* lockfile-lint, add github ([15ac721](https://www.github.com/dxos/halo/commit/15ac721b3b1a3045b44149ea6e038070e02197a5))
+
+### [2.1.6](https://www.github.com/dxos/halo/compare/v2.1.5...v2.1.6) (2020-10-14)
+
+
+### Bug Fixes
+
+* Bump patch. ([81a73ef](https://www.github.com/dxos/halo/commit/81a73ef9434022737a35e2226cf4184a4c36632f))
+
 ### [2.1.5](https://www.github.com/dxos/halo/compare/v2.1.4...v2.1.5) (2020-10-14)
 
 
