@@ -24,10 +24,18 @@ const log = debug('dxos:creds:party');
  * @event Party#'admit:key' fires on a new entity key admitted
  * @type {KeyRecord}
  *
+ * @event Party#'update:key' fires when an existing entity key has attributes updated (eg, when 'hint' status is removed)
+ * @type {KeyRecord}
+ *
  * @event Party#'admit:feed' fires on a new feed key admitted
  * @type {KeyRecord}
+ *
+ * @event Party#'update:identityinfo' fires when IdentityInfo is added or updated.
+ * @type {PublicKey}
  */
 export class Party extends EventEmitter {
+  static declaredEvents = ['admit:key', 'admit:feed', 'update:key', ...IdentityMessageProcessor.declaredEvents];
+
   /**
    * Initialize with party public key
    * @param {PublicKey} publicKey
@@ -61,6 +69,11 @@ export class Party extends EventEmitter {
       type: KeyType.PARTY,
       own: false
     });
+
+    // Surface IdentityMessageProcessor events.
+    for (const eventName of IdentityMessageProcessor.declaredEvents) {
+      this._identityMessageProcessor.on(eventName, (...args) => this.emit(eventName, ...args));
+    }
   }
 
   /**
