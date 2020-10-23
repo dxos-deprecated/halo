@@ -4,6 +4,7 @@
 
 import assert from 'assert';
 import debug from 'debug';
+import EventEmitter from 'events';
 
 import { keyToString } from '@dxos/crypto';
 
@@ -15,12 +16,16 @@ const log = debug('dxos:creds:party');
 
 /**
  * Process and manage IdentityInfo, DeviceInfo, and other "identity" Party messages.
+ * @event IdentityMessageProcessor#set:identityinfo  When a new IdentityInfo record is set.
  */
-export class IdentityMessageProcessor {
+export class IdentityMessageProcessor extends EventEmitter {
+  static declaredEvents = ['set:identityinfo'];
+
   /**
    * @param {Party} party
    */
   constructor (party) {
+    super();
     assert(party);
 
     /** @type {Party} */
@@ -133,5 +138,6 @@ export class IdentityMessageProcessor {
     }
 
     this._infoMessages.set(keyToString(identityKey), signedIdentityInfo);
+    this.emit('set:identityinfo', identityKey);
   }
 }
