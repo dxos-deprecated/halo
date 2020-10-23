@@ -19,7 +19,7 @@ const log = debug('dxos:creds:party');
  * @event IdentityMessageProcessor#set:identityinfo  When a new IdentityInfo record is set.
  */
 export class IdentityMessageProcessor extends EventEmitter {
-  static declaredEvents = ['set:identityinfo'];
+  static declaredEvents = ['update:identityinfo'];
 
   /**
    * @param {Party} party
@@ -138,6 +138,6 @@ export class IdentityMessageProcessor extends EventEmitter {
     }
 
     this._infoMessages.set(keyToString(identityKey), signedIdentityInfo);
-    this.emit('set:identityinfo', identityKey);
+    this.emit('update:identityinfo', identityKey);
   }
 }
