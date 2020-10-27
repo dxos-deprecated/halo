@@ -253,7 +253,6 @@ export class Party extends EventEmitter {
       if (!this._keyring.hasKey(publicKey)) {
         const keyRecord = await this._admitKey(publicKey, { hint: true, type });
         if (KeyType.FEED === type) {
-          log('ADMIT:FEED', keyRecord.key);
           this.emit('admit:feed', keyRecord);
         } else {
           this.emit('admit:key', keyRecord);
