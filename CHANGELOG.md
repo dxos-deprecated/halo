@@ -1,5 +1,12 @@
 # Changelog
 
+### [2.1.8](https://www.github.com/dxos/halo/compare/v2.1.7...v2.1.8) (2020-10-27)
+
+
+### Bug Fixes
+
+* Emit events when keys are admitted by hint. ([4a77972](https://www.github.com/dxos/halo/commit/4a77972d2bff524067513e604fbb82e437ca93bd))
+
 ### [2.1.7](https://www.github.com/dxos/halo/compare/v2.1.6...v2.1.7) (2020-10-23)
 
 
