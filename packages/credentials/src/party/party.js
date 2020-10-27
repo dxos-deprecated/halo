@@ -248,7 +248,17 @@ export class Party extends EventEmitter {
   async takeHints (hints = []) {
     assert(Array.isArray(hints));
 
-    return Promise.all(hints.map(({ publicKey, type }) => this._admitKey(publicKey, { hint: true, type })));
+    for await (const hint of hints) {
+      const { publicKey, type } = hint;
+      if (!this._keyring.hasKey(publicKey)) {
+        const keyRecord = await this._admitKey(publicKey, { hint: true, type });
+        if (KeyType.FEED === type) {
+          this.emit('admit:feed', keyRecord);
+        } else {
+          this.emit('admit:key', keyRecord);
+        }
+      }
+    }
   }
 
   /**
@@ -527,9 +537,6 @@ export class Party extends EventEmitter {
    * @param attributes
    * @returns {boolean} true if added, false if already present
    * @private
-   *
-   * @fires Party#'admit:key'
-   * @fires Party#'admit:feed'
    */
   async _admitKey (publicKey, attributes = {}) {
     assert(publicKey);
