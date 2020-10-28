@@ -54,7 +54,7 @@ export class GreetingCommandPlugin extends EventEmitter {
 
     /**
      * A map of Protocol objects indexed by the stringified peerId.
-     * @type {Map<string, {Protocol}>}
+     * @type {Map<string, Protocol>}
      * @private
      */
     this._peers = new Map();
