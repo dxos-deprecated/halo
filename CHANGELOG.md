@@ -1,5 +1,12 @@
 # Changelog
 
+### [2.1.9](https://www.github.com/dxos/halo/compare/v2.1.8...v2.1.9) (2020-10-28)
+
+
+### Bug Fixes
+
+* Add decodePayload for symmetry ([ff9db8e](https://www.github.com/dxos/halo/commit/ff9db8e9bc47830e396379e9d862257fce598dae))
+
 ### [2.1.8](https://www.github.com/dxos/halo/compare/v2.1.7...v2.1.8) (2020-10-27)
 
 

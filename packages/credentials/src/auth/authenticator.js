@@ -26,13 +26,20 @@ export class Authenticator {
   // TODO(dboreham): The following static methods:
   // temporary work around move encapsualtion breaking code from data-client/partitions.js.
   /**
-   *
-   * @param {Object} credentials
+   * @param {Message} credentials
    * @return {Buffer} encoded result
    */
-  // TODO(telackey): explain why the base64 encoding
   static encodePayload (credentials) {
     return codec.encode(credentials);
+  }
+
+  /**
+   *
+   * @param {Buffer} credentials
+   * @return {Message}
+   */
+  static decodePayload (credentials) {
+    return codec.decode(credentials);
   }
 
   /**
