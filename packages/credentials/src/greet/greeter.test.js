@@ -4,7 +4,7 @@
 
 // dxos-testing-browser
 
-import { randomBytes } from '@dxos/crypto';
+import { randomBytes, keyToBuffer } from '@dxos/crypto';
 import { ERR_EXTENSION_RESPONSE_FAILED } from '@dxos/protocol';
 
 import { Filter, Keyring, KeyType } from '../keys';
@@ -57,7 +57,7 @@ test('Good invitation', async () => {
       }
     });
 
-    await greeter.handleMessage(invitation.id, message.payload);
+    await greeter.handleMessage(message.payload, keyToBuffer(invitation.id), randomBytes());
   }
 
   // The `HANDSHAKE` command allows the Greeter and Invitee to exchange any initial settings or details for
@@ -73,7 +73,7 @@ test('Good invitation', async () => {
       }
     });
 
-    const response = await greeter.handleMessage(invitation.id, message.payload);
+    const response = await greeter.handleMessage(message.payload, keyToBuffer(invitation.id), randomBytes());
 
     // The result will include a new token, and a challenge we'll need to include when signing.
     nonce = response.payload.nonce;
@@ -100,7 +100,7 @@ test('Good invitation', async () => {
       }
     };
 
-    const response = await greeter.handleMessage(invitation.id, message.payload);
+    const response = await greeter.handleMessage(message.payload, keyToBuffer(invitation.id), randomBytes());
 
     expect(response.payload.hints.keys).toEqual(hints.keys);
     expect(response.payload.hints.feeds).toEqual(hints.feeds);
@@ -115,7 +115,7 @@ test('Good invitation', async () => {
         }
       });
 
-      await greeter.handleMessage(invitation.id, message.payload);
+      await greeter.handleMessage(message.payload, keyToBuffer(invitation.id), randomBytes());
     }
   }
 });
@@ -140,7 +140,7 @@ test('Bad invitation secret', async (done) => {
       }
     });
 
-    await greeter.handleMessage(invitation.id, message.payload);
+    await greeter.handleMessage(message.payload, keyToBuffer(invitation.id), randomBytes());
   }
 
   // Bad secret in the `HANDSHAKE` command.
@@ -153,7 +153,7 @@ test('Bad invitation secret', async (done) => {
       }
     });
 
-    await expect(() => greeter.handleMessage(invitation.id, message.payload)).rejects.toThrow(ERR_EXTENSION_RESPONSE_FAILED);
+    await expect(() => greeter.handleMessage(message.payload, keyToBuffer(invitation.id), randomBytes())).rejects.toThrow(ERR_EXTENSION_RESPONSE_FAILED);
   }
 
   done();
@@ -178,7 +178,7 @@ test('Attempt to re-use invitation', async (done) => {
       }
     });
 
-    await greeter.handleMessage(invitation.id, message.payload);
+    await greeter.handleMessage(message.payload, keyToBuffer(invitation.id), randomBytes());
   }
 
   let nonce;
@@ -191,7 +191,7 @@ test('Attempt to re-use invitation', async (done) => {
       }
     });
 
-    const response = await greeter.handleMessage(invitation.id, message.payload);
+    const response = await greeter.handleMessage(message.payload, keyToBuffer(invitation.id), randomBytes());
 
     // The result will include a new token, and a challenge we'll need to include when signing.
     nonce = response.payload.nonce;
@@ -213,10 +213,10 @@ test('Attempt to re-use invitation', async (done) => {
       }
     };
 
-    await greeter.handleMessage(invitation.id, message.payload);
+    await greeter.handleMessage(message.payload, keyToBuffer(invitation.id), randomBytes());
 
     // Now it is all used up, try submitting another command. It should fail.
-    await expect(() => greeter.handleMessage(invitation.id, message.payload)).rejects.toThrow(ERR_EXTENSION_RESPONSE_FAILED);
+    await expect(() => greeter.handleMessage(message.payload, keyToBuffer(invitation.id), randomBytes())).rejects.toThrow(ERR_EXTENSION_RESPONSE_FAILED);
   }
 
   done();
