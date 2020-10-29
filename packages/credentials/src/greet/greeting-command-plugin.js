@@ -158,12 +158,12 @@ export class GreetingCommandPlugin extends EventEmitter {
     }
 
     // peerId is a Buffer, but here we only need its string form.
-    const { peerIdStr } = getPeerId(protocol);
+    const { peerId, peerIdStr } = getPeerId(protocol);
     const decoded = codec.decode(data.data);
 
     log('Received request from %s: %o', peerIdStr, decoded.payload);
 
-    const response = await this._peerMessageHandler(peerIdStr, decoded.payload);
+    const response = await this._peerMessageHandler(decoded.payload, peerId, this._peerId);
     if (response) {
       log('Sent response to %s: %o', peerIdStr, response.payload);
       return codec.encode(response);

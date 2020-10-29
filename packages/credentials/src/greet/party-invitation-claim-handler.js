@@ -28,19 +28,23 @@ export class PartyInvitationClaimHandler {
   }
 
   createMessageHandler () {
-    return async (peerId, message) => {
-      return this.handleMessage(peerId, message);
+    return async (message, remotePeerId, peerId) => {
+      return this.handleMessage(message, remotePeerId, peerId);
     };
   }
 
   /**
    * Handle a P2P message from the Extension.
-   * @param peerId
-   * @param message
+   * @param {Object} message
+   * @param {Buffer} remotePeerId
+   * @param {Buffer} peerId
    * @returns {Promise<{}>}
    */
-  async handleMessage (peerId, message) {
+  async handleMessage (message, remotePeerId, peerId) {
     assert(message);
+    assert(remotePeerId);
+    assert(peerId);
+
     const { command, params = [] } = message;
 
     if (command !== Command.Type.CLAIM || params.length !== 1) {
@@ -53,7 +57,7 @@ export class PartyInvitationClaimHandler {
     }
 
     try {
-      const invitationDescriptor = await this._greetingHandler(invitationID);
+      const invitationDescriptor = await this._greetingHandler(invitationID, remotePeerId, peerId);
       log(invitationDescriptor);
       return createGreetingClaimResponse(invitationDescriptor.invitation, invitationDescriptor.swarmKey);
     } catch (err) {

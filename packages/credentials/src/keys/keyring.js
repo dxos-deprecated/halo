@@ -6,7 +6,7 @@ import assert from 'assert';
 import debug from 'debug';
 import memdown from 'memdown';
 
-import { keyToBuffer, keyToString, verify } from '@dxos/crypto';
+import { keyToBuffer, keyToString, sign, verify } from '@dxos/crypto';
 
 import { Filter } from './filter';
 import {
@@ -503,6 +503,25 @@ export class Keyring {
     });
 
     return signMessage(message, fullKeys, chains, nonce, created);
+  }
+
+  /**
+   * Sign the data with the indicated key and return the signature.
+   * KeyChains are not supported.
+   * @param {Buffer} data
+   * @param {KeyRecord} keyRecord
+   * @return {Buffer}
+   */
+  rawSign (data, keyRecord) {
+    assert(Buffer.isBuffer(data));
+    assert(keyRecord);
+    assertValidPublicKey(keyRecord.publicKey);
+    assertNoSecrets(keyRecord);
+
+    const fullKey = this._getFullKey(keyRecord.publicKey);
+    assertValidKeyPair(fullKey);
+
+    return sign(data, fullKey.secretKey);
   }
 
   /**
