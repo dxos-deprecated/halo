@@ -1,5 +1,12 @@
 # Changelog
 
+### [2.1.10](https://www.github.com/dxos/halo/compare/v2.1.9...v2.1.10) (2020-10-29)
+
+
+### Bug Fixes
+
+* Pass both remotePeerId and peerId to the GreetingCommandPlugin message handler. ([#101](https://www.github.com/dxos/halo/issues/101)) ([5ee70bf](https://www.github.com/dxos/halo/commit/5ee70bf869cf00c1069beea98e3e80216126f416))
+
 ### [2.1.9](https://www.github.com/dxos/halo/compare/v2.1.8...v2.1.9) (2020-10-28)
 
 
