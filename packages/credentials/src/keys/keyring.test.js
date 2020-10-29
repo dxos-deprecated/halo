@@ -304,7 +304,7 @@ test('To/from JSON', async () => {
 
 test('Raw sign', async () => {
   const keyring = new Keyring();
-  const key = await keyring.createKeyRecord({type: KeyType.IDENTITY});
+  const key = await keyring.createKeyRecord({ type: KeyType.IDENTITY });
 
   const message = randomBytes();
   const signature = keyring.rawSign(message, key);

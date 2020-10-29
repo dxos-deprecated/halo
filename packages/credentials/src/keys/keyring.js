@@ -514,7 +514,7 @@ export class Keyring {
    */
   rawSign (data, keyRecord) {
     assert(Buffer.isBuffer(data));
-    assert(keyRecord)
+    assert(keyRecord);
     assertValidPublicKey(keyRecord.publicKey);
     assertNoSecrets(keyRecord);
 
