@@ -5,7 +5,7 @@
 import assert from 'assert';
 import debug from 'debug';
 
-import { keyToBuffer } from '@dxos/crypto';
+import { keyToBuffer, keyToString } from '@dxos/crypto';
 import { ERR_EXTENSION_RESPONSE_FAILED } from '@dxos/protocol';
 
 import { Keyring } from '../keys';
@@ -81,22 +81,25 @@ export class Greeter {
 
   // TODO(burdon): Remove (generic util that doesn't belong in this class).
   createMessageHandler () {
-    return async (peerId, message) => {
-      return this.handleMessage(peerId, message);
+    return async (message, remotePeerId, peerId) => {
+      return this.handleMessage(message, remotePeerId, peerId);
     };
   }
 
   /**
    * Handle a P2P message from the Extension.
-   * @param peerId
-   * @param message
+   * @param {Object} message
+   * @param {Buffer} remotePeerId
+   * @param {Buffer} peerId
    * @returns {Promise<{}>}
    */
-  async handleMessage (peerId, message) {
+  async handleMessage (message, remotePeerId, peerId) {
     assert(message);
+    assert(remotePeerId);
+    assert(peerId);
 
     // The peer should be using their invitationId as their peerId.
-    const invitationId = peerId;
+    const invitationId = keyToString(remotePeerId);
     const { command, params, secret } = message;
 
     // The BEGIN command is unique, in that it happens before auth and may require user interaction.

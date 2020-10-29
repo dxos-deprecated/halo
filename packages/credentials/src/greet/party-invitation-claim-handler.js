@@ -53,7 +53,7 @@ export class PartyInvitationClaimHandler {
     }
 
     try {
-      const invitationDescriptor = await this._greetingHandler(invitationID);
+      const invitationDescriptor = await this._greetingHandler(invitationID, peerId);
       log(invitationDescriptor);
       return createGreetingClaimResponse(invitationDescriptor.invitation, invitationDescriptor.swarmKey);
     } catch (err) {
