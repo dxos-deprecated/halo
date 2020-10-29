@@ -513,7 +513,9 @@ export class Keyring {
    * @return {Buffer}
    */
   rawSign (data, keyRecord) {
-    assertValidPublicKey(keyRecord);
+    assert(Buffer.isBuffer(data));
+    assert(keyRecord)
+    assertValidPublicKey(keyRecord.publicKey);
     assertNoSecrets(keyRecord);
 
     const fullKey = this._getFullKey(keyRecord.publicKey);

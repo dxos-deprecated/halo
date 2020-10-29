@@ -68,7 +68,7 @@ test('PartyInvitation messages', async () => {
 
   // "Send" the Claim message.
   const claimMessage = createGreetingClaimMessage(invitationID);
-  const claimResponse = await claimHandler.handleMessage(null, claimMessage);
+  const claimResponse = await claimHandler.handleMessage(claimMessage, randomBytes(), randomBytes());
 
   const admitMessage = createKeyAdmitMessage(inviteeKeyring, partyKey.publicKey, inviteeKey, [inviteeKey]);
   const envelope = createEnvelopeMessage(keyring, partyKey.publicKey, admitMessage, identityKey);

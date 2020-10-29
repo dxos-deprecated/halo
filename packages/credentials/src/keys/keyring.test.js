@@ -7,7 +7,7 @@
 import assert from 'assert';
 
 import { expectToThrow } from '@dxos/async';
-import { createKeyPair, keyToString, randomBytes } from '@dxos/crypto';
+import { createKeyPair, keyToString, randomBytes, verify } from '@dxos/crypto';
 
 import { Filter } from './filter';
 import { Keyring } from './keyring';
@@ -300,4 +300,14 @@ test('To/from JSON', async () => {
 
   expect(original.toJSON()).toEqual(copy.toJSON());
   expect(copy.keys).toEqual(original.keys);
+});
+
+test('Raw sign', async () => {
+  const keyring = new Keyring();
+  const key = await keyring.createKeyRecord({type: KeyType.IDENTITY});
+
+  const message = randomBytes();
+  const signature = keyring.rawSign(message, key);
+
+  expect(verify(message, signature, key.publicKey)).toBe(true);
 });
