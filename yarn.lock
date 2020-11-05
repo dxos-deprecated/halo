@@ -271,10 +271,10 @@
     exec-sh "^0.3.2"
     minimist "^1.2.0"
 
-"@dxos/async@^1.0.0-beta.8":
-  version "1.0.0-beta.8"
-  resolved "https://registry.yarnpkg.com/@dxos/async/-/async-1.0.0-beta.8.tgz#051a47259d17a18e1a77c0ef8056fa0377d95207"
-  integrity sha512-sAak4G0ufz2a/SBs28Kgu4TiwyGODPnVxTOYdojdAset7CEM1SpvEci0D7MPU0eCqlB2IMniveIp5paas6i8Vw==
+"@dxos/async@^1.0.0-beta.10":
+  version "1.0.0-beta.10"
+  resolved "https://registry.yarnpkg.com/@dxos/async/-/async-1.0.0-beta.10.tgz#a1247891cbdee3b84614c92d6790a7d7695e9260"
+  integrity sha512-U3f1afmdl8KNjK8y89E89G+Cd2l52+Wjww92hZ9IfiU6wOvNsNG9WRruAYCOoRpBMYaEv/QJq+UuLhgD5o8iSQ==
 
 "@dxos/codec-protobuf@^0.2.0":
   version "0.2.2"
@@ -293,10 +293,10 @@
     lodash.merge "^4.6.2"
     protobufjs "^6.9.0"
 
-"@dxos/crypto@^1.0.0-beta.1":
-  version "1.0.0-beta.9"
-  resolved "https://registry.yarnpkg.com/@dxos/crypto/-/crypto-1.0.0-beta.9.tgz#cc261bf3910c271e8a08f67835e7b2b4e760a47a"
-  integrity sha512-aWvKRAC6jjv3HBa+MqobPAHutvf+6D7yWwLFt0paoAhQXab8IJH1NDYOAAYRa8qLnKGIr4TSqed9mRqZ9cfHEg==
+"@dxos/crypto@^1.0.0-beta.12":
+  version "1.0.0-beta.12"
+  resolved "https://registry.yarnpkg.com/@dxos/crypto/-/crypto-1.0.0-beta.12.tgz#6459639ac717d2c5c83db930ee754b470f23df85"
+  integrity sha512-dq6b0RJ92EzpxO5i0kyXstNWGjlHjtL13Ef2vWS+ROB+om6jZ/zVRC7+WIwgCbA7re1aIME3os0T/dY2sjGVIA==
   dependencies:
     crypto-js "^3.1.9-1"
     humanhash "^1.0.4"

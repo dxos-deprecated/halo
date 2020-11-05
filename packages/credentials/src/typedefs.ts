@@ -3,7 +3,10 @@
 //
 
 import { KeyType } from './keys';
-import { Message, SignedMessage } from './proto/gen/dxos/credentials';
+
+export type MakeOptional<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>> & Partial<Pick<T, K>>
+
+export type RawSignature = Uint8Array;
 
 export type PublicKey = Buffer;
 export type SecretKey = Buffer;
@@ -14,23 +17,12 @@ export interface KeyHint {
     type: KeyType;
 }
 
-export interface KeyChain {
-    publicKey: PublicKey;
-    message: Message | SignedMessage;
-    parents: KeyChain[];
-}
-
-export interface KeyPair {
-    publicKey: PublicKey;
-    secretKey?: SecretKey;
-}
-
 // TODO(marik-d): Use protobuf type.
 export interface KeyRecord {
     /**
      * - The `KeyType` type of the key. This is often unknown for keys from other sources.
      */
-    type: string;
+    type: KeyType;
     /**
      * - The public key as a hex string.
      */

@@ -5,9 +5,9 @@
 import assert from 'assert';
 
 import { Keyring } from '../keys';
+import { KeyChain, Message } from '../proto';
 import { WithTypeUrl } from '../proto/any';
-import { Message } from '../proto/gen/dxos/credentials';
-import { KeyChain, KeyRecord, PublicKey } from '../typedefs';
+import { KeyRecord, PublicKey } from '../typedefs';
 
 /**
  * Create `dxos.credentials.auth.Auth` credentials.

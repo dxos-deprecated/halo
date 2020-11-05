@@ -10,44 +10,44 @@
 import assert from 'assert';
 import stableStringify from 'json-stable-stringify';
 
-import { createKeyPair, keyToString, randomBytes, sign } from '@dxos/crypto';
+import { createKeyPair, KeyPair, keyToString, randomBytes, sign } from '@dxos/crypto';
 
+import { KeyChain, SignedMessage } from '../proto';
 import { WithTypeUrl } from '../proto/any';
 import { createDateTimeString } from '../proto/datetime';
-import { KeyChain, SignedMessage } from '../proto/gen/dxos/credentials';
-import { KeyPair, KeyRecord } from '../typedefs';
+import { KeyRecord, MakeOptional } from '../typedefs';
 import { KeyType } from './keytype';
 
 /**
  * Checks for a valid publicKey Buffer.
  */
-export const assertValidPublicKey = (key?: Buffer) => {
+export function assertValidPublicKey (key?: Buffer): asserts key is Buffer {
   assert(Buffer.isBuffer(key));
   assert(key.length === 32);
-};
+}
 
 /**
  * Checks for a valid secretKey Buffer.
  */
-export const assertValidSecretKey = (key?: Buffer) => {
+export function assertValidSecretKey (key?: Buffer): asserts key is Buffer {
   assert(Buffer.isBuffer(key));
   assert(key.length === 64);
-};
+}
 
 /**
  * Checks for a valid publicKey/secretKey KeyPair.
  */
 // TODO(burdon): This should only happen in tests.
-export const assertValidKeyPair = (keyRecord: KeyPair) => {
+export function assertValidKeyPair (keyRecord: any): asserts keyRecord is KeyPair {
   const { publicKey, secretKey } = keyRecord;
   assertValidPublicKey(publicKey);
   assertValidSecretKey(secretKey);
-};
+}
 
 /**
  * Checks that the KeyRecord contains no secrets (ie, secretKey and seedPhrase).
  */
-export const assertNoSecrets = (keyRecord: KeyRecord) => {
+export const assertNoSecrets = (keyRecord: Omit<KeyRecord, 'key'>) => {
   assert(keyRecord);
   // TODO(marik-d): Check if booleans are used anywhere.
   // TODO(marik-d): Check if seed phrase is stored in key records.
@@ -84,27 +84,26 @@ export const assertValidAttributes = (keyRecord: Partial<KeyRecord>) => {
  * @param attributes Valid attributes above.
  * @param keyPair If undefined then a public/private key pair will be generated.
  */
-export const createKeyRecord = (attributes: Partial<KeyRecord> = {}, keyPair?: KeyPair) => {
-  const { publicKey, secretKey } = keyPair || createKeyPair();
+export const createKeyRecord = (attributes: Partial<KeyRecord> = {}, keyPair: MakeOptional<KeyPair, 'secretKey'> = createKeyPair()): KeyRecord => {
+  const { publicKey, secretKey } = keyPair;
 
   // Disallow invalid attributes.
   assertValidAttributes(attributes);
 
-  const keyRecord = {
+  return {
     type: KeyType.UNKNOWN,
-    key: keyToString(publicKey),
-    publicKey,
-    secretKey,
     hint: false,
     own: !!secretKey,
     trusted: true,
     created: createDateTimeString(),
 
     // Overrides the defaults above.
-    ...attributes
-  };
+    ...attributes,
 
-  return keyRecord;
+    key: keyToString(publicKey),
+    publicKey,
+    secretKey
+  };
 };
 
 /**
@@ -129,7 +128,7 @@ export const canonicalStringify = (obj: any) => {
  *   signatures: []   // An array with signature and publicKey of each signing key.
  * }
  */
-export const signMessage = (message: any, keys: KeyRecord, keyChainMap: Map<string, KeyChain>, nonce?: Buffer, created?: string): WithTypeUrl<SignedMessage> => {
+export const signMessage = (message: any, keys: KeyRecord[], keyChainMap: Map<string, KeyChain>, nonce?: Buffer, created?: string): WithTypeUrl<SignedMessage> => {
   assert(typeof message === 'object');
   assert(keys);
   assert(Array.isArray(keys));
@@ -197,7 +196,7 @@ export const isSignedMessage = (message: any = {}): message is SignedMessage => 
  * Checks conformity and normalizes the KeyRecord. (Used before storing, so that only well-formed records are stored.)
  * @return A normalized copy of keyRecord.
  */
-export const checkAndNormalizeKeyRecord = (keyRecord: KeyRecord) => {
+export const checkAndNormalizeKeyRecord = (keyRecord: Omit<KeyRecord, 'key'>) => {
   assert(keyRecord);
   assertValidAttributes(keyRecord);
 
