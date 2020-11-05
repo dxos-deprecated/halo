@@ -80,7 +80,7 @@ const createProtocol = async (partyKey: PublicKey, authenticator: Authenticator,
       partyKey,
       deviceKey: peerId,
       identityKey: peerId
-    }, [keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE }))])
+    }, [keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE }))!])
   })).toString('base64');
 
   const auth = new AuthPlugin(peerId, authenticator, [Replicator.extension]);
@@ -162,10 +162,10 @@ test('Auth Plugin (GOOD)', async () => {
   const partyKey = randomBytes(32);
   const node1 = await createProtocol(partyKey,
     new ExpectedKeyAuthenticator(keyring,
-      keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE })).publicKey), keyring);
+      keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE }))!.publicKey), keyring);
   const node2 = await createProtocol(partyKey,
     new ExpectedKeyAuthenticator(keyring,
-      keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE })).publicKey), keyring);
+      keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE }))!.publicKey), keyring);
 
   const connection = connect(node1.proto, node2.proto);
   await node1.authPromise;
@@ -179,10 +179,10 @@ test('Auth & Repl (GOOD)', async () => {
   const partyKey = randomBytes(32);
   const node1 = await createProtocol(partyKey,
     new ExpectedKeyAuthenticator(keyring,
-      keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE })).publicKey), keyring);
+      keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE }))!.publicKey), keyring);
   const node2 = await createProtocol(partyKey,
     new ExpectedKeyAuthenticator(keyring,
-      keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE })).publicKey), keyring);
+      keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE }))!.publicKey), keyring);
 
   const connection = connect(node1.proto, node2.proto);
   await node1.authPromise;

@@ -17,7 +17,7 @@ export class Filter {
   /**
    * Execute the filter over the supplied values.
    */
-  static filter (values: any[], filter: FilterFuntion) {
+  static filter (values: IterableIterator<any>, filter: FilterFuntion) {
     return Array.from(values).filter(value => filter(value));
   }
 

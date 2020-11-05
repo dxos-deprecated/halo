@@ -6,9 +6,11 @@ import assert from 'assert';
 import debug from 'debug';
 import memdown from 'memdown';
 
-import { keyToBuffer, keyToString, sign, verify } from '@dxos/crypto';
+import { KeyPair, keyToBuffer, keyToString, sign, verify } from '@dxos/crypto';
 
-import { Filter } from './filter';
+import { KeyChain, Message, SignedMessage } from '../proto';
+import { KeyRecord, PublicKey, RawSignature } from '../typedefs';
+import { Filter, FilterFuntion } from './filter';
 import {
   canonicalStringify,
   createKeyRecord,
@@ -25,7 +27,7 @@ import { KeyType } from './keytype';
 
 const log = debug('dxos:creds:keys'); // eslint-disable-line @typescript-eslint/no-unused-vars
 
-const unwrapMessage = (message) => {
+const unwrapMessage = (message: any): SignedMessage => {
   if (message && message.payload && !message.signed && !Array.isArray(message.signatures)) {
     return message.payload;
   }
@@ -40,19 +42,18 @@ export class Keyring {
   /**
    * Builds up a KeyChain for `publicKey` from the supplied SignedMessages. The message map should be indexed
    * by the hexlified PublicKey. If a single message admits more than one key, it should have a map entry for each.
-   * @param {PublicKey} publicKey
-   * @param {Map<string, Message>} signedMessageMap
-   * @param {Buffer[]} [exclude] Keys which should be excluded from the chain, for example, excluding FEED keys when
+   * @param publicKey
+   * @param signedMessageMap
+   * @param exclude Keys which should be excluded from the chain, for example, excluding FEED keys when
    * building up a chain for a DEVICE.
-   * @returns {KeyChain}
    */
-  static buildKeyChain (publicKey, signedMessageMap, exclude = []) {
+  static buildKeyChain (publicKey: PublicKey, signedMessageMap: Map<string, Message>, exclude: PublicKey[] = []): KeyChain {
     const message = unwrapMessage(signedMessageMap.get(keyToString(publicKey)));
     if (!message) {
       throw Error('No such message.');
     }
 
-    const chain = {
+    const chain: KeyChain = {
       publicKey,
       message,
       parents: []
@@ -71,7 +72,7 @@ export class Keyring {
       if (!signer.equals(publicKey) && !exclude.find(key => key.equals(signer))) {
         const parent = Keyring.buildKeyChain(signer, signedMessageMap, [...signedBy, ...exclude]);
         if (parent) {
-          chain.parents.push(parent);
+          chain.parents!.push(parent);
         }
       }
     }
@@ -81,17 +82,15 @@ export class Keyring {
 
   /**
    * What keys were used to sign this message?
-   * @param {SignedMessage} message
-   * @param {boolean} [deep=true] Whether to check for nested messages.
-   * @returns {PublicKey[]}
+   * @param deep Whether to check for nested messages.
    */
-  static signingKeys (message, deep = true) {
-    const all = new Set();
+  static signingKeys (message: Message | SignedMessage, deep = true): PublicKey[] {
+    const all = new Set<string>();
 
     if (isSignedMessage(message)) {
-      const { signed, signatures } = message;
+      const { signed, signatures = [] } = message;
       for (const signature of signatures) {
-        if (Keyring.validateSignature(signed, signature.signature, signature.key)) {
+        if (Keyring.validateSignature(signed, signature.signature, Buffer.from(signature.key))) {
           all.add(keyToString(signature.key));
         }
       }
@@ -99,7 +98,7 @@ export class Keyring {
 
     if (deep) {
       for (const property of Object.getOwnPropertyNames(message)) {
-        const value = message[property];
+        const value = (message as any)[property];
         if (typeof value === 'object') {
           const keys = Keyring.signingKeys(value, deep);
           for (const key of keys) {
@@ -115,19 +114,15 @@ export class Keyring {
   /**
    * Validate all the signatures on a signed message.
    * This does not check that the keys are trusted, only that the signatures are valid.
-   * @param message
-   * @returns {boolean}
    */
-  static validateSignatures (message) {
-    assert(typeof message === 'object');
+  static validateSignatures (message: Message | SignedMessage): boolean {
     message = unwrapMessage(message);
-    assert(message.signed);
     assert(Array.isArray(message.signatures));
 
     const { signed, signatures } = message;
 
     for (const sig of signatures) {
-      if (!Keyring.validateSignature(signed, sig.signature, sig.key)) {
+      if (!Keyring.validateSignature(signed, sig.signature, Buffer.from(sig.key))) {
         return false;
       }
     }
@@ -138,55 +133,51 @@ export class Keyring {
   /**
    * Validates a single signature on a message.
    * This does not check that the key is trusted, only that the signature is valid.
-   * @param message
-   * @param signature
-   * @param {PublicKey} key
-   * @returns {boolean}
    */
-  static validateSignature (message, signature, key) { // eslint-disable-line class-methods-use-this
+  static validateSignature (message: any, signature: RawSignature, key: PublicKey): boolean { // eslint-disable-line class-methods-use-this
     assert(typeof message === 'object' || typeof message === 'string');
     if (typeof message === 'object') {
       message = canonicalStringify(message);
     }
 
     const messageBuffer = Buffer.from(message);
-    return verify(messageBuffer, signature, key);
+    return verify(messageBuffer, Buffer.from(signature), key);
   }
 
   /**
    * Creates a search filter for a key that can be used for signing.
-   * @param attributes
-   * @return {function(*=): boolean}
    */
-  static signingFilter (attributes = {}) {
-    return Filter.and(Filter.matches({
-      ...attributes,
-      own: true,
-      trusted: true
-    }),
-    Filter.hasProperty('secretKey'));
+  static signingFilter (attributes: Partial<KeyRecord> = {}) {
+    return Filter.and(
+      Filter.matches({
+        ...attributes,
+        own: true,
+        trusted: true
+      }),
+      Filter.hasProperty('secretKey')
+    );
   }
+
+  private readonly _keystore: KeyStore;
+
+  private readonly _cache = new Map<string, any>();
 
   /**
    * If no KeyStore is supplied, in-memory key storage will be used.
-   * @param [keystore]
    */
-  constructor (keystore) {
+  constructor (keystore?: KeyStore) {
     this._keystore = keystore || new KeyStore(memdown());
-    this._cache = new Map();
   }
 
   /**
    * All keys as an array.
-   * @returns {KeyRecord[]}
    */
-  get keys () {
+  get keys (): KeyRecord[] {
     return this.findKeys();
   }
 
   /**
    * Load keys from the KeyStore.  This call is required when using a persistent KeyStore.
-   * @returns {Promise<Keyring>}
    */
   async load () {
     const entries = await this._keystore.getRecordsWithKey();
@@ -214,10 +205,9 @@ export class Keyring {
 
   /**
    * Adds a keyRecord that must contain a key pair (publicKey/secretKey).
-   * @param {KeyRecord} keyRecord
-   * @returns {KeyRecord} A copy of the KeyRecord, without secrets.
+   * @returns A copy of the KeyRecord, without secrets.
    */
-  async addKeyRecord (keyRecord) {
+  async addKeyRecord (keyRecord: KeyPair & Omit<KeyRecord, 'key'>) {
     assertValidKeyPair(keyRecord);
 
     return this._addKeyRecord(keyRecord);
@@ -228,7 +218,7 @@ export class Keyring {
    * @param {KeyRecord} keyRecord
    * @returns {KeyRecord} A copy of the KeyRecord.
    */
-  async addPublicKey (keyRecord) {
+  async addPublicKey (keyRecord: Omit<KeyRecord, 'key' | 'secretKey'>) {
     assertValidPublicKey(keyRecord.publicKey);
     assertNoSecrets(keyRecord);
 
@@ -238,13 +228,13 @@ export class Keyring {
   /**
    * Adds a KeyRecord to the keyring and stores it in the keystore.
    * The KeyRecord may contain a key pair, or only a public key.
-   * @param {KeyRecord} keyRecord
-   * @param {boolean} [overwrite=false] Overwrite an existing key.
-   * @param {boolean} [temporary=false] A temporary key is not persisted to storage.
-   * @returns {KeyRecord} A copy of the KeyRecord, minus secrets.
+   * @param keyRecord
+   * @param [overwrite=false] Overwrite an existing key.
+   * @param [temporary=false] A temporary key is not persisted to storage.
+   * @returns A copy of the KeyRecord, minus secrets.
    * @private
    */
-  async _addKeyRecord (keyRecord, overwrite = false, temporary = false) {
+  async _addKeyRecord (keyRecord: Omit<KeyRecord, 'key'>, overwrite = false, temporary = false) {
     const copy = checkAndNormalizeKeyRecord(keyRecord);
 
     if (!overwrite) {
@@ -267,19 +257,18 @@ export class Keyring {
    * @param {KeyRecord} keyRecord
    * @returns {KeyRecord} A copy of the KeyRecord, without secrets.
    */
-  async updateKey (keyRecord) {
+  async updateKey (keyRecord: KeyRecord) {
     assert(keyRecord);
     assertValidPublicKey(keyRecord.publicKey);
 
     // Do not allow updating/changing secrets.
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { secretKey, seedPhrase, ...cleaned } = keyRecord;
+    const cleaned = stripSecrets(keyRecord);
 
-    const existing = this._getFullKey(cleaned.publicKey) || {};
+    const existing = this._getFullKey(cleaned.publicKey);
     const updated = { ...existing, ...cleaned };
 
     // There is one special case, which is not to move from a more specific to a less specific key type.
-    if (existing.type && existing.type !== KeyType.UNKNOWN && updated.type === KeyType.UNKNOWN) {
+    if (existing && existing.type !== KeyType.UNKNOWN && updated.type === KeyType.UNKNOWN) {
       updated.type = existing.type;
     }
 
@@ -288,10 +277,10 @@ export class Keyring {
 
   /**
    * Deletes the secretKey from a stored KeyRecord.
-   * @param {KeyRecord} keyRecord
+   * @param keyRecord
    * @returns {Promise<void>}
    */
-  async deleteSecretKey (keyRecord) {
+  async deleteSecretKey (keyRecord: KeyRecord) {
     assert(keyRecord);
     assertValidPublicKey(keyRecord.publicKey);
 
@@ -305,10 +294,10 @@ export class Keyring {
 
   /**
    * Returns true if the stored KeyRecord has a secretKey available.
-   * @param {KeyRecord} keyRecord
+   * @param keyRecord
    * @returns {boolean}
    */
-  hasSecretKey (keyRecord) {
+  hasSecretKey (keyRecord: KeyRecord) {
     assert(keyRecord);
     assertValidPublicKey(keyRecord.publicKey);
 
@@ -318,10 +307,8 @@ export class Keyring {
 
   /**
    * Is the publicKey in the keyring?
-   * @param {PublicKey} publicKey
-   * @returns {boolean}
    */
-  hasKey (publicKey) {
+  hasKey (publicKey: PublicKey): boolean {
     assertValidPublicKey(publicKey);
 
     return !!this.getKey(publicKey);
@@ -329,22 +316,17 @@ export class Keyring {
 
   /**
    * Tests if the given key is trusted.
-   * @param publicKey
-   * @returns {boolean}
    */
-  isTrusted (publicKey) {
+  isTrusted (publicKey: PublicKey): boolean {
     assertValidPublicKey(publicKey);
 
-    const { trusted = false } = this.getKey(publicKey) || {};
-    return trusted;
+    return this.getKey(publicKey)?.trusted ?? false;
   }
 
   /**
    * Return the keyRecord from the keyring, if present.
-   * @param {PublicKey} publicKey
-   * @returns {KeyRecord}
    */
-  _getFullKey (publicKey) {
+  private _getFullKey (publicKey: PublicKey): KeyRecord | undefined {
     assertValidPublicKey(publicKey);
 
     const key = keyToString(publicKey);
@@ -354,10 +336,10 @@ export class Keyring {
   /**
    * Return the keyRecord from the keyring, if present.
    * Secret key is removed from the returned version of the KeyRecord.
-   * @param {PublicKey} publicKey
-   * @returns {KeyRecord} KeyRecord, without secretKey
+   *
+   * @returns KeyRecord, without secretKey
    */
-  getKey (publicKey) {
+  getKey (publicKey: PublicKey): KeyRecord | undefined {
     assertValidPublicKey(publicKey);
 
     const key = this._getFullKey(publicKey);
@@ -366,10 +348,8 @@ export class Keyring {
 
   /**
    * Find all keys matching the indicated criteria: 'key', 'type', 'own', etc.
-   * @param filters
-   * @returns {KeyRecord[]}
    */
-  _findFullKeys (...filters) {
+  private _findFullKeys (...filters: FilterFuntion[]): KeyRecord[] {
     return Filter.filter(this._cache.values(), Filter.and(...filters));
   }
 
@@ -379,16 +359,14 @@ export class Keyring {
    * @param filters
    * @returns {KeyRecord[]} KeyRecords, without secretKeys
    */
-  findKeys (...filters) {
+  findKeys (...filters: FilterFuntion[]): KeyRecord[] {
     return this._findFullKeys(...filters).map(stripSecrets);
   }
 
   /**
    * Find one key matching the indicated criteria: 'party', 'type', etc.
-   * @param {Filter[]} filters
-   * @returns {KeyRecord}
    */
-  _findFullKey (...filters) {
+  private _findFullKey (...filters: FilterFuntion[]): KeyRecord | undefined {
     const matches = this._findFullKeys(...filters);
     if (matches.length > 1) {
       throw Error(`Expected <= 1 matching keys; found ${matches.length}.`);
@@ -399,21 +377,19 @@ export class Keyring {
   /**
    * Find one key matching the indicated criteria: 'party', 'type', etc.
    * Secret key is removed from the returned version of the KeyRecord.
-   * @param {Filter[]} filters
-   * @returns {KeyRecord} KeyRecord, without secretKey
+   * @returns KeyRecord, without secretKey
    */
-  findKey (...filters) {
+  findKey (...filters: FilterFuntion[]) {
     const key = this._findFullKey(...filters);
     return key ? stripSecrets(key) : undefined;
   }
 
   /**
    * Serialize the Keyring contents to JSON.
-   * @returns {string}
    */
   toJSON () {
     const keys = this._findFullKeys().map((key) => {
-      const copy = { ...key };
+      const copy = { ...key } as any;
       if (copy.publicKey) {
         copy.publicKey = keyToString(copy.publicKey);
       }
@@ -434,13 +410,12 @@ export class Keyring {
    * Load keys from supplied JSON into the Keyring.
    * @param {string} value
    */
-  async loadJSON (value) {
+  async loadJSON (value: string) {
     assert(typeof value === 'string');
 
-    const promises = [];
     const parsed = JSON.parse(value);
 
-    parsed.keys.forEach((item) => {
+    return Promise.all(parsed.keys.map((item: any) => {
       if (item.publicKey) {
         item.publicKey = keyToBuffer(item.publicKey);
       }
@@ -449,13 +424,11 @@ export class Keyring {
       }
 
       if (item.secretKey) {
-        promises.push(this.addKeyRecord(item));
+        return this.addKeyRecord(item);
       } else {
-        promises.push(this.addPublicKey(item));
+        return this.addPublicKey(item);
       }
-    });
-
-    return Promise.all(promises);
+    }));
   }
 
   /**
@@ -464,10 +437,10 @@ export class Keyring {
    * @param {Object} attributes - see KeyRecord definition for valid attributes.
    * @return {Promise<KeyRecord>} New KeyRecord, without secretKey
    */
-  async createKeyRecord (attributes = {}) {
+  async createKeyRecord (attributes = {}): Promise<KeyRecord> {
     assert(arguments.length <= 1);
     const keyRecord = createKeyRecord(attributes);
-    await this.addKeyRecord(keyRecord);
+    await this.addKeyRecord(keyRecord as KeyRecord & KeyPair);
     return stripSecrets(keyRecord);
   }
 
@@ -477,24 +450,17 @@ export class Keyring {
    *   signed: { ... }, // The message as signed, including timestamp and nonce.
    *   signatures: []   // An array with signature and publicKey of each signing key.
    * }
-   * @param {Object} message
-   * @param {(KeyRecord|KeyChain)[]} keys
-   * @param {Buffer} [nonce]
-   * @param {string} [created]
-   * @returns {{ signed, signatures, __type_url: 'dxos.credentials.SignedMessage' }}
    */
-  sign (message, keys, nonce, created) {
+  sign (message: any, keys: (KeyRecord|KeyChain)[], nonce?: Buffer, created?: string) {
     assert(typeof message === 'object');
     assert(keys);
     assert(Array.isArray(keys));
-    for (const key of keys) {
-      assertNoSecrets(key);
-    }
 
     const chains = new Map();
-    const fullKeys = [];
+    const fullKeys: KeyRecord[] = [];
     keys.forEach((key) => {
-      const fullKey = this._getFullKey(key.publicKey);
+      const fullKey = this._getFullKey(Buffer.from(key.publicKey));
+      assert(fullKey);
       assertValidKeyPair(fullKey);
       fullKeys.push(fullKey);
       if (isKeyChain(key)) {
@@ -512,13 +478,13 @@ export class Keyring {
    * @param {KeyRecord} keyRecord
    * @return {Buffer}
    */
-  rawSign (data, keyRecord) {
+  rawSign (data: Buffer, keyRecord: KeyRecord) {
     assert(Buffer.isBuffer(data));
     assert(keyRecord);
     assertValidPublicKey(keyRecord.publicKey);
     assertNoSecrets(keyRecord);
 
-    const fullKey = this._getFullKey(keyRecord.publicKey);
+    const fullKey = this._getFullKey(keyRecord.publicKey) as KeyRecord;
     assertValidKeyPair(fullKey);
 
     return sign(data, fullKey.secretKey);
@@ -532,7 +498,7 @@ export class Keyring {
    * @param {object} options
    * @returns {boolean}
    */
-  verify (message, options = {}) {
+  verify (message: SignedMessage, { requireAllKeysBeTrusted = false, allowKeyChains = true } = {}) {
     assert(typeof message === 'object');
     assert(message.signed);
     assert(Array.isArray(message.signatures));
@@ -541,14 +507,12 @@ export class Keyring {
       return false;
     }
 
-    const { requireAllKeysBeTrusted = false, allowKeyChains = true } = options;
-
     let trustedSignatures = 0;
     const { signatures } = message;
     for (const signatureInformation of signatures) {
       const { key, keyChain } = signatureInformation;
 
-      const keyRecord = this.getKey(key);
+      const keyRecord = this.getKey(Buffer.from(key));
       if (keyRecord && keyRecord.trusted) {
         // The simple case is that we already trust this key.
         trustedSignatures++;
@@ -571,9 +535,9 @@ export class Keyring {
    * @param {KeyChain} chain
    * @return {Promise<KeyRecord>}
    */
-  findTrusted (chain) {
+  findTrusted (chain: KeyChain) {
     // `messages` contains internal state, and should not be passed in from outside.
-    const walkChain = (chain, messages = []) => {
+    const walkChain = (chain: KeyChain, messages: SignedMessage[] = []): KeyRecord | undefined => {
       // Check that the signatures are valid.
       if (!Keyring.validateSignatures(chain.message)) {
         throw new Error('Invalid signature.');
@@ -584,7 +548,7 @@ export class Keyring {
         throw new Error('Message not signed by indicated key.');
       }
 
-      const key = this.getKey(chain.publicKey);
+      const key = this.getKey(Buffer.from(chain.publicKey));
       messages.push(chain.message);
 
       // Do we have the key?
@@ -618,7 +582,8 @@ export class Keyring {
             // TODO(telackey): Filter by those keys actually in the hierarchy.
             for (const key of Keyring.signingKeys(message)) {
               if (!tmpKeys.hasKey(key)) {
-                tmpKeys._addKeyRecord({ publicKey: key }, false, true);
+                const tmpKey = createKeyRecord({}, { publicKey: key });
+                tmpKeys._addKeyRecord(tmpKey, false, true);
               }
             }
           }
