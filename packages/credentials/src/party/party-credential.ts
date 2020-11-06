@@ -45,10 +45,7 @@ export const createPartyGenesisMessage = (keyring: Keyring,
     }
   };
 
-  return {
-    __type_url: TYPE_URL_MESSAGE,
-    payload: keyring.sign(message, [partyKeyPair, feedKeyPair, admitKeyPair])
-  } as WithTypeUrl<Message>;
+  return wrapMessage(keyring.sign(message, [partyKeyPair, feedKeyPair, admitKeyPair]));
 };
 
 /**
@@ -73,10 +70,7 @@ export const createKeyAdmitMessage = (keyring: Keyring,
     }
   };
 
-  return {
-    __type_url: TYPE_URL_MESSAGE,
-    payload: keyring.sign(message, [admitKeyPair, ...signingKeys], nonce)
-  } as WithTypeUrl<Message>;
+  return wrapMessage(keyring.sign(message, [admitKeyPair, ...signingKeys], nonce));
 };
 
 /**
@@ -97,10 +91,7 @@ export const createFeedAdmitMessage = (keyring: Keyring,
     }
   };
 
-  return {
-    __type_url: TYPE_URL_MESSAGE,
-    payload: keyring.sign(message, [feedKeyPair, ...signingKeys], nonce)
-  } as WithTypeUrl<Message>;
+  return wrapMessage(keyring.sign(message, [feedKeyPair, ...signingKeys], nonce));
 };
 
 /**
@@ -124,11 +115,7 @@ export const createEnvelopeMessage = (keyring: Keyring,
     }
   };
 
-  // TODO(burdon): This probably shouldn't be wrapped in a Message.
-  return {
-    __type_url: TYPE_URL_MESSAGE,
-    payload: keyring.sign(message, [...signingKeys], nonce) // TODO(burdon): Why copy the array? (Above too).
-  } as WithTypeUrl<Message>;
+  return wrapMessage(keyring.sign(message, [...signingKeys], nonce));
 };
 
 /**
@@ -177,6 +164,14 @@ export function unwrapMessage (message: any): any {
 }
 
 /**
+ * Wraps a SignedMessage with a Message
+ */
+export function wrapMessage (message: SignedMessage): Message {
+  const payload = message as any;
+  return { __type_url: TYPE_URL_MESSAGE, payload } as WithTypeUrl<Message>;
+}
+
+/**
  * Unwrap a SignedMessage from its Envelopes.
  */
 export const unwrapEnvelopes = (message: any): SignedMessage => {
@@ -190,7 +185,7 @@ export const unwrapEnvelopes = (message: any): SignedMessage => {
 /**
  * Extract the contents of a SignedMessage
  */
-export const extractContents = (message: Message & SignedMessage): any => {
+export const extractContents = (message: SignedMessage): any => {
   // Unwrap any payload.
   let contents: any = message;
   while (contents.signed || contents.payload) {
@@ -218,7 +213,7 @@ export const getPartyCredentialMessageType = (message: Message | SignedMessage, 
 /**
  * Provides a list of the publicKeys admitted by this PartyCredentialMessage.
  */
-export const admitsKeys = (message: Message & SignedMessage) => {
+export const admitsKeys = (message: Message | SignedMessage) => {
   assert(message);
   assert(isPartyCredentialMessage(message));
 
