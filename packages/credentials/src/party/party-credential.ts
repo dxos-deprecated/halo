@@ -9,7 +9,7 @@ import { randomBytes } from '@dxos/crypto';
 
 import { Keyring } from '../keys';
 import { KeyChain, Message, SignedMessage, PartyCredential } from '../proto';
-import { KeyRecord, PublicKey } from '../typedefs';
+import { KeyRecord, MakeAny, PublicKey } from '../typedefs';
 
 /**
  * The start-of-authority record for the Party, admitting a single key (usually a identity) and a single feed.
@@ -28,7 +28,8 @@ export const createPartyGenesisMessage = (keyring: Keyring,
   assert(keyring.hasSecretKey(admitKeyPair));
   assert(typeof admitKeyPair.type !== 'undefined');
 
-  const message: PartyCredential = {
+  const message: MakeAny<PartyCredential> = {
+    __type_url: 'dxos.credentials.PartyCredential',
     type: PartyCredential.Type.PARTY_GENESIS,
     partyGenesis: {
       partyKey: partyKeyPair.publicKey,
@@ -55,7 +56,8 @@ export const createKeyAdmitMessage = (keyring: Keyring,
   assert(keyring.hasSecretKey(admitKeyPair));
   assert(typeof admitKeyPair.type !== 'undefined');
 
-  const message: PartyCredential = {
+  const message: MakeAny<PartyCredential> = {
+    __type_url: 'dxos.credentials.PartyCredential',
     type: PartyCredential.Type.KEY_ADMIT,
     keyAdmit: {
       partyKey,
@@ -78,7 +80,8 @@ export const createFeedAdmitMessage = (keyring: Keyring,
   feedKeyPair: KeyRecord,
   signingKeys: (KeyRecord | KeyChain)[] = [],
   nonce?: Uint8Array): Message => {
-  const message: PartyCredential = {
+  const message: MakeAny<PartyCredential> = {
+    __type_url: 'dxos.credentials.PartyCredential',
     type: PartyCredential.Type.FEED_ADMIT,
     feedAdmit: {
       partyKey,
@@ -103,7 +106,8 @@ export const createEnvelopeMessage = (keyring: Keyring,
   contents: Message,
   signingKeys: (KeyRecord | KeyChain)[] = [],
   nonce?: Uint8Array): Message => {
-  const message: PartyCredential = {
+  const message: MakeAny<PartyCredential> = {
+    __type_url: 'dxos.credentials.PartyCredential',
     type: PartyCredential.Type.ENVELOPE,
     envelope: {
       partyKey,
