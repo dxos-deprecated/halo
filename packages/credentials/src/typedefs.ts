@@ -6,9 +6,6 @@ import { KeyType } from './keys';
 
 export type MakeOptional<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>> & Partial<Pick<T, K>>;
 
-// eslint-disable-next-line camelcase
-export type MakeAny<T> = T & { __type_url: string };
-
 export type RawSignature = Uint8Array;
 
 export type PublicKey = Buffer;

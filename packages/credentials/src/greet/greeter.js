@@ -9,7 +9,8 @@ import { keyToBuffer, keyToString } from '@dxos/crypto';
 import { ERR_EXTENSION_RESPONSE_FAILED } from '@dxos/protocol';
 
 import { Keyring } from '../keys';
-import { PartyCredential, getPartyCredentialMessageType } from '../party';
+import { getPartyCredentialMessageType } from '../party';
+import { PartyCredential } from '../proto';
 import { Command } from './constants';
 import {
   ERR_GREET_INVALID_COMMAND,

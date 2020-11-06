@@ -9,7 +9,13 @@ import { randomBytes } from '@dxos/crypto';
 
 import { Keyring } from '../keys';
 import { KeyChain, Message, SignedMessage, PartyCredential } from '../proto';
-import { KeyRecord, MakeAny, PublicKey } from '../typedefs';
+import { WithTypeUrl } from '../proto/any';
+import { KeyRecord, PublicKey } from '../typedefs';
+
+export const TYPE_URL_MESSAGE = 'dxos.credentials.Message';
+export const TYPE_URL_SIGNED_MESSAGE = 'dxos.credentials.SignedMessage';
+export const TYPE_URL_PARTY_CREDENTIAL = 'dxos.credentials.party.PartyCredential';
+export const TYPE_URL_PARTY_INVITATION = 'dxos.credentials.party.PartyInvitation';
 
 /**
  * The start-of-authority record for the Party, admitting a single key (usually a identity) and a single feed.
@@ -28,8 +34,8 @@ export const createPartyGenesisMessage = (keyring: Keyring,
   assert(keyring.hasSecretKey(admitKeyPair));
   assert(typeof admitKeyPair.type !== 'undefined');
 
-  const message: MakeAny<PartyCredential> = {
-    __type_url: 'dxos.credentials.PartyCredential',
+  const message: WithTypeUrl<PartyCredential> = {
+    __type_url: TYPE_URL_PARTY_CREDENTIAL,
     type: PartyCredential.Type.PARTY_GENESIS,
     partyGenesis: {
       partyKey: partyKeyPair.publicKey,
@@ -40,8 +46,9 @@ export const createPartyGenesisMessage = (keyring: Keyring,
   };
 
   return {
+    __type_url: TYPE_URL_MESSAGE,
     payload: keyring.sign(message, [partyKeyPair, feedKeyPair, admitKeyPair])
-  };
+  } as WithTypeUrl<Message>;
 };
 
 /**
@@ -56,8 +63,8 @@ export const createKeyAdmitMessage = (keyring: Keyring,
   assert(keyring.hasSecretKey(admitKeyPair));
   assert(typeof admitKeyPair.type !== 'undefined');
 
-  const message: MakeAny<PartyCredential> = {
-    __type_url: 'dxos.credentials.PartyCredential',
+  const message: WithTypeUrl<PartyCredential> = {
+    __type_url: TYPE_URL_PARTY_CREDENTIAL,
     type: PartyCredential.Type.KEY_ADMIT,
     keyAdmit: {
       partyKey,
@@ -67,8 +74,9 @@ export const createKeyAdmitMessage = (keyring: Keyring,
   };
 
   return {
+    __type_url: TYPE_URL_MESSAGE,
     payload: keyring.sign(message, [admitKeyPair, ...signingKeys], nonce)
-  };
+  } as WithTypeUrl<Message>;
 };
 
 /**
@@ -80,8 +88,8 @@ export const createFeedAdmitMessage = (keyring: Keyring,
   feedKeyPair: KeyRecord,
   signingKeys: (KeyRecord | KeyChain)[] = [],
   nonce?: Uint8Array): Message => {
-  const message: MakeAny<PartyCredential> = {
-    __type_url: 'dxos.credentials.PartyCredential',
+  const message: WithTypeUrl<PartyCredential> = {
+    __type_url: TYPE_URL_PARTY_CREDENTIAL,
     type: PartyCredential.Type.FEED_ADMIT,
     feedAdmit: {
       partyKey,
@@ -90,8 +98,9 @@ export const createFeedAdmitMessage = (keyring: Keyring,
   };
 
   return {
+    __type_url: TYPE_URL_MESSAGE,
     payload: keyring.sign(message, [feedKeyPair, ...signingKeys], nonce)
-  };
+  } as WithTypeUrl<Message>;
 };
 
 /**
@@ -106,8 +115,8 @@ export const createEnvelopeMessage = (keyring: Keyring,
   contents: Message,
   signingKeys: (KeyRecord | KeyChain)[] = [],
   nonce?: Uint8Array): Message => {
-  const message: MakeAny<PartyCredential> = {
-    __type_url: 'dxos.credentials.PartyCredential',
+  const message: WithTypeUrl<PartyCredential> = {
+    __type_url: TYPE_URL_PARTY_CREDENTIAL,
     type: PartyCredential.Type.ENVELOPE,
     envelope: {
       partyKey,
@@ -117,8 +126,9 @@ export const createEnvelopeMessage = (keyring: Keyring,
 
   // TODO(burdon): This probably shouldn't be wrapped in a Message.
   return {
+    __type_url: TYPE_URL_MESSAGE,
     payload: keyring.sign(message, [...signingKeys], nonce) // TODO(burdon): Why copy the array? (Above too).
-  };
+  } as WithTypeUrl<Message>;
 };
 
 /**
@@ -129,7 +139,7 @@ export const createEnvelopeMessage = (keyring: Keyring,
 export const isPartyCredentialMessage = (message: Message | SignedMessage) => {
   const signed = unwrapMessage(message) as SignedMessage;
   const signedType = get(signed, 'signed.payload.__type_url');
-  return signedType === 'dxos.credentials.party.PartyCredential';
+  return signedType === TYPE_URL_PARTY_CREDENTIAL;
 };
 
 /**
@@ -217,19 +227,24 @@ export const admitsKeys = (message: Message & SignedMessage) => {
   const unwrapped = unwrapEnvelopes(unwrapMessage(message));
 
   const type = getPartyCredentialMessageType(unwrapped, false);
-  const { admitKey, feedKey, partyKey } = unwrapped.signed.payload.contents;
   switch (type) {
-    case PartyCredential.Type.PARTY_GENESIS:
+    case PartyCredential.Type.PARTY_GENESIS: {
+      const { admitKey, feedKey, partyKey } = unwrapped.signed.payload.partyGenesis;
       keys.push(partyKey);
       keys.push(admitKey);
       keys.push(feedKey);
       break;
-    case PartyCredential.Type.KEY_ADMIT:
+    }
+    case PartyCredential.Type.KEY_ADMIT: {
+      const { admitKey } = unwrapped.signed.payload.keyAdmit;
       keys.push(admitKey);
       break;
-    case PartyCredential.Type.FEED_ADMIT:
+    }
+    case PartyCredential.Type.FEED_ADMIT: {
+      const { feedKey } = unwrapped.signed.payload.feedAdmit;
       keys.push(feedKey);
       break;
+    }
     default:
       throw Error(`Invalid type: ${type}`);
   }
@@ -263,10 +278,10 @@ export const createPartyInvitationMessage = (keyring: Keyring,
   assert(keyring.hasSecretKey(signingKey));
 
   return {
-    __type_url: 'dxos.credentials.Message',
+    __type_url: TYPE_URL_MESSAGE,
     payload:
       keyring.sign({
-        __type_url: 'dxos.credentials.party.PartyInvitation',
+        __type_url: TYPE_URL_PARTY_INVITATION,
         id: randomBytes(),
         partyKey,
         issuerKey: issuerKey.publicKey,
@@ -285,6 +300,6 @@ export const isPartyInvitationMessage = (message: Message | SignedMessage) => {
 
   const payloadType = get(signed, '__type_url');
   const signedType = get(signed, 'signed.payload.__type_url');
-  return payloadType === 'dxos.credentials.SignedMessage' &&
-    signedType === 'dxos.credentials.party.PartyInvitation';
+  return payloadType === TYPE_URL_SIGNED_MESSAGE &&
+    signedType === TYPE_URL_PARTY_INVITATION;
 };
