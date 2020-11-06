@@ -3,13 +3,13 @@
 //
 
 import assert from 'assert';
-import get from 'lodash.get';
+import get from 'lodash/get';
 
-import {randomBytes} from '@dxos/crypto';
+import { randomBytes } from '@dxos/crypto';
 
-import {KeyChain, Message, SignedMessage, PartyCredential} from '../proto';
-import {Keyring} from "../keys";
-import {KeyRecord, PublicKey} from "../typedefs";
+import { Keyring } from '../keys';
+import { KeyChain, Message, SignedMessage, PartyCredential } from '../proto';
+import { KeyRecord, PublicKey } from '../typedefs';
 
 /**
  * The start-of-authority record for the Party, admitting a single key (usually a identity) and a single feed.
@@ -22,9 +22,9 @@ import {KeyRecord, PublicKey} from "../typedefs";
  * @returns {SignedMessage}
  */
 export const createPartyGenesisMessage = (keyring: Keyring,
-                                          partyKeyPair: KeyRecord,
-                                          feedKeyPair: KeyRecord,
-                                          admitKeyPair: KeyRecord): Message => {
+  partyKeyPair: KeyRecord,
+  feedKeyPair: KeyRecord,
+  admitKeyPair: KeyRecord): Message => {
   assert(keyring.hasSecretKey(admitKeyPair));
   assert(typeof admitKeyPair.type !== 'undefined');
 
@@ -48,10 +48,10 @@ export const createPartyGenesisMessage = (keyring: Keyring,
  * of an Envelope, also by a key which has already been admitted.
  */
 export const createKeyAdmitMessage = (keyring: Keyring,
-                                      partyKey: PublicKey,
-                                      admitKeyPair: KeyRecord,
-                                      signingKeys: (KeyRecord | KeyChain)[] = [],
-                                      nonce?: Uint8Array): Message => {
+  partyKey: PublicKey,
+  admitKeyPair: KeyRecord,
+  signingKeys: (KeyRecord | KeyChain)[] = [],
+  nonce?: Uint8Array): Message => {
   assert(keyring.hasSecretKey(admitKeyPair));
   assert(typeof admitKeyPair.type !== 'undefined');
 
@@ -74,10 +74,10 @@ export const createKeyAdmitMessage = (keyring: Keyring,
  * key which has already been admitted (usually by a device identity key).
  */
 export const createFeedAdmitMessage = (keyring: Keyring,
-                                       partyKey: PublicKey,
-                                       feedKeyPair: KeyRecord,
-                                       signingKeys: (KeyRecord | KeyChain)[] = [],
-                                       nonce?: Uint8Array): Message => {
+  partyKey: PublicKey,
+  feedKeyPair: KeyRecord,
+  signingKeys: (KeyRecord | KeyChain)[] = [],
+  nonce?: Uint8Array): Message => {
   const message: PartyCredential = {
     type: PartyCredential.Type.FEED_ADMIT,
     feedAdmit: {
@@ -99,11 +99,10 @@ export const createFeedAdmitMessage = (keyring: Keyring,
  */
 // TODO(burdon): What is an envelope, distinct from above?
 export const createEnvelopeMessage = (keyring: Keyring,
-                                      partyKey: PublicKey,
-                                      contents: Message,
-                                      signingKeys: (KeyRecord | KeyChain)[] = [],
-                                      nonce?: Uint8Array): Message => {
-
+  partyKey: PublicKey,
+  contents: Message,
+  signingKeys: (KeyRecord | KeyChain)[] = [],
+  nonce?: Uint8Array): Message => {
   const message: PartyCredential = {
     type: PartyCredential.Type.ENVELOPE,
     envelope: {
@@ -123,11 +122,10 @@ export const createEnvelopeMessage = (keyring: Keyring,
  * @param {Message} message
  * @return {boolean}
  */
-export const isPartyCredentialMessage = (message: any) => {
-  const payloadType = get(message, 'payload.__type_url');
-  const signedType = get(message, 'payload.signed.payload.__type_url');
-  return payloadType === 'dxos.credentials.SignedMessage' &&
-    signedType === 'dxos.credentials.party.PartyCredential';
+export const isPartyCredentialMessage = (message: Message | SignedMessage) => {
+  const signed = unwrapMessage(message) as SignedMessage;
+  const signedType = get(signed, 'signed.payload.__type_url');
+  return signedType === 'dxos.credentials.party.PartyCredential';
 };
 
 /**
@@ -136,12 +134,12 @@ export const isPartyCredentialMessage = (message: any) => {
  * @return {boolean}
  * @private
  */
-export const isEnvelope = (message: any) => {
+export function isEnvelope (message: any) {
   assert(message);
-  const type = get(message, 'signed.payload.type') === PartyCredential.Type.ENVELOPE;
+  const type = get(message, 'signed.payload.type');
   const envelope = get(message, 'signed.payload.envelope');
   return type === PartyCredential.Type.ENVELOPE && envelope;
-};
+}
 
 /**
  * Is this a SignedMessage?
@@ -149,9 +147,20 @@ export const isEnvelope = (message: any) => {
  * @return {boolean}
  * @private
  */
-export const isSignedMessage = (message: any) => {
+export function isSignedMessage (message: any): message is SignedMessage {
   return message && message.signed && message.signed.payload && message.signatures && Array.isArray(message.signatures);
-};
+}
+
+/**
+ * Unwraps (if necessary) a Message to its contents.
+ */
+export function unwrapMessage (message: any): any {
+  let result: any = message;
+  while (result.payload) {
+    result = result.payload;
+  }
+  return result;
+}
 
 /**
  * Unwrap a SignedMessage from its Envelopes.
@@ -181,11 +190,13 @@ export const extractContents = (message: Message & SignedMessage): any => {
  * @param {SignedMessage} message
  * @param {boolean} [deep=true] Whether to return the inner type of a message if it is in an ENVELOPE.
  */
-export const getPartyCredentialMessageType = (message: Message & SignedMessage, deep = true): PartyCredential.Type => {
-  const pick = message.signed && message.signatures ? message : message.payload;
-  const type = get(pick, 'signed.payload.type');
+export const getPartyCredentialMessageType = (message: Message | SignedMessage, deep = true): PartyCredential.Type => {
+  assert(isPartyCredentialMessage(message));
+
+  const signed = unwrapMessage(message);
+  const type = get(signed, 'signed.payload.type');
   if (deep && type === PartyCredential.Type.ENVELOPE) {
-    return getPartyCredentialMessageType(pick.signed.payload.envelope.message.payload);
+    return getPartyCredentialMessageType(signed.signed.payload.envelope.message.payload);
   }
   return type;
 };
@@ -199,16 +210,10 @@ export const admitsKeys = (message: Message & SignedMessage) => {
 
   const keys = [];
 
-  let pick: SignedMessage;
+  const unwrapped = unwrapEnvelopes(unwrapMessage(message));
 
-  if (!message.signed && message.payload) {
-    pick = message.payload;
-  }
-
-  pick = unwrapEnvelopes(pick);
-
-  const type = getPartyCredentialMessageType(pick, false);
-  const {admitKey, feedKey, partyKey} = pick.signed.payload.contents;
+  const type = getPartyCredentialMessageType(unwrapped, false);
+  const { admitKey, feedKey, partyKey } = unwrapped.signed.payload.contents;
   switch (type) {
     case PartyCredential.Type.PARTY_GENESIS:
       keys.push(partyKey);
@@ -237,7 +242,11 @@ export const admitsKeys = (message: Message & SignedMessage) => {
  * @param {KeyRecord|KeyChain} [signingKey]
  * @returns {Message}
  */
-export const createPartyInvitationMessage = (keyring, partyKey, inviteeKey, issuerKey, signingKey) => {
+export const createPartyInvitationMessage = (keyring: Keyring,
+  partyKey: PublicKey,
+  inviteeKey: PublicKey,
+  issuerKey: KeyRecord | KeyChain,
+  signingKey?: KeyRecord | KeyChain) => {
   assert(keyring);
   assert(Buffer.isBuffer(partyKey));
   assert(Buffer.isBuffer(inviteeKey));
@@ -245,6 +254,7 @@ export const createPartyInvitationMessage = (keyring, partyKey, inviteeKey, issu
   if (!signingKey) {
     signingKey = issuerKey;
   }
+  assert(signingKey);
   assert(Buffer.isBuffer(signingKey.publicKey));
   assert(keyring.hasSecretKey(signingKey));
 
@@ -266,13 +276,11 @@ export const createPartyInvitationMessage = (keyring, partyKey, inviteeKey, issu
  * @param {Message} message
  * @return {boolean}
  */
-export const isPartyInvitationMessage = (message) => {
-  if (message.payload && !message.signed) {
-    message = message.payload;
-  }
+export const isPartyInvitationMessage = (message: Message | SignedMessage) => {
+  const signed = unwrapMessage(message);
 
-  const payloadType = get(message, '__type_url');
-  const signedType = get(message, 'signed.payload.__type_url');
+  const payloadType = get(signed, '__type_url');
+  const signedType = get(signed, 'signed.payload.__type_url');
   return payloadType === 'dxos.credentials.SignedMessage' &&
     signedType === 'dxos.credentials.party.PartyInvitation';
 };

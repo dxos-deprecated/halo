@@ -129,10 +129,10 @@ export const canonicalStringify = (obj: any) => {
  * }
  */
 export const signMessage = (message: any,
-                            keys: KeyRecord[],
-                            keyChainMap: Map<string, KeyChain>,
-                            nonce?: Uint8Array,
-                            created?: string): WithTypeUrl<SignedMessage> => {
+  keys: KeyRecord[],
+  keyChainMap: Map<string, KeyChain>,
+  nonce?: Uint8Array,
+  created?: string): WithTypeUrl<SignedMessage> => {
   assert(typeof message === 'object');
   for (const key of keys) {
     assertValidKeyPair(key);

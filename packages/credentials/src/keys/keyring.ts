@@ -317,11 +317,13 @@ export class Keyring {
    * @param keyRecord
    * @returns {boolean}
    */
-  hasSecretKey (keyRecord: KeyRecord) {
+  hasSecretKey (keyRecord: KeyRecord | KeyChain) {
     assert(keyRecord);
-    assertValidPublicKey(keyRecord.publicKey);
+    assert(keyRecord.publicKey);
+    const publicKey = Buffer.from(keyRecord.publicKey);
+    assertValidPublicKey(publicKey);
 
-    const existing = this._getFullKey(keyRecord.publicKey);
+    const existing = this._getFullKey(publicKey);
     return existing && Buffer.isBuffer(existing.secretKey);
   }
 
