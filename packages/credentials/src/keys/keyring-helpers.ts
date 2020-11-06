@@ -128,10 +128,12 @@ export const canonicalStringify = (obj: any) => {
  *   signatures: []   // An array with signature and publicKey of each signing key.
  * }
  */
-export const signMessage = (message: any, keys: KeyRecord[], keyChainMap: Map<string, KeyChain>, nonce?: Buffer, created?: string): WithTypeUrl<SignedMessage> => {
+export const signMessage = (message: any,
+                            keys: KeyRecord[],
+                            keyChainMap: Map<string, KeyChain>,
+                            nonce?: Uint8Array,
+                            created?: string): WithTypeUrl<SignedMessage> => {
   assert(typeof message === 'object');
-  assert(keys);
-  assert(Array.isArray(keys));
   for (const key of keys) {
     assertValidKeyPair(key);
   }

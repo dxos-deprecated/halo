@@ -82,6 +82,7 @@ export class Keyring {
 
   /**
    * What keys were used to sign this message?
+   * @param message
    * @param deep Whether to check for nested messages.
    */
   static signingKeys (message: Message | SignedMessage, deep = true): PublicKey[] {
@@ -230,11 +231,10 @@ export class Keyring {
    * The KeyRecord may contain a key pair, or only a public key.
    * @param keyRecord
    * @param [overwrite=false] Overwrite an existing key.
-   * @param [temporary=false] A temporary key is not persisted to storage.
    * @returns A copy of the KeyRecord, minus secrets.
    * @private
    */
-  async _addKeyRecord (keyRecord: Omit<KeyRecord, 'key'>, overwrite = false, temporary = false) {
+  async _addKeyRecord (keyRecord: Omit<KeyRecord, 'key'>, overwrite = false) {
     const copy = checkAndNormalizeKeyRecord(keyRecord);
 
     if (!overwrite) {
@@ -243,9 +243,29 @@ export class Keyring {
       }
     }
 
-    if (!temporary) {
-      await this._keystore.setRecord(copy.key, copy);
+    await this._keystore.setRecord(copy.key, copy);
+    this._cache.set(copy.key, copy);
+
+    return stripSecrets(copy);
+  }
+
+  /**
+   * Adds a temporary KeyRecord to the keyring.  The key is not stored to the KeyStore.
+   * The KeyRecord may contain a key pair, or only a public key.
+   * @param keyRecord
+   * @param [overwrite=false] Overwrite an existing key.
+   * @returns A copy of the KeyRecord, minus secrets.
+   * @private
+   */
+  _addTempKeyRecord (keyRecord: Omit<KeyRecord, 'key'>, overwrite = false) {
+    const copy = checkAndNormalizeKeyRecord(keyRecord);
+
+    if (!overwrite) {
+      if (this.hasKey(copy.publicKey)) {
+        throw Error('Refusing to overwrite existing key.');
+      }
     }
+
     this._cache.set(copy.key, copy);
 
     return stripSecrets(copy);
@@ -411,8 +431,6 @@ export class Keyring {
    * @param {string} value
    */
   async loadJSON (value: string) {
-    assert(typeof value === 'string');
-
     const parsed = JSON.parse(value);
 
     return Promise.all(parsed.keys.map((item: any) => {
@@ -451,7 +469,7 @@ export class Keyring {
    *   signatures: []   // An array with signature and publicKey of each signing key.
    * }
    */
-  sign (message: any, keys: (KeyRecord|KeyChain)[], nonce?: Buffer, created?: string) {
+  sign (message: any, keys: (KeyRecord|KeyChain)[], nonce?: Uint8Array, created?: string) {
     assert(typeof message === 'object');
     assert(keys);
     assert(Array.isArray(keys));
@@ -474,9 +492,6 @@ export class Keyring {
   /**
    * Sign the data with the indicated key and return the signature.
    * KeyChains are not supported.
-   * @param {Buffer} data
-   * @param {KeyRecord} keyRecord
-   * @return {Buffer}
    */
   rawSign (data: Buffer, keyRecord: KeyRecord) {
     assert(Buffer.isBuffer(data));
@@ -567,7 +582,7 @@ export class Keyring {
           // Otherwise we need to make sure the messages form a valid hierarchy, starting from the trusted key.
           messages.reverse();
           const tmpKeys = new Keyring();
-          tmpKeys._addKeyRecord(key, false, true);
+          tmpKeys._addTempKeyRecord(key);
 
           // Starting from the message containing the trusted key, add the signing keys and walk forward
           // until we reach the end.
@@ -583,7 +598,7 @@ export class Keyring {
             for (const key of Keyring.signingKeys(message)) {
               if (!tmpKeys.hasKey(key)) {
                 const tmpKey = createKeyRecord({}, { publicKey: key });
-                tmpKeys._addKeyRecord(tmpKey, false, true);
+                tmpKeys._addTempKeyRecord(tmpKey);
               }
             }
           }
