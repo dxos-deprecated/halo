@@ -84,7 +84,8 @@ export const assertValidAttributes = (keyRecord: Partial<KeyRecord>) => {
  * @param attributes Valid attributes above.
  * @param keyPair If undefined then a public/private key pair will be generated.
  */
-export const createKeyRecord = (attributes: Partial<KeyRecord> = {}, keyPair: MakeOptional<KeyPair, 'secretKey'> = createKeyPair()): KeyRecord => {
+export const createKeyRecord = (attributes: Partial<KeyRecord> = {},
+  keyPair: MakeOptional<KeyPair, 'secretKey'> = createKeyPair()): KeyRecord => {
   const { publicKey, secretKey } = keyPair;
 
   // Disallow invalid attributes.
@@ -128,10 +129,12 @@ export const canonicalStringify = (obj: any) => {
  *   signatures: []   // An array with signature and publicKey of each signing key.
  * }
  */
-export const signMessage = (message: any, keys: KeyRecord[], keyChainMap: Map<string, KeyChain>, nonce?: Buffer, created?: string): WithTypeUrl<SignedMessage> => {
+export const signMessage = (message: any,
+  keys: KeyRecord[],
+  keyChainMap: Map<string, KeyChain>,
+  nonce?: Uint8Array,
+  created?: string): WithTypeUrl<SignedMessage> => {
   assert(typeof message === 'object');
-  assert(keys);
-  assert(Array.isArray(keys));
   for (const key of keys) {
     assertValidKeyPair(key);
   }

@@ -4,7 +4,7 @@
 
 import { KeyType } from './keys';
 
-export type MakeOptional<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>> & Partial<Pick<T, K>>
+export type MakeOptional<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>> & Partial<Pick<T, K>>;
 
 export type RawSignature = Uint8Array;
 

@@ -95,9 +95,9 @@ export class IdentityMessageProcessor extends EventEmitter {
 
     if (isEnvelope(message)) {
       // If this message has an Envelope, the Envelope must match this Party.
-      signedIdentityInfo = message.signed.payload.contents.contents.payload;
+      signedIdentityInfo = message.signed.payload.envelope.message.payload;
       identityKey = signedIdentityInfo.signed.payload.publicKey;
-      partyKey = message.signed.payload.contents.partyKey;
+      partyKey = message.signed.payload.envelope.partyKey;
 
       // Make sure the Envelope is signed with that particular Identity key or a chain that leads back to it.
       let signatureMatch = false;

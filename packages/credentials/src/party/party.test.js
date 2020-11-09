@@ -136,7 +136,7 @@ test('GreetingCommandPlugin envelopes', async () => {
     createEnvelopeMessage(greeterKeyring,
       partyKey,
       pseudo,
-      greeterKeyring.findKey(Keyring.signingFilter({ type: KeyType.IDENTITY }))
+      [greeterKeyring.findKey(Keyring.signingFilter({ type: KeyType.IDENTITY }))]
     )
   );
 
@@ -245,7 +245,7 @@ test('Reject admit key message with wrong Party', async () => {
     createKeyAdmitMessage(keyring,
       wrongParty.publicKey,
       keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE })),
-      keyring.findKey(Keyring.signingFilter({ type: KeyType.IDENTITY }))
+      [keyring.findKey(Keyring.signingFilter({ type: KeyType.IDENTITY }))]
     )
   ].map(validate);
 
@@ -342,7 +342,7 @@ test('Reject tampered admit feed message', async () => {
     createFeedAdmitMessage(keyring,
       keyring.findKey(Filter.matches({ type: KeyType.PARTY })).publicKey,
       keyring.findKeys(Keyring.signingFilter({ type: KeyType.FEED }))[1],
-      keyring.findKey(Keyring.signingFilter({ type: KeyType.IDENTITY }))
+      [keyring.findKey(Keyring.signingFilter({ type: KeyType.IDENTITY }))]
     )
   ].map(validate);
 

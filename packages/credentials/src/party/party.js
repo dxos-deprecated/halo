@@ -11,7 +11,8 @@ import { discoveryKey, keyToString } from '@dxos/crypto';
 import { isIdentityMessage } from '../identity/identity-message';
 import { IdentityMessageProcessor } from '../identity/identity-message-processor';
 import { KeyType, Keyring, keyTypeName } from '../keys';
-import { PartyCredential, isEnvelope, isPartyInvitationMessage } from './party-credential';
+import { PartyCredential } from '../proto';
+import { isEnvelope, isPartyInvitationMessage } from './party-credential';
 import { PartyInvitationManager } from './party-invitation-manager';
 
 const log = debug('dxos:creds:party');
@@ -272,24 +273,27 @@ export class Party extends EventEmitter {
     while (isEnvelope(message)) {
       // Verify the outer message is signed with a known, trusted key.
       this._verifyMessage(message, depth === 0);
-      // TODO(burdon): Needs to be decoded.
-      message = message.signed.payload.contents.contents.payload;
+      message = message.signed.payload.envelope.message.payload;
       depth++;
     }
 
-    const { type, contents: { admitKey, feedKey } } = message.signed.payload;
+    const { type } = message.signed.payload;
     const innerSignedBy = Keyring.signingKeys(message);
     switch (type) {
-      case PartyCredential.Type.KEY_ADMIT:
+      case PartyCredential.Type.KEY_ADMIT: {
+        const { admitKey } = message.signed.payload.keyAdmit;
         assert(admitKey);
         assert(innerSignedBy.length >= 1);
         assert(innerSignedBy.find(key => key.equals(admitKey)));
         break;
-      case PartyCredential.Type.FEED_ADMIT:
+      }
+      case PartyCredential.Type.FEED_ADMIT: {
+        const { feedKey } = message.signed.payload.feedAdmit;
         assert(feedKey);
         assert(innerSignedBy.length >= 1);
         assert(innerSignedBy.find(key => key.equals(feedKey)));
         break;
+      }
       case PartyCredential.Type.ENVELOPE:
         break;
       default:
@@ -402,7 +406,7 @@ export class Party extends EventEmitter {
     // The Genesis is the root message, so cannot require a previous key.
     this._verifyMessage(message);
 
-    const { admitKey, admitKeyType, feedKey } = message.signed.payload.contents;
+    const { admitKey, admitKeyType, feedKey } = message.signed.payload.partyGenesis;
 
     const admitRecord = await this._admitKey(admitKey, { type: admitKeyType });
     const feedRecord = await this._admitKey(feedKey, { type: KeyType.FEED });
@@ -430,7 +434,7 @@ export class Party extends EventEmitter {
 
     this._verifyMessage(message, requireSignatureFromTrustedKey, requirePartyMatch);
 
-    const { admitKey, admitKeyType } = message.signed.payload.contents;
+    const { admitKey, admitKeyType } = message.signed.payload.keyAdmit;
 
     return this._admitKey(admitKey, { type: admitKeyType });
   }
@@ -450,7 +454,7 @@ export class Party extends EventEmitter {
 
     this._verifyMessage(message, requireSignatureFromTrustedKey);
 
-    const { feedKey } = message.signed.payload.contents;
+    const { feedKey } = message.signed.payload.feedAdmit;
 
     return this._admitKey(feedKey, { type: KeyType.FEED });
   }
@@ -485,13 +489,17 @@ export class Party extends EventEmitter {
       throw new Error(`Invalid message: ${message}`);
     }
 
-    const { partyKey, admitKey, feedKey } = message.signed.payload.contents; // eslint-disable-line @typescript-eslint/no-unused-vars
-    if (requirePartyMatch && !partyKey.equals(this._publicKey)) {
-      throw new Error(`Invalid party: ${keyToString(partyKey)}`);
-    }
+    const checkParty = (partyKey) => {
+      if (requirePartyMatch && !partyKey.equals(this._publicKey)) {
+        throw new Error(`Invalid party: ${keyToString(partyKey)}`);
+      }
+    };
 
     switch (signed.payload.type) {
-      case PartyCredential.Type.PARTY_GENESIS:
+      case PartyCredential.Type.PARTY_GENESIS: {
+        const { partyKey, admitKey, feedKey } = message.signed.payload.partyGenesis;
+        checkParty(partyKey);
+
         if (!admitKey || !feedKey) {
           throw new Error(`Invalid message: ${message}`);
         }
@@ -500,24 +508,36 @@ export class Party extends EventEmitter {
           throw new Error(`Invalid message, Genesis not signed by party key: ${message}`);
         }
         break;
+      }
 
-      case PartyCredential.Type.FEED_ADMIT:
+      case PartyCredential.Type.FEED_ADMIT: {
+        const { partyKey, feedKey } = message.signed.payload.feedAdmit;
+        checkParty(partyKey);
+
         if (!feedKey) {
           throw new Error(`Invalid message: ${message}`);
         }
         break;
+      }
 
-      case PartyCredential.Type.KEY_ADMIT:
+      case PartyCredential.Type.KEY_ADMIT: {
+        const { partyKey, admitKey } = message.signed.payload.keyAdmit;
+        checkParty(partyKey);
+
         if (!admitKey) {
           throw new Error(`Invalid message: ${message}`);
         }
         break;
+      }
 
-      case PartyCredential.Type.ENVELOPE:
+      case PartyCredential.Type.ENVELOPE: {
+        const { partyKey } = message.signed.payload.envelope;
         if (!partyKey) {
           throw new Error(`Invalid message: ${message}`);
         }
+        checkParty(partyKey);
         break;
+      }
 
       default:
         throw new Error(`Invalid type: ${signed.payload.type}`);

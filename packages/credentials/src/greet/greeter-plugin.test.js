@@ -153,7 +153,7 @@ test('Greeting Flow using GreetingCommandPlugin', async () => {
         createKeyAdmitMessage(keyring,
           partyKey,
           identityKey,
-          identityKey,
+          [identityKey],
           nonce)
       ]
     };

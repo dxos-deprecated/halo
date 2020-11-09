@@ -71,7 +71,7 @@ test('PartyInvitation messages', async () => {
   const claimResponse = await claimHandler.handleMessage(claimMessage, randomBytes(), randomBytes());
 
   const admitMessage = createKeyAdmitMessage(inviteeKeyring, partyKey.publicKey, inviteeKey, [inviteeKey]);
-  const envelope = createEnvelopeMessage(keyring, partyKey.publicKey, admitMessage, identityKey);
+  const envelope = createEnvelopeMessage(keyring, partyKey.publicKey, admitMessage, [identityKey]);
   await party.processMessages([envelope]);
 
   expect(greetingHandler).toHaveBeenCalledTimes(1);
