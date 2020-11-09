@@ -9,7 +9,8 @@ import moment from 'moment';
 import { keyToString } from '@dxos/crypto';
 
 import { Keyring, KeyType } from '../keys';
-import { codec } from '../proto';
+import { isSignedMessage, Party } from '../party';
+import { Auth, codec } from '../proto';
 
 const log = debug('dxos:creds:auth');
 
@@ -22,23 +23,21 @@ const MAX_AGE = 24 * 60 * 60; // One day.
 // TODO(telackey): explain here the intention behind the abstract base class: is in the future to have
 // different authentication methods (besides the current PartyAuthenticator) for replication auth,
 // or to use this base class everywhere auth is done in the project (not used in greeting at present, for example)?
-export class Authenticator {
+export abstract class Authenticator {
   // TODO(dboreham): The following static methods:
   // temporary work around move encapsualtion breaking code from data-client/partitions.js.
   /**
    * @param {Message} credentials
    * @return {Buffer} encoded result
    */
-  static encodePayload (credentials) {
+  static encodePayload (credentials: any) {
     return codec.encode(credentials);
   }
 
   /**
-   *
    * @param {Buffer} credentials
-   * @return {Message}
    */
-  static decodePayload (credentials) {
+  static decodePayload (credentials: Buffer) {
     return codec.decode(credentials);
   }
 
@@ -47,7 +46,7 @@ export class Authenticator {
    * @param credentials
    * @returns {Promise<boolean>}
    */
-  async authenticate(credentials) { // eslint-disable-line
+  async authenticate(credentials: any): Promise<boolean> { // eslint-disable-line
     throw new Error('Not Implemented');
   }
 }
@@ -56,11 +55,13 @@ export class Authenticator {
  * A Party-based Authenticator, which checks that the supplied credentials belong to a Party member.
  */
 export class PartyAuthenticator extends Authenticator {
+  _party: Party;
+
   /**
    * Takes the target Party for checking admitted keys and verifying signatures.
    * @param party
    */
-  constructor (party) {
+  constructor (party: Party) {
     assert(party);
     super();
 
@@ -75,10 +76,8 @@ export class PartyAuthenticator extends Authenticator {
    */
   // TODO(dboreham): verify that credentials is a message of type dxos.credentials.SignedMessage signing a
   //  message of type dxos.credentials.auth.Auth.
-  async authenticate (credentials) {
-    assert(credentials);
-
-    if (!credentials) {
+  async authenticate (credentials: any) {
+    if (!credentials || !isSignedMessage(credentials)) {
       log('Bad credentials:', credentials);
       return false;
     }
@@ -117,7 +116,7 @@ export class PartyAuthenticator extends Authenticator {
     // TODO(telackey): Find a better place to do this, since doing it here could be considered a side-effect.
     if (verified &&
       Buffer.isBuffer(feedKey) &&
-      Keyring.signingKeys(credentials).find(key => feedKey.equals(key)) &&
+      Keyring.signingKeys(credentials).find(key => key.equals(feedKey)) &&
       !this._party.memberFeeds.find(partyFeed => partyFeed.equals(feedKey))) {
       log(`Auto-hinting feedKey: ${keyToString(feedKey)} for Device ` +
         `${keyToString(deviceKey)} on Identity ${keyToString(identityKey)}`);

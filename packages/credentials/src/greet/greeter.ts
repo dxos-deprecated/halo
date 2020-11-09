@@ -5,13 +5,13 @@
 import assert from 'assert';
 import debug from 'debug';
 
-import { keyToBuffer, keyToString } from '@dxos/crypto';
+import { PublicKeyLike, PublicKey } from '@dxos/crypto';
 import { ERR_EXTENSION_RESPONSE_FAILED } from '@dxos/protocol';
 
 import { Keyring } from '../keys';
 import { getPartyCredentialMessageType } from '../party';
-import { PartyCredential } from '../proto';
-import { Command } from './constants';
+import { PartyCredential, Message, KeyHint, Command } from '../proto';
+import { PeerId } from '../typedefs';
 import {
   ERR_GREET_INVALID_COMMAND,
   ERR_GREET_INVALID_INVITATION,
@@ -21,14 +21,22 @@ import {
   ERR_GREET_INVALID_SIGNATURE,
   ERR_GREET_INVALID_STATE
 } from './error-codes';
-import { Invitation } from './invitation';
+import { Invitation, InvitationOnFinish, SecretProvider, SecretValidator } from './invitation';
 
 const log = debug('dxos:creds:greet');
+
+export type PartyWriter = (params: Message[]) => Message[];
+export type HintProvider = (params: Message[]) => KeyHint[];
 
 /**
  * Reference Greeter that uses useable, single-use "invitations" to authenticate the invitee.
  */
 export class Greeter {
+  _partyKey?: PublicKey;
+  _partyWriter?: PartyWriter;
+  _hintProvider?: HintProvider;
+  _invitations = new Map<string, Invitation>();
+
   /**
    * For a Greeter, all parameters must be properly set, but for the Invitee, they can be omitted.
    * TODO(telackey): Does it make sense to separate out the Invitee functionality?
@@ -36,19 +44,16 @@ export class Greeter {
    * @param {function} [partyWriter] Callback function to write messages to the Party.
    * @param {function} [hintProvider] Callback function to gather feed and key hints to give to the invitee.
    */
-  constructor (partyKey, partyWriter, hintProvider) {
+  constructor (partyKey?: PublicKeyLike, partyWriter?: PartyWriter, hintProvider?: HintProvider) {
     if (partyKey || partyWriter || hintProvider) {
       assert(Buffer.isBuffer(partyKey));
       assert(partyWriter);
       assert(hintProvider);
     }
 
-    this._partyKey = partyKey;
+    this._partyKey = partyKey ? PublicKey.from(partyKey) : undefined;
     this._partyWriter = partyWriter;
     this._hintProvider = hintProvider;
-
-    // Invitations by ID.
-    this._invitations = new Map();
   }
 
   /**
@@ -62,16 +67,17 @@ export class Greeter {
    * @param {int} [expiration]
    * @returns {{id: string}}
    */
-  createInvitation (partyKey, secretValidator, secretProvider, onFinish, expiration) {
-    assert(Buffer.isBuffer(partyKey));
-    assert(secretValidator);
-
-    if (!this._partyKey.equals(partyKey)) {
+  createInvitation (partyKey: PublicKeyLike,
+    secretValidator: SecretValidator,
+    secretProvider?: SecretProvider,
+    onFinish?: InvitationOnFinish,
+    expiration?: number) {
+    if (!this._partyKey!.equals(partyKey)) {
       throw new ERR_EXTENSION_RESPONSE_FAILED(ERR_GREET_INVALID_PARTY, `Invalid partyKey: ${partyKey}`);
     }
 
     const invitation = new Invitation(partyKey, secretValidator, secretProvider, onFinish, expiration);
-    this._invitations.set(invitation.id, invitation);
+    this._invitations.set(invitation.id.toString('hex'), invitation);
 
     // TODO(burdon): Would event handlers help with error handling?
     // (e.g., return Invitation and inv = xxx.createInvitation(); inv.on('finish'), inv.on('error'), etc?
@@ -82,7 +88,7 @@ export class Greeter {
 
   // TODO(burdon): Remove (generic util that doesn't belong in this class).
   createMessageHandler () {
-    return async (message, remotePeerId, peerId) => {
+    return async (message: Command, remotePeerId: PeerId, peerId: PeerId) => {
       return this.handleMessage(message, remotePeerId, peerId);
     };
   }
@@ -90,17 +96,17 @@ export class Greeter {
   /**
    * Handle a P2P message from the Extension.
    * @param {Object} message
-   * @param {Buffer} remotePeerId
-   * @param {Buffer} peerId
+   * @param {PeerId} remotePeerId
+   * @param {PeerId} peerId
    * @returns {Promise<{}>}
    */
-  async handleMessage (message, remotePeerId, peerId) {
+  async handleMessage (message: Command, remotePeerId: PeerId, peerId: PeerId) {
     assert(message);
     assert(remotePeerId);
     assert(peerId);
 
     // The peer should be using their invitationId as their peerId.
-    const invitationId = keyToString(remotePeerId);
+    const invitationId = remotePeerId;
     const { command, params, secret } = message;
 
     // The BEGIN command is unique, in that it happens before auth and may require user interaction.
@@ -108,6 +114,7 @@ export class Greeter {
       return this._handleBegin(invitationId);
     }
 
+    assert(Buffer.isBuffer(secret));
     const invitation = await this._getInvitation(invitationId, secret);
     if (!invitation) {
       throw new ERR_EXTENSION_RESPONSE_FAILED(ERR_GREET_INVALID_INVITATION, 'Invalid invitation');
@@ -115,10 +122,11 @@ export class Greeter {
 
     switch (command) {
       case Command.Type.HANDSHAKE: {
-        return this._handleHandshake(invitation, params);
+        return this._handleHandshake(invitation);
       }
 
       case Command.Type.NOTARIZE: {
+        assert(Array.isArray(params));
         return this._handleNotarize(invitation, params);
       }
 
@@ -138,8 +146,8 @@ export class Greeter {
    * @returns {Promise<{Invitation}|null>}
    * @private
    */
-  async _getInvitation (invitationId, secret) {
-    const invitation = this._invitations.get(invitationId);
+  async _getInvitation (invitationId: Buffer, secret: Buffer) {
+    const invitation = this._invitations.get(invitationId.toString('hex'));
     if (!invitation) {
       throw new ERR_EXTENSION_RESPONSE_FAILED(ERR_GREET_INVALID_INVITATION, `${invitationId} not found`);
     }
@@ -166,13 +174,13 @@ export class Greeter {
    * @param invitation
    * @private
    */
-  async _handleFinish (invitation) {
+  async _handleFinish (invitation: Invitation) {
     await invitation.finish();
-    this._invitations.delete(invitation.id);
+    this._invitations.delete(invitation.id.toString('hex'));
   }
 
-  async _handleBegin (invitationId) {
-    const invitation = this._invitations.get(invitationId);
+  async _handleBegin (invitationId: Buffer) {
+    const invitation = this._invitations.get(invitationId.toString('hex'));
     if (!invitation || !invitation.live || invitation.began || invitation.secret) {
       throw new ERR_EXTENSION_RESPONSE_FAILED(ERR_GREET_INVALID_STATE, 'Invalid invitation or out-of-order command sequence.');
     }
@@ -182,40 +190,34 @@ export class Greeter {
     await invitation.begin();
 
     return {
-      __type_url: 'dxos.credentials.Message',
-      payload: {
-        __type_url: 'dxos.credentials.greet.BeginResponse',
-        info: {
-          id: {
-            __type_url: 'google.protobuf.BytesValue',
-            value: keyToBuffer(invitation.id)
-          },
-          authNonce: {
-            __type_url: 'google.protobuf.BytesValue',
-            value: invitation.authNonce
-          }
+      __type_url: 'dxos.credentials.greet.BeginResponse',
+      info: {
+        id: {
+          __type_url: 'google.protobuf.BytesValue',
+          value: invitation.id
+        },
+        authNonce: {
+          __type_url: 'google.protobuf.BytesValue',
+          value: invitation.authNonce
         }
       }
     };
   }
 
-  async _handleHandshake (invitation /* , params */) { // eslint-disable-line class-methods-use-this
+  async _handleHandshake (invitation: Invitation) {
     if (!invitation.began || invitation.handshook) {
       throw new ERR_EXTENSION_RESPONSE_FAILED(ERR_GREET_INVALID_STATE, 'Out-of-order command sequence.');
     }
 
     await invitation.handshake();
     return {
-      __type_url: 'dxos.credentials.Message',
-      payload: {
-        __type_url: 'dxos.credentials.greet.HandshakeResponse',
-        partyKey: invitation.partyKey,
-        nonce: invitation.nonce
-      }
+      __type_url: 'dxos.credentials.greet.HandshakeResponse',
+      partyKey: invitation.partyKey,
+      nonce: invitation.nonce
     };
   }
 
-  async _handleNotarize (invitation, params) {
+  async _handleNotarize (invitation: Invitation, params: any[]) {
     if (!invitation.handshook || invitation.notarized) {
       throw new ERR_EXTENSION_RESPONSE_FAILED(ERR_GREET_INVALID_STATE, 'Out-of-order command sequence.');
     }
@@ -243,6 +245,9 @@ export class Greeter {
     // TODO(dboreham): Add useful data here (peer id, key?)
     log('Admitting new node after successful greeting.');
 
+    assert(this._partyWriter);
+    assert(this._hintProvider);
+
     // Write the supplied messages to the target Party.
     const copies = await this._partyWriter(params);
 
@@ -251,12 +256,9 @@ export class Greeter {
 
     await invitation.notarize();
     return {
-      __type_url: 'dxos.credentials.Message',
-      payload: {
-        __type_url: 'dxos.credentials.greet.NotarizeResponse',
-        copies,
-        hints
-      }
+      __type_url: 'dxos.credentials.greet.NotarizeResponse',
+      copies,
+      hints
     };
   }
 }

@@ -4,9 +4,7 @@
 
 import matches from 'lodash.matches';
 
-import { keyToString } from '@dxos/crypto';
-
-import { PublicKey } from '../typedefs';
+import { PublicKey, PublicKeyLike, keyToString } from '@dxos/crypto';
 
 export type FilterFuntion = (obj: any) => boolean;
 
@@ -52,9 +50,9 @@ export class Filter {
   /**
    * Filters objects for required key.
    */
-  static hasKey (property: string, key: PublicKey): FilterFuntion {
-    const str = keyToString(key);
-    return ({ [property]: value }) => keyToString(value) !== str;
+  static hasKey (property: string, key: PublicKeyLike): FilterFuntion {
+    const publicKeyHex = PublicKey.from(key).toHex();
+    return ({ [property]: value }) => keyToString(value) !== publicKeyHex;
   }
 
   /**

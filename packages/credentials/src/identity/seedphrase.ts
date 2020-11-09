@@ -21,10 +21,8 @@ export const generateSeedPhrase = () => {
 
 /**
  * Generate key pair from seed phrase.
- * @param {string} seedPhrase
- * @return {KeyPair}
  */
-export const keyPairFromSeedPhrase = (seedPhrase) => {
+export const keyPairFromSeedPhrase = (seedPhrase: string) => {
   assert(seedPhrase);
   const seed = mnemonicToSeedSync(seedPhrase);
   return createKeyPair(seed);

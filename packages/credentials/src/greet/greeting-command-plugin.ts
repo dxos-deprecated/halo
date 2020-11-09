@@ -12,8 +12,9 @@ import { EventEmitter } from 'events';
 import { keyToString } from '@dxos/crypto';
 import { Extension, ERR_EXTENSION_RESPONSE_FAILED } from '@dxos/protocol';
 
-import { codec } from '../proto';
-import { Command } from './constants';
+import { wrapMessage } from '../party';
+import { codec, Command } from '../proto';
+import { PeerId } from '../typedefs';
 import { ERR_GREET_GENERAL } from './error-codes';
 
 const log = debug('dxos:creds:greet:plugin'); // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -21,8 +22,11 @@ const log = debug('dxos:creds:greet:plugin'); // eslint-disable-line @typescript
 const EXTENSION_NAME = 'dxos.credentials.greeting';
 const DEFAULT_TIMEOUT = 30000;
 
-const getPeerId = (protocol) => {
-  const { peerId } = protocol && protocol.getSession ? protocol.getSession() : {};
+export type GreetingCommandMessageHandler = (message: any, remotePeerId: Buffer, peerId: Buffer) => Promise<any>;
+
+const getPeerId = (protocol: any) => {
+  const { peerId = undefined } = protocol && protocol.getSession ? protocol.getSession() : {};
+  assert(Buffer.isBuffer(peerId));
 
   return {
     peerId,
@@ -44,7 +48,11 @@ const getPeerId = (protocol) => {
  * @event GreetingCommandPlugin#'peer:exited' - Peer exits swarm
  */
 export class GreetingCommandPlugin extends EventEmitter {
-  constructor (peerId, peerMessageHandler) {
+  _peerId: Buffer;
+  _peerMessageHandler: GreetingCommandMessageHandler;
+  _peers: Map<string, any>;
+
+  constructor (peerId: Buffer, peerMessageHandler: GreetingCommandMessageHandler) {
     assert(Buffer.isBuffer(peerId));
     assert(peerMessageHandler);
     super();
@@ -54,10 +62,10 @@ export class GreetingCommandPlugin extends EventEmitter {
 
     /**
      * A map of Protocol objects indexed by the stringified peerId.
-     * @type {Map<string, Protocol>}
+     * @type {Map<string, any>}
      * @private
      */
-    this._peers = new Map();
+    this._peers = new Map<string, any>();
   }
 
   get peerId () {
@@ -85,7 +93,7 @@ export class GreetingCommandPlugin extends EventEmitter {
    * @param {Command} message Message to send, request message in a request/response interaction with peer.
    * @return {Object} Message received from peer in response to our request.
    */
-  async send (peerId, message) {
+  async send (peerId: PeerId, message: Command) {
     assert(Buffer.isBuffer(peerId));
     assert(message);
     // Only the FINISH command does not require a response.
@@ -96,13 +104,13 @@ export class GreetingCommandPlugin extends EventEmitter {
    * Sends `payload` to `peerId` as a protocol-extension message, optionally waiting for a response.
    * If the Command expects a response (oneway === false) then it will be returned.
    * If oneway === true, no response is returned.
-   * @param {Buffer} peerId The peer to send the Command to.
+   * @param {PeerId} peerId The peer to send the Command to.
    * @param {Command} message The Greeting Command message.
    * @param {boolean} oneway Whether the command expects a response.
    * @returns {Promise<object|void>}
    * @private
    */
-  async _send (peerId, message, oneway) {
+  async _send (peerId: PeerId, message: Command, oneway: boolean) {
     assert(Buffer.isBuffer(peerId));
     // peerId is a Buffer, but here we only need its string form.
     const peerIdStr = keyToString(peerId);
@@ -111,7 +119,7 @@ export class GreetingCommandPlugin extends EventEmitter {
 
     log('Sent request to %s: %o', peerIdStr, message);
 
-    const encoded = codec.encode({ payload: message });
+    const encoded = codec.encode(wrapMessage(message));
 
     if (oneway) {
       await extension.send(encoded, { oneway });
@@ -147,12 +155,12 @@ export class GreetingCommandPlugin extends EventEmitter {
 
   /**
    * Receives a message from a remote peer.
-   * @param {Protocol} protocol
+   * @param {any} protocol
    * @param {object} data
    * @returns {Promise<Buffer>}
    * @private
    */
-  async _receive (protocol, data) {
+  async _receive (protocol: any, data: any) {
     if (!this._peerMessageHandler) {
       throw new ERR_EXTENSION_RESPONSE_FAILED(ERR_GREET_GENERAL, 'Missing message handler.');
     }
@@ -171,7 +179,7 @@ export class GreetingCommandPlugin extends EventEmitter {
     log('No response to %s', peerIdStr);
   }
 
-  _addPeer (protocol) {
+  _addPeer (protocol: any) {
     const { peerId, peerIdStr } = getPeerId(protocol);
     if (this._peers.has(peerIdStr)) {
       return;
@@ -182,7 +190,7 @@ export class GreetingCommandPlugin extends EventEmitter {
     this.emit('peer:joined', peerId);
   }
 
-  _removePeer (protocol, error) {
+  _removePeer (protocol: any, error: Error | any) {
     const { peerId, peerIdStr } = getPeerId(protocol);
 
     if (error) {

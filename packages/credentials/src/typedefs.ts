@@ -2,18 +2,20 @@
 // Copyright 2019 DXOS.org
 //
 
+import { PublicKey } from '@dxos/crypto';
+
 import { KeyType } from './keys';
 
 export type MakeOptional<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>> & Partial<Pick<T, K>>;
 
 export type RawSignature = Uint8Array;
 
-export type PublicKey = Buffer;
 export type SecretKey = Buffer;
 export type DiscoveryKey = Buffer;
+export type PeerId = Buffer;
 
 export interface KeyHint {
-    publicKey: PublicKey;
+    publicKey: Uint8Array;
     type: KeyType;
 }
 

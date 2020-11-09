@@ -4,13 +4,15 @@
 
 import assert from 'assert';
 import debug from 'debug';
-import EventEmitter from 'events';
+import { EventEmitter } from 'events';
 
-import { keyToString } from '@dxos/crypto';
+import { PublicKey, PublicKeyLike } from '@dxos/crypto';
 
 import { isDeviceInfoMessage, isIdentityInfoMessage } from '../identity';
 import { Keyring } from '../keys';
-import { isEnvelope, isSignedMessage } from '../party/party-credential';
+import { assertValidPublicKey } from '../keys/keyring-helpers';
+import { isEnvelope, isSignedMessage, Party } from '../party';
+import { SignedMessage } from '../proto';
 
 const log = debug('dxos:creds:party');
 
@@ -21,19 +23,16 @@ const log = debug('dxos:creds:party');
 export class IdentityMessageProcessor extends EventEmitter {
   static declaredEvents = ['update:identityinfo'];
 
-  /**
-   * @param {Party} party
-   */
-  constructor (party) {
+  _party: Party;
+  // TODO(telackey): Switch to Buffer-aware maps.
+  _infoMessages: Map<string, SignedMessage>;
+
+  constructor (party: Party) {
     super();
     assert(party);
 
-    /** @type {Party} */
     this._party = party;
-
-    // TODO(telackey): Switch to Buffer-aware maps.
-    /** @type {Map<string, SignedMessage>} */
-    this._infoMessages = new Map();
+    this._infoMessages = new Map<string, SignedMessage>();
   }
 
   /**
@@ -48,23 +47,22 @@ export class IdentityMessageProcessor extends EventEmitter {
 
   /**
    * Get info for the specified key (if available).
-   * @param {Buffer} publicKey
    * @return {IdentityInfo | DeviceInfo | undefined}
    */
-  getInfo (publicKey) {
-    assert(Buffer.isBuffer(publicKey));
+  getInfo (publicKey: PublicKeyLike) {
+    assertValidPublicKey(publicKey);
+    publicKey = PublicKey.from(publicKey);
 
-    const message = this._infoMessages.get(keyToString(publicKey));
+    const message = this._infoMessages.get(publicKey.toHex());
     // The saved copy is a SignedMessage, but we only want to return the contents.
     return message ? message.signed.payload : undefined;
   }
 
   /**
    * Process 'info' message (IdentityInfo, DeviceInfo, etc.)
-   * @param {SignedMessage} message
    * @return {Promise<void>}
    */
-  async processMessage (message) {
+  async processMessage (message: SignedMessage) {
     assert(message);
     assert(isSignedMessage(message), `Not signed: ${JSON.stringify(message)}`);
 
@@ -84,14 +82,13 @@ export class IdentityMessageProcessor extends EventEmitter {
 
   /**
    * Process an IdentityInfo message.
-   * @param {SignedMessage} message
    * @return {Promise<void>}
    * @private
    */
-  async _processIdentityInfoMessage (message) {
-    let partyKey;
+  async _processIdentityInfoMessage (message: SignedMessage) {
+    let partyKey: PublicKey;
     let signedIdentityInfo;
-    let identityKey;
+    let identityKey: PublicKey;
 
     if (isEnvelope(message)) {
       // If this message has an Envelope, the Envelope must match this Party.
@@ -99,13 +96,16 @@ export class IdentityMessageProcessor extends EventEmitter {
       identityKey = signedIdentityInfo.signed.payload.publicKey;
       partyKey = message.signed.payload.envelope.partyKey;
 
+      assert(isSignedMessage(signedIdentityInfo));
+      assert(message.signatures);
+
       // Make sure the Envelope is signed with that particular Identity key or a chain that leads back to it.
       let signatureMatch = false;
       for (const signature of message.signatures) {
         // If this has a KeyChain, check its trusted parent key, else use this exact key.
         const signingKey = signature.keyChain
           ? this._party.findMemberKeyFromChain(signature.keyChain)
-          : signature.key;
+          : PublicKey.from(signature.key);
         if (signingKey && signingKey.equals(identityKey)) {
           signatureMatch = true;
           break;
@@ -123,21 +123,21 @@ export class IdentityMessageProcessor extends EventEmitter {
     }
 
     // Check the inner message signature.
-    if (Keyring.signingKeys(signedIdentityInfo).find(key => key.equals(identityKey)) < 0) {
+    if (Keyring.signingKeys(signedIdentityInfo).find(key => key.equals(identityKey))) {
       throw new Error(`Invalid IdentityInfo, not signed by Identity key: ${JSON.stringify(signedIdentityInfo)}`);
     }
 
     // Check the target Party matches.
     if (!partyKey || !partyKey.equals(this._party.publicKey)) {
-      throw new Error(`Invalid party: ${keyToString(partyKey)}`);
+      throw new Error(`Invalid party: ${partyKey.toHex()}`);
     }
 
     // Check membership.
     if (!identityKey || !this._party.isMemberKey(identityKey)) {
-      throw new Error(`Invalid IdentityInfo, not a member: ${keyToString(identityKey)}`);
+      throw new Error(`Invalid IdentityInfo, not a member: ${identityKey.toHex()}`);
     }
 
-    this._infoMessages.set(keyToString(identityKey), signedIdentityInfo);
+    this._infoMessages.set(identityKey.toHex(), signedIdentityInfo);
     this.emit('update:identityinfo', identityKey);
   }
 }

@@ -4,12 +4,12 @@
 
 import assert from 'assert';
 
-import { randomBytes } from '@dxos/crypto';
+import { randomBytes, PublicKey } from '@dxos/crypto';
 
 import { Keyring } from '../keys';
-import { KeyChain, Message, SignedMessage, PartyCredential } from '../proto';
+import { KeyChain, Message, SignedMessage, PartyCredential, Command, Auth } from '../proto';
 import { WithTypeUrl } from '../proto/any';
-import { KeyRecord, PublicKey } from '../typedefs';
+import { KeyRecord } from '../typedefs';
 
 export const TYPE_URL_MESSAGE = 'dxos.credentials.Message';
 export const TYPE_URL_SIGNED_MESSAGE = 'dxos.credentials.SignedMessage';
@@ -37,9 +37,9 @@ export const createPartyGenesisMessage = (keyring: Keyring,
     __type_url: TYPE_URL_PARTY_CREDENTIAL,
     type: PartyCredential.Type.PARTY_GENESIS,
     partyGenesis: {
-      partyKey: partyKeyPair.publicKey,
-      feedKey: feedKeyPair.publicKey,
-      admitKey: admitKeyPair.publicKey,
+      partyKey: partyKeyPair.publicKey.asUint8Array(),
+      feedKey: feedKeyPair.publicKey.asUint8Array(),
+      admitKey: admitKeyPair.publicKey.asUint8Array(),
       admitKeyType: admitKeyPair.type
     }
   };
@@ -63,8 +63,8 @@ export const createKeyAdmitMessage = (keyring: Keyring,
     __type_url: TYPE_URL_PARTY_CREDENTIAL,
     type: PartyCredential.Type.KEY_ADMIT,
     keyAdmit: {
-      partyKey,
-      admitKey: admitKeyPair.publicKey,
+      partyKey: partyKey.asUint8Array(),
+      admitKey: admitKeyPair.publicKey.asUint8Array(),
       admitKeyType: admitKeyPair.type
     }
   };
@@ -85,8 +85,8 @@ export const createFeedAdmitMessage = (keyring: Keyring,
     __type_url: TYPE_URL_PARTY_CREDENTIAL,
     type: PartyCredential.Type.FEED_ADMIT,
     feedAdmit: {
-      partyKey,
-      feedKey: feedKeyPair.publicKey
+      partyKey: partyKey.asUint8Array(),
+      feedKey: feedKeyPair.publicKey.asUint8Array()
     }
   };
 
@@ -109,7 +109,7 @@ export const createEnvelopeMessage = (keyring: Keyring,
     __type_url: TYPE_URL_PARTY_CREDENTIAL,
     type: PartyCredential.Type.ENVELOPE,
     envelope: {
-      partyKey,
+      partyKey: partyKey.asUint8Array(),
       message: contents
     }
   };
@@ -165,7 +165,7 @@ export function unwrapMessage (message: any): any {
 /**
  * Wraps a SignedMessage with a Message
  */
-export function wrapMessage (message: SignedMessage): WithTypeUrl<Message> {
+export function wrapMessage (message: Message | SignedMessage | Command | Auth): WithTypeUrl<Message> {
   const payload = message as any;
   return { __type_url: TYPE_URL_MESSAGE, payload } as WithTypeUrl<Message>;
 }
