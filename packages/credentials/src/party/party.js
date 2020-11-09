@@ -51,7 +51,6 @@ export class Party extends EventEmitter {
     this._keyring = new Keyring();
     this._invitationManager = new PartyInvitationManager(this);
     this._identityMessageProcessor = new IdentityMessageProcessor(this);
-    this._open = false;
 
     // TODO(telackey): Switch to Buffer-aware maps.
     /** @type {Map<string, SignedMessage>} */
@@ -132,29 +131,6 @@ export class Party extends EventEmitter {
    */
   get infoMessages () {
     return this._identityMessageProcessor.infoMessages;
-  }
-
-  /**
-   * Is the Party open?
-   * @returns {boolean}
-   */
-  isOpen () {
-    return this._open;
-  }
-
-  /**
-   * Opens the Party.
-   */
-  open () {
-    this._open = true;
-  }
-
-  /**
-   * Closes the Party.
-   * @returns {boolean}
-   */
-  close () {
-    this._open = false;
   }
 
   /**
