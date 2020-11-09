@@ -165,7 +165,7 @@ export function unwrapMessage (message: any): any {
 /**
  * Wraps a SignedMessage with a Message
  */
-export function wrapMessage (message: SignedMessage): Message {
+export function wrapMessage (message: SignedMessage): WithTypeUrl<Message> {
   const payload = message as any;
   return { __type_url: TYPE_URL_MESSAGE, payload } as WithTypeUrl<Message>;
 }

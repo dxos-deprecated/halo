@@ -84,7 +84,8 @@ export const assertValidAttributes = (keyRecord: Partial<KeyRecord>) => {
  * @param attributes Valid attributes above.
  * @param keyPair If undefined then a public/private key pair will be generated.
  */
-export const createKeyRecord = (attributes: Partial<KeyRecord> = {}, keyPair: MakeOptional<KeyPair, 'secretKey'> = createKeyPair()): KeyRecord => {
+export const createKeyRecord = (attributes: Partial<KeyRecord> = {},
+  keyPair: MakeOptional<KeyPair, 'secretKey'> = createKeyPair()): KeyRecord => {
   const { publicKey, secretKey } = keyPair;
 
   // Disallow invalid attributes.

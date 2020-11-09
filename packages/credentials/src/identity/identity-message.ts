@@ -5,7 +5,7 @@
 import assert from 'assert';
 
 import { Keyring } from '../keys';
-import { unwrapEnvelopes, extractContents, unwrapMessage } from '../party/party-credential';
+import { unwrapEnvelopes, extractContents, unwrapMessage, wrapMessage } from '../party/party-credential';
 import { DeviceInfo, IdentityInfo, Message, SignedMessage } from '../proto';
 import { WithTypeUrl } from '../proto/any';
 import { KeyRecord } from '../typedefs';
@@ -33,10 +33,7 @@ export const createDeviceInfoMessage = (keyring: Keyring, displayName: string, d
     displayName
   };
 
-  return {
-    __type_url: 'dxos.credentials.Message',
-    payload: keyring.sign(message, [deviceKey])
-  } as WithTypeUrl<Message>;
+  return wrapMessage(keyring.sign(message, [deviceKey]));
 };
 
 /**
@@ -53,10 +50,7 @@ export const createIdentityInfoMessage = (keyring: Keyring, displayName: string,
     displayName
   };
 
-  return {
-    __type_url: 'dxos.credentials.Message',
-    payload: keyring.sign(message, [identityKey])
-  } as WithTypeUrl<Message>;
+  return wrapMessage(keyring.sign(message, [identityKey]));
 };
 
 /**
