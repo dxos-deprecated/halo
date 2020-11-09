@@ -3,7 +3,6 @@
 //
 
 import assert from 'assert';
-import get from 'lodash/get';
 
 import { randomBytes } from '@dxos/crypto';
 
@@ -125,8 +124,8 @@ export const createEnvelopeMessage = (keyring: Keyring,
  */
 export const isPartyCredentialMessage = (message: Message | SignedMessage) => {
   const signed = unwrapMessage(message) as SignedMessage;
-  const signedType = get(signed, 'signed.payload.__type_url');
-  return signedType === TYPE_URL_PARTY_CREDENTIAL;
+  // eslint-disable-next-line camelcase
+  return signed?.signed?.payload?.__type_url === TYPE_URL_PARTY_CREDENTIAL;
 };
 
 /**
@@ -137,8 +136,8 @@ export const isPartyCredentialMessage = (message: Message | SignedMessage) => {
  */
 export function isEnvelope (message: any) {
   assert(message);
-  const type = get(message, 'signed.payload.type');
-  const envelope = get(message, 'signed.payload.envelope');
+  const type = message?.signed?.payload?.type;
+  const envelope = message?.signed?.payload?.envelope;
   return type === PartyCredential.Type.ENVELOPE && envelope;
 }
 
@@ -203,7 +202,7 @@ export const getPartyCredentialMessageType = (message: Message | SignedMessage, 
   assert(isPartyCredentialMessage(message));
 
   const signed = unwrapMessage(message);
-  const type = get(signed, 'signed.payload.type');
+  const type = signed?.signed?.payload?.type;
   if (deep && type === PartyCredential.Type.ENVELOPE) {
     return getPartyCredentialMessageType(signed.signed.payload.envelope.message.payload);
   }
@@ -293,8 +292,10 @@ export const createPartyInvitationMessage = (keyring: Keyring,
 export const isPartyInvitationMessage = (message: Message | SignedMessage) => {
   const signed = unwrapMessage(message);
 
-  const payloadType = get(signed, '__type_url');
-  const signedType = get(signed, 'signed.payload.__type_url');
+  // eslint-disable-next-line camelcase
+  const payloadType = signed?.__type_url;
+  // eslint-disable-next-line camelcase
+  const signedType = signed?.signed?.payload?.__type_url;
   return payloadType === TYPE_URL_SIGNED_MESSAGE &&
     signedType === TYPE_URL_PARTY_INVITATION;
 };

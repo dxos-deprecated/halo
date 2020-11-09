@@ -3,13 +3,21 @@
 //
 
 import assert from 'assert';
-import get from 'lodash/get';
 
-import {unwrapEnvelopes, extractContents, unwrapMessage} from '../party/party-credential';
-import {Keyring} from "../keys";
-import {KeyRecord} from "../typedefs";
-import {WithTypeUrl} from "../proto/any";
-import {DeviceInfo, IdentityInfo, Message, SignedMessage} from "../proto";
+import { Keyring } from '../keys';
+import { unwrapEnvelopes, extractContents, unwrapMessage } from '../party/party-credential';
+import { DeviceInfo, IdentityInfo, Message, SignedMessage } from '../proto';
+import { WithTypeUrl } from '../proto/any';
+import { KeyRecord } from '../typedefs';
+
+/**
+ * Return the __type_url, if present.
+ * @param message
+ */
+function getTypeUrl (message: any) {
+  // eslint-disable-next-line camelcase
+  return message?.__type_url;
+}
 
 /**
  * Creates a DeviceInfo SignedMessage.
@@ -58,10 +66,10 @@ export const createIdentityInfoMessage = (keyring: Keyring, displayName: string,
  */
 export const isIdentityMessage = (message: Message | SignedMessage) => {
   message = extractContents(unwrapEnvelopes(unwrapMessage(message)));
-  const type = get(message, '__type_url');
+  const type = getTypeUrl(message);
 
   // Since message.payload may not exist, make safe and return false.
-  return (type !== undefined) ? type.startsWith('dxos.credentials.identity.') : false;
+  return type && type.startsWith('dxos.credentials.identity.');
 };
 
 /**
@@ -71,8 +79,9 @@ export const isIdentityMessage = (message: Message | SignedMessage) => {
  */
 export const isDeviceInfoMessage = (message: Message | SignedMessage) => {
   message = extractContents(unwrapEnvelopes(unwrapMessage(message)));
+  const type = getTypeUrl(message);
 
-  return get(message, '__type_url') === 'dxos.credentials.identity.DeviceInfo';
+  return type === 'dxos.credentials.identity.DeviceInfo';
 };
 
 /**
@@ -82,6 +91,7 @@ export const isDeviceInfoMessage = (message: Message | SignedMessage) => {
  */
 export const isIdentityInfoMessage = (message: Message | SignedMessage) => {
   message = extractContents(unwrapEnvelopes(unwrapMessage(message)));
+  const type = getTypeUrl(message);
 
-  return get(message, '__type_url') === 'dxos.credentials.identity.IdentityInfo';
+  return type === 'dxos.credentials.identity.IdentityInfo';
 };
