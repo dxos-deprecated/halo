@@ -75,7 +75,7 @@ test('PartyInvitation messages', async () => {
   await party.processMessages([envelope]);
 
   expect(greetingHandler).toHaveBeenCalledTimes(1);
-  expect(claimResponse.payload.rendezvousKey).toEqual(rendezvousKey);
+  expect(claimResponse.rendezvousKey).toEqual(rendezvousKey);
 
   await waitForExpect(() => {
     expect(party.isMemberKey(inviteeKey.publicKey)).toBe(true);

@@ -4,31 +4,32 @@
 
 import assert from 'assert';
 
+import { ClaimResponse, SignedMessage } from '../proto';
+import { WithTypeUrl } from '../proto/any';
 import { Command } from './constants';
+
+const TYPE_URL_GREETING_COMMAND = 'dxos.credentials.greet.Command';
 
 /**
  * Create a Greeting 'BEGIN' command message.
  * @returns {{__type_url: string, command: *}}
  */
-export const createGreetingBeginMessage = () => {
+export const createGreetingBeginMessage = (): WithTypeUrl<Command> => {
   return {
-    __type_url: 'dxos.credentials.greet.Command',
+    __type_url: TYPE_URL_GREETING_COMMAND,
     command: Command.Type.BEGIN
   };
 };
 
 /**
  * Create a Greeting 'HANDSHAKE' command message.
- * @param {Buffer} secret
- * @param {Any[]} params
- * @returns {{__type_url: string, secret: *, params: *[], command: *}}
  */
-export const createGreetingHandshakeMessage = (secret, params = []) => {
+export const createGreetingHandshakeMessage = (secret: Buffer, params = []): WithTypeUrl<Command> => {
   assert(Buffer.isBuffer(secret));
   assert(Array.isArray(params));
 
   return {
-    __type_url: 'dxos.credentials.greet.Command',
+    __type_url: TYPE_URL_GREETING_COMMAND,
     command: Command.Type.HANDSHAKE,
     params,
     secret
@@ -37,16 +38,13 @@ export const createGreetingHandshakeMessage = (secret, params = []) => {
 
 /**
  * Create a Greeting 'NOTARIZE' command message.
- * @param {Buffer} secret
- * @param {SignedMessage[]} credentialMessages
- * @returns {{__type_url: string, secret: *, params: *, command: *}}
  */
-export const createGreetingNotarizeMessage = (secret, credentialMessages) => {
+export const createGreetingNotarizeMessage = (secret: Buffer, credentialMessages: WithTypeUrl<SignedMessage>[]): WithTypeUrl<Command> => {
   assert(Buffer.isBuffer(secret));
   assert(Array.isArray(credentialMessages));
 
   return {
-    __type_url: 'dxos.credentials.greet.Command',
+    __type_url: TYPE_URL_GREETING_COMMAND,
     command: Command.Type.NOTARIZE,
     params: credentialMessages,
     secret
@@ -55,14 +53,12 @@ export const createGreetingNotarizeMessage = (secret, credentialMessages) => {
 
 /**
  * Create a Greeting 'FINISH' command message.
- * @param {Buffer} secret
- * @returns {{__type_url: string, secret: *, command: *}}
  */
-export const createGreetingFinishMessage = (secret) => {
+export const createGreetingFinishMessage = (secret: Buffer): WithTypeUrl<Command> => {
   assert(Buffer.isBuffer(secret));
 
   return {
-    __type_url: 'dxos.credentials.greet.Command',
+    __type_url: TYPE_URL_GREETING_COMMAND,
     command: Command.Type.FINISH,
     secret
   };
@@ -70,14 +66,12 @@ export const createGreetingFinishMessage = (secret) => {
 
 /**
  * Create a Greeting 'CLAIM' command message.
- * @param {Buffer} invitationID
- * @returns {{__type_url: string, params: [{__type_url: string, value: *}], command: *}}
  */
-export const createGreetingClaimMessage = (invitationID) => {
+export const createGreetingClaimMessage = (invitationID: Buffer): WithTypeUrl<Command> => {
   assert(Buffer.isBuffer(invitationID));
 
   return {
-    __type_url: 'dxos.credentials.greet.Command',
+    __type_url: TYPE_URL_GREETING_COMMAND,
     command: Command.Type.CLAIM,
     params: [
       {
@@ -94,16 +88,13 @@ export const createGreetingClaimMessage = (invitationID) => {
  * @param {Buffer} rendezvousKey   The swarm key to use for Greeting.
  * @returns {{__type_url: string, payload: {__type_url: string, rendezvousKey: *, id: *}}}
  */
-export const createGreetingClaimResponse = (id, rendezvousKey) => {
+export const createGreetingClaimResponse = (id: Buffer, rendezvousKey: Buffer): WithTypeUrl<ClaimResponse> => {
   assert(id);
   assert(Buffer.isBuffer(rendezvousKey));
 
   return {
-    __type_url: 'dxos.credentials.Message',
-    payload: {
-      __type_url: 'dxos.credentials.greet.ClaimResponse',
-      id,
-      rendezvousKey
-    }
+    __type_url: 'dxos.credentials.greet.ClaimResponse',
+    id,
+    rendezvousKey
   };
 };

@@ -4,12 +4,13 @@
 
 import assert from 'assert';
 
-import { randomBytes } from '@dxos/crypto';
+import { randomBytes, PublicKey, PublicKeyLike } from '@dxos/crypto';
 
 import { Keyring } from '../keys';
-import { KeyChain, Message, SignedMessage, PartyCredential } from '../proto';
+import { assertValidPublicKey } from '../keys/keyring-helpers';
+import { KeyChain, Message, SignedMessage, PartyCredential, Command, Auth } from '../proto';
 import { WithTypeUrl } from '../proto/any';
-import { KeyRecord, PublicKey } from '../typedefs';
+import { KeyRecord } from '../typedefs';
 
 export const TYPE_URL_MESSAGE = 'dxos.credentials.Message';
 export const TYPE_URL_SIGNED_MESSAGE = 'dxos.credentials.SignedMessage';
@@ -37,9 +38,9 @@ export const createPartyGenesisMessage = (keyring: Keyring,
     __type_url: TYPE_URL_PARTY_CREDENTIAL,
     type: PartyCredential.Type.PARTY_GENESIS,
     partyGenesis: {
-      partyKey: partyKeyPair.publicKey,
-      feedKey: feedKeyPair.publicKey,
-      admitKey: admitKeyPair.publicKey,
+      partyKey: partyKeyPair.publicKey.asUint8Array(),
+      feedKey: feedKeyPair.publicKey.asUint8Array(),
+      admitKey: admitKeyPair.publicKey.asUint8Array(),
       admitKeyType: admitKeyPair.type
     }
   };
@@ -52,19 +53,20 @@ export const createPartyGenesisMessage = (keyring: Keyring,
  * of an Envelope, also by a key which has already been admitted.
  */
 export const createKeyAdmitMessage = (keyring: Keyring,
-  partyKey: PublicKey,
+  partyKey: PublicKeyLike,
   admitKeyPair: KeyRecord,
   signingKeys: (KeyRecord | KeyChain)[] = [],
-  nonce?: Uint8Array): Message => {
+  nonce?: Buffer): Message => {
   assert(keyring.hasSecretKey(admitKeyPair));
   assert(typeof admitKeyPair.type !== 'undefined');
+  partyKey = PublicKey.from(partyKey);
 
   const message: WithTypeUrl<PartyCredential> = {
     __type_url: TYPE_URL_PARTY_CREDENTIAL,
     type: PartyCredential.Type.KEY_ADMIT,
     keyAdmit: {
-      partyKey,
-      admitKey: admitKeyPair.publicKey,
+      partyKey: partyKey.asUint8Array(),
+      admitKey: admitKeyPair.publicKey.asUint8Array(),
       admitKeyType: admitKeyPair.type
     }
   };
@@ -77,16 +79,18 @@ export const createKeyAdmitMessage = (keyring: Keyring,
  * key which has already been admitted (usually by a device identity key).
  */
 export const createFeedAdmitMessage = (keyring: Keyring,
-  partyKey: PublicKey,
+  partyKey: PublicKeyLike,
   feedKeyPair: KeyRecord,
   signingKeys: (KeyRecord | KeyChain)[] = [],
-  nonce?: Uint8Array): Message => {
+  nonce?: Buffer): Message => {
+  partyKey = PublicKey.from(partyKey);
+
   const message: WithTypeUrl<PartyCredential> = {
     __type_url: TYPE_URL_PARTY_CREDENTIAL,
     type: PartyCredential.Type.FEED_ADMIT,
     feedAdmit: {
-      partyKey,
-      feedKey: feedKeyPair.publicKey
+      partyKey: partyKey.asUint8Array(),
+      feedKey: feedKeyPair.publicKey.asUint8Array()
     }
   };
 
@@ -101,15 +105,17 @@ export const createFeedAdmitMessage = (keyring: Keyring,
  */
 // TODO(burdon): What is an envelope, distinct from above?
 export const createEnvelopeMessage = (keyring: Keyring,
-  partyKey: PublicKey,
+  partyKey: PublicKeyLike,
   contents: Message,
   signingKeys: (KeyRecord | KeyChain)[] = [],
-  nonce?: Uint8Array): Message => {
+  nonce?: Buffer): Message => {
+  partyKey = PublicKey.from(partyKey);
+
   const message: WithTypeUrl<PartyCredential> = {
     __type_url: TYPE_URL_PARTY_CREDENTIAL,
     type: PartyCredential.Type.ENVELOPE,
     envelope: {
-      partyKey,
+      partyKey: partyKey.asUint8Array(),
       message: contents
     }
   };
@@ -165,7 +171,7 @@ export function unwrapMessage (message: any): any {
 /**
  * Wraps a SignedMessage with a Message
  */
-export function wrapMessage (message: SignedMessage): WithTypeUrl<Message> {
+export function wrapMessage (message: Message | SignedMessage | Command | Auth): WithTypeUrl<Message> {
   const payload = message as any;
   return { __type_url: TYPE_URL_MESSAGE, payload } as WithTypeUrl<Message>;
 }
@@ -212,7 +218,7 @@ export const getPartyCredentialMessageType = (message: Message | SignedMessage, 
 /**
  * Provides a list of the publicKeys admitted by this PartyCredentialMessage.
  */
-export const admitsKeys = (message: Message | SignedMessage) => {
+export const admitsKeys = (message: Message | SignedMessage): PublicKey[] => {
   assert(message);
   assert(isPartyCredentialMessage(message));
 
@@ -243,33 +249,35 @@ export const admitsKeys = (message: Message | SignedMessage) => {
       throw Error(`Invalid type: ${type}`);
   }
 
-  return keys;
+  return keys.map(PublicKey.from);
 };
 
 /**
  * Create a `dxos.credentials.party.PartyInvitation` message.
  * @param {Keyring} keyring
- * @param {PublicKey} partyKey
- * @param {PublicKey} inviteeKey
+ * @param {PublicKeyLike} partyKey
+ * @param {PublicKeyLike} inviteeKey
  * @param {KeyRecord|KeyChain} issuerKey
  * @param {KeyRecord|KeyChain} [signingKey]
  * @returns {Message}
  */
 export const createPartyInvitationMessage = (keyring: Keyring,
-  partyKey: PublicKey,
-  inviteeKey: PublicKey,
+  partyKey: PublicKeyLike,
+  inviteeKey: PublicKeyLike,
   issuerKey: KeyRecord | KeyChain,
   signingKey?: KeyRecord | KeyChain) => {
   assert(keyring);
-  assert(Buffer.isBuffer(partyKey));
-  assert(Buffer.isBuffer(inviteeKey));
-  assert(Buffer.isBuffer(issuerKey.publicKey));
+  assertValidPublicKey(issuerKey.publicKey);
   if (!signingKey) {
     signingKey = issuerKey;
   }
   assert(signingKey);
-  assert(Buffer.isBuffer(signingKey.publicKey));
+  assertValidPublicKey(signingKey.publicKey);
   assert(keyring.hasSecretKey(signingKey));
+
+  partyKey = PublicKey.from(partyKey);
+  inviteeKey = PublicKey.from(inviteeKey);
+  const issuerPublicKey = PublicKey.from(issuerKey.publicKey);
 
   return {
     __type_url: TYPE_URL_MESSAGE,
@@ -277,9 +285,9 @@ export const createPartyInvitationMessage = (keyring: Keyring,
       keyring.sign({
         __type_url: TYPE_URL_PARTY_INVITATION,
         id: randomBytes(),
-        partyKey,
-        issuerKey: issuerKey.publicKey,
-        inviteeKey: inviteeKey
+        partyKey: partyKey.asUint8Array(),
+        issuerKey: issuerPublicKey.asUint8Array(),
+        inviteeKey: inviteeKey.asUint8Array()
       }, [signingKey])
   };
 };

@@ -10,9 +10,20 @@ import levelup, { LevelUp } from 'levelup';
 import memdown from 'memdown';
 import toArray from 'stream-to-array';
 
+import { PublicKey } from '@dxos/crypto';
+
 import { KeyRecord } from '../typedefs';
 
 const log = debug('dxos:creds:keys:keystore'); // eslint-disable-line @typescript-eslint/no-unused-vars
+
+const marshaller = {
+  marshall (record: KeyRecord) {
+    return { ...record, publicKey: record.publicKey.asBuffer() };
+  },
+  unmarshall (raw: any): KeyRecord {
+    return { ...raw, publicKey: PublicKey.from(raw.publicKey) };
+  }
+};
 
 /**
  * LevelDB key storage.
@@ -34,7 +45,8 @@ export class KeyStore {
   async setRecord (key: string, record: KeyRecord) {
     assert(key);
     assert(record);
-    return this._db.put(key, record);
+
+    return this._db.put(key, marshaller.marshall(record));
   }
 
   /**
@@ -42,6 +54,7 @@ export class KeyStore {
    */
   async deleteRecord (key: string) {
     assert(key);
+
     await this._db.del(key);
   }
 
@@ -50,7 +63,8 @@ export class KeyStore {
    */
   async getRecord (key: string): Promise<KeyRecord> {
     assert(key);
-    return this._db.get(key);
+
+    return marshaller.unmarshall(await this._db.get(key));
   }
 
   /**
@@ -64,7 +78,8 @@ export class KeyStore {
    * Returns all KeyRecord values.
    */
   async getRecords (): Promise<KeyRecord[]> {
-    return toArray(this._db.createValueStream({ asBuffer: false }));
+    const records = await toArray(this._db.createValueStream({ asBuffer: false }));
+    return records.map(record => marshaller.unmarshall(record));
   }
 
   /**
@@ -72,6 +87,6 @@ export class KeyStore {
    */
   async getRecordsWithKey (): Promise<[string, KeyRecord][]> {
     const entries = await toArray(this._db.createReadStream({ keyAsBuffer: false, valueAsBuffer: false }));
-    return entries.map(pair => [pair.key, pair.value]);
+    return entries.map(pair => [pair.key, marshaller.unmarshall(pair.value)]);
   }
 }

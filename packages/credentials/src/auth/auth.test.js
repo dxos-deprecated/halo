@@ -7,7 +7,7 @@
 import debug from 'debug';
 import moment from 'moment';
 
-import { randomBytes, keyToString } from '@dxos/crypto';
+import { randomBytes } from '@dxos/crypto';
 
 import { Filter, Keyring, KeyType } from '../keys';
 import {
@@ -52,7 +52,7 @@ const createPartyKeyrings = async () => {
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 const chainToString = (chain, depth = 0) => {
-  let ret = keyToString(chain.publicKey) + '\n';
+  let ret = chain.publicKey.toHex() + '\n';
   if (chain.parents.length) {
     depth += 1;
     for (const parent of chain.parents) {
@@ -72,7 +72,7 @@ const messageMap = (messages) => {
   for (const message of messages) {
     const admits = admitsKeys(message);
     for (const key of admits) {
-      map.set(keyToString(key), message);
+      map.set(key.toHex(), message);
     }
   }
   return map;
@@ -95,19 +95,19 @@ test('Chain of Keys', async () => {
   const messages = new Map();
 
   // The first message in the chain in always a PartyGenesis for the Halo.
-  messages.set(keyToString(identityKey.publicKey), createPartyGenesisMessage(haloKeyring, identityKey, feedKeyA, deviceKeyA));
-  messages.set(keyToString(deviceKeyA.publicKey), messages.get(keyToString(identityKey.publicKey)));
-  messages.set(keyToString(feedKeyA.publicKey), messages.get(keyToString(identityKey.publicKey)));
+  messages.set(identityKey.publicKey.toHex(), createPartyGenesisMessage(haloKeyring, identityKey, feedKeyA, deviceKeyA));
+  messages.set(deviceKeyA.publicKey.toHex(), messages.get(identityKey.publicKey.toHex()));
+  messages.set(feedKeyA.publicKey.toHex(), messages.get(identityKey.publicKey.toHex()));
 
   // Next is DeviceB greeted by DeviceA.
-  messages.set(keyToString(deviceKeyB.publicKey),
+  messages.set(deviceKeyB.publicKey.toHex(),
     createEnvelopeMessage(haloKeyring, identityKey.publicKey,
       createKeyAdmitMessage(haloKeyring, identityKey.publicKey, deviceKeyB, [deviceKeyB]),
       [deviceKeyA]
     ));
 
   // Next is DeviceC greeted by DeviceB.
-  messages.set(keyToString(deviceKeyC.publicKey),
+  messages.set(deviceKeyC.publicKey.toHex(),
     createEnvelopeMessage(haloKeyring, identityKey.publicKey,
       createKeyAdmitMessage(haloKeyring, identityKey.publicKey, deviceKeyC, [deviceKeyC]),
       [deviceKeyB]
@@ -243,7 +243,6 @@ test('PartyAuthenticator - bad chain', async () => {
       keyring,
       partyKey,
       identityKeyRecord,
-      secondDeviceKeyRecord,
       chain
     )
   );

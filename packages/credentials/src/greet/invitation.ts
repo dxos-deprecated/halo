@@ -2,11 +2,21 @@
 // Copyright 2019 DXOS.org
 //
 
-import assert from 'assert';
-
-import { createId, randomBytes } from '@dxos/crypto';
+import { randomBytes, PublicKey, PublicKeyLike } from '@dxos/crypto';
 
 import { createDateTimeString } from '../proto/datetime';
+
+/**
+ * Provides a shared secret during an invitation process.
+ */
+export type SecretProvider = (info: any) => Promise<Buffer>;
+
+/**
+ * Validates the shared secret during an invitation process.
+ */
+export type SecretValidator = (invitation: Invitation, secret: Buffer) => Promise<boolean>;
+
+export type InvitationOnFinish = () => Promise<void>;
 
 /**
  * Represents a single-use invitation to admit the Invitee to the Party.
@@ -21,37 +31,36 @@ import { createDateTimeString } from '../proto/datetime';
  * It may also be revoked at anytime.
  */
 export class Invitation {
-  /**
-   * @param {Buffer} partyKey
-   * @param {SecretValidator} secretValidator
-   * @param {SecretProvider} [secretProvider]
-   * @param {function} [onFinish]
-   * @param {int} [expiration]
-   */
-  // TODO(burdon): JsDoc options.
-  constructor (partyKey, secretValidator, secretProvider, onFinish = () => {
-  }, expiration = 0) {
-    assert(Buffer.isBuffer(partyKey));
+  private readonly _partyKey: PublicKey;
+  private readonly _secretValidator: SecretValidator;
+  private readonly _secretProvider?: SecretProvider;
+  private readonly _onFinish?: InvitationOnFinish;
+  private readonly _expiration?: number;
 
-    this._partyKey = partyKey;
+  private readonly _id: Buffer = randomBytes(32);
+  private readonly _authNonce = randomBytes(32);
+  private readonly _nonce = randomBytes(32);
+  private _secret?: Buffer;
+
+  private readonly _issued = createDateTimeString();
+  private _began?: string;
+  private _handshook?: string;
+  private _notarized?: string;
+  private _finished?: string;
+  private _revoked?: string;
+
+  /**
+   */
+  constructor (partyKey: PublicKeyLike,
+    secretValidator: SecretValidator,
+    secretProvider?: SecretProvider,
+    onFinish?: InvitationOnFinish,
+    expiration = 0) {
+    this._partyKey = PublicKey.from(partyKey);
     this._secretValidator = secretValidator;
     this._secretProvider = secretProvider;
     this._onFinish = onFinish;
     this._expiration = expiration;
-
-    this._id = createId();
-    this._authNonce = randomBytes(32);
-    this._nonce = randomBytes(32);
-    this._secret = null;
-
-    // TODO(telackey): Change to InvitationState.
-
-    this._issued = createDateTimeString();
-    this._began = null;
-    this._handshook = null;
-    this._notarized = null;
-    this._finished = null;
-    this._revoked = null;
   }
 
   get id () {
@@ -68,6 +77,10 @@ export class Invitation {
 
   get partyKey () {
     return this._partyKey;
+  }
+
+  get issued () {
+    return this._issued;
   }
 
   get live () {
@@ -96,7 +109,7 @@ export class Invitation {
 
   get expired () {
     if (this._expiration) {
-      return createDateTimeString() >= this._expiration;
+      return Date.now() >= this._expiration;
     }
     return false;
   }
@@ -186,10 +199,9 @@ export class Invitation {
 
   /**
    * Returns `true` if the invitation and secret are valid, else `false`.
-   * @param {*} secret
    * @returns {Promise<boolean>}
    */
-  async validate (secret) {
+  async validate (secret: Buffer) {
     return this._secretValidator(this, secret);
   }
 }

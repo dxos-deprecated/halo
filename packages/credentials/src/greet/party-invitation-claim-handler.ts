@@ -13,34 +13,31 @@ import { createGreetingClaimResponse } from './greeting-message';
 
 const log = debug('dxos:creds:greet:claim');
 
+export type PartyInvitationGreetingHandler = (invitationID: Buffer, remotePeerId: Buffer, peerId: Buffer) => Promise<any>;
+
 export class PartyInvitationClaimHandler {
-  /** @type {function} */
-  _greetingHandler;
+  _greetingHandler: PartyInvitationGreetingHandler;
 
   /**
    *
    * @param {function} greetingHandler
    */
-  constructor (greetingHandler) {
+  constructor (greetingHandler: PartyInvitationGreetingHandler) {
     assert(greetingHandler);
 
     this._greetingHandler = greetingHandler;
   }
 
   createMessageHandler () {
-    return async (message, remotePeerId, peerId) => {
+    return async (message: any, remotePeerId: Buffer, peerId: Buffer) => {
       return this.handleMessage(message, remotePeerId, peerId);
     };
   }
 
   /**
    * Handle a P2P message from the Extension.
-   * @param {Object} message
-   * @param {Buffer} remotePeerId
-   * @param {Buffer} peerId
-   * @returns {Promise<{}>}
    */
-  async handleMessage (message, remotePeerId, peerId) {
+  async handleMessage (message: any, remotePeerId: Buffer, peerId: Buffer) {
     assert(message);
     assert(remotePeerId);
     assert(peerId);

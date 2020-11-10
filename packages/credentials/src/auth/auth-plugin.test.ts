@@ -11,14 +11,13 @@ import pump from 'pump';
 import ram from 'random-access-memory';
 import waitForExpect from 'wait-for-expect';
 
-import { keyToString, randomBytes } from '@dxos/crypto';
+import { keyToString, randomBytes, PublicKey } from '@dxos/crypto';
 import { FeedStore } from '@dxos/feed-store';
 import { Protocol } from '@dxos/protocol';
 import { Replicator } from '@dxos/protocol-plugin-replicator';
 
 import { Keyring, KeyType } from '../keys';
 import { codec } from '../proto';
-import { PublicKey } from '../typedefs';
 import { AuthPlugin } from './auth-plugin';
 import { Authenticator } from './authenticator';
 
@@ -67,8 +66,8 @@ class ExpectedKeyAuthenticator extends Authenticator {
  * @listens AuthPlugin#authenticated
  */
 const createProtocol = async (partyKey: PublicKey, authenticator: Authenticator, keyring: Keyring) => {
-  const topic = keyToString(partyKey);
-  const peerId = randomBytes(6); // createId();
+  const topic = partyKey.toHex();
+  const peerId = randomBytes(32); // createId();
   const feedStore = await FeedStore.create(ram, { feedOptions: { valueEncoding: 'utf8' } });
   const feed = await feedStore.openFeed(`/topic/${topic}/writable`, { metadata: { topic } });
   const append = pify(feed.append.bind(feed));
@@ -77,7 +76,7 @@ const createProtocol = async (partyKey: PublicKey, authenticator: Authenticator,
   const credentials = Buffer.from(codec.encode({
     payload: keyring.sign({
       __type_url: 'dxos.credentials.auth.Auth',
-      partyKey,
+      partyKey: partyKey.asBuffer(),
       deviceKey: peerId,
       identityKey: peerId
     }, [keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE }))!])
@@ -145,7 +144,7 @@ const createProtocol = async (partyKey: PublicKey, authenticator: Authenticator,
     .setSession({ peerId, credentials })
     .setExtension(auth.createExtension())
     .setExtension(repl.createExtension())
-    .init(partyKey);
+    .init(partyKey.asBuffer());
 
   return { id: peerId, auth, authPromise, proto, repl, feed, feedStore, append, getMessages };
 };
@@ -159,7 +158,7 @@ const connect = (source: any, target: any) => {
 
 test('Auth Plugin (GOOD)', async () => {
   const keyring = await createTestKeyring();
-  const partyKey = randomBytes(32);
+  const partyKey = PublicKey.from(randomBytes(32));
   const node1 = await createProtocol(partyKey,
     new ExpectedKeyAuthenticator(keyring,
       keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE }))!.publicKey), keyring);
@@ -176,11 +175,11 @@ test('Auth Plugin (GOOD)', async () => {
 
 test('Auth & Repl (GOOD)', async () => {
   const keyring = await createTestKeyring();
-  const partyKey = randomBytes(32);
-  const node1 = await createProtocol(partyKey,
+  const partyKey = PublicKey.from(randomBytes(32));
+  const node2 = await createProtocol(partyKey,
     new ExpectedKeyAuthenticator(keyring,
       keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE }))!.publicKey), keyring);
-  const node2 = await createProtocol(partyKey,
+  const node1 = await createProtocol(partyKey,
     new ExpectedKeyAuthenticator(keyring,
       keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE }))!.publicKey), keyring);
 

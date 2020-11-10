@@ -5,7 +5,10 @@
 import assert from 'assert';
 import debug from 'debug';
 
-import { keyToString } from '@dxos/crypto';
+import { PublicKey } from '@dxos/crypto';
+
+import { SignedMessage } from '../proto';
+import { Party } from './party';
 
 const log = debug('dxos:creds:party');
 
@@ -14,16 +17,11 @@ const log = debug('dxos:creds:party');
  * @package
  */
 export class PartyInvitationManager {
-  /** @type {Party} */
-  _party;
+  _party: Party;
+  _activeInvitations: Map<string, SignedMessage>;
+  _invitationsByKey: Map<string, Set<string>>;
 
-  /** @type {Map<string, Message>} */
-  _activeInvitations;
-
-  /** @type {Map<string, Set<string>>} */
-  _invitationsByKey;
-
-  constructor (party) {
+  constructor (party: Party) {
     assert(party);
 
     this._party = party;
@@ -42,24 +40,21 @@ export class PartyInvitationManager {
 
   /**
    * Return the Message for `invitationID`, if known.
-   * @param {Buffer} invitationID
-   * @returns {SignedMessage}
    */
-  getInvitation (invitationID) {
-    assert(Buffer.isBuffer(invitationID));
-    return this._activeInvitations.get(keyToString(invitationID));
+  getInvitation (invitationID: Buffer) {
+    return this._activeInvitations.get(invitationID.toString('hex'));
   }
 
   /**
    * Record a new PartyInvitation message.
    * @param {SignedMessage} invitationMessage
    */
-  recordInvitation (invitationMessage) {
+  recordInvitation (invitationMessage: SignedMessage) {
     assert(invitationMessage);
 
     const invitation = this._verifyAndParse(invitationMessage);
-    const idStr = keyToString(invitation.id);
-    const keyStr = keyToString(invitation.inviteeKey);
+    const idStr = invitation.id.toString('hex');
+    const keyStr = PublicKey.from(invitation.inviteeKey).toHex();
 
     if (this._party.isMemberKey(invitation.inviteeKey)) {
       log(`Invitation ${idStr} is for existing member ${keyStr}`);
@@ -76,11 +71,10 @@ export class PartyInvitationManager {
 
   /**
    * Verify that the PartyInvitation message is properly formed and validly signed.
-   * @param {SignedMessage} invitationMessage
    * @returns {PartyInvitation}
    * @private
    */
-  _verifyAndParse (invitationMessage) {
+  _verifyAndParse (invitationMessage: SignedMessage) {
     assert(invitationMessage);
 
     // Verify Message
@@ -88,11 +82,10 @@ export class PartyInvitationManager {
       throw new Error(`Unverifiable message: ${invitationMessage}`);
     }
 
-    const { id, issuerKey, inviteeKey } = invitationMessage.signed.payload;
-
+    const { id } = invitationMessage.signed.payload;
     assert(Buffer.isBuffer(id));
-    assert(Buffer.isBuffer(issuerKey));
-    assert(Buffer.isBuffer(inviteeKey));
+
+    const issuerKey = PublicKey.from(invitationMessage.signed.payload.issuerKey);
 
     if (!this._party.isMemberKey(issuerKey)) {
       throw new Error(`Invalid issuer: ${invitationMessage}`);

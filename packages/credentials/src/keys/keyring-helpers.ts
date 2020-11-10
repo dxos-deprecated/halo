@@ -10,28 +10,38 @@
 import assert from 'assert';
 import stableStringify from 'json-stable-stringify';
 
-import { createKeyPair, KeyPair, keyToString, randomBytes, sign } from '@dxos/crypto';
+import { createKeyPair, KeyPair, randomBytes, sign, PublicKey, PublicKeyLike } from '@dxos/crypto';
 
 import { KeyChain, SignedMessage } from '../proto';
 import { WithTypeUrl } from '../proto/any';
 import { createDateTimeString } from '../proto/datetime';
-import { KeyRecord, MakeOptional } from '../typedefs';
+import { KeyRecord, MakeOptional, SecretKey } from '../typedefs';
 import { KeyType } from './keytype';
 
 /**
  * Checks for a valid publicKey Buffer.
  */
-export function assertValidPublicKey (key?: Buffer): asserts key is Buffer {
-  assert(Buffer.isBuffer(key));
-  assert(key.length === 32);
+export function isValidPublicKey (key: PublicKeyLike): key is PublicKeyLike {
+  try {
+    PublicKey.from(key);
+    return true;
+  } catch (e) {}
+  return false;
+}
+
+/**
+ * Checks for a valid publicKey Buffer.
+ */
+export function assertValidPublicKey (key: PublicKeyLike): asserts key is PublicKeyLike {
+  assert(key);
+  assert(isValidPublicKey(key));
 }
 
 /**
  * Checks for a valid secretKey Buffer.
  */
-export function assertValidSecretKey (key?: Buffer): asserts key is Buffer {
-  assert(Buffer.isBuffer(key));
-  assert(key.length === 64);
+export function assertValidSecretKey (key?: SecretKey): asserts key is SecretKey {
+  assert(key && Buffer.isBuffer(key) && key.length === 64);
 }
 
 /**
@@ -86,7 +96,8 @@ export const assertValidAttributes = (keyRecord: Partial<KeyRecord>) => {
  */
 export const createKeyRecord = (attributes: Partial<KeyRecord> = {},
   keyPair: MakeOptional<KeyPair, 'secretKey'> = createKeyPair()): KeyRecord => {
-  const { publicKey, secretKey } = keyPair;
+  const { publicKey: rawPublicKey, secretKey } = keyPair;
+  const publicKey = PublicKey.from(rawPublicKey);
 
   // Disallow invalid attributes.
   assertValidAttributes(attributes);
@@ -101,7 +112,7 @@ export const createKeyRecord = (attributes: Partial<KeyRecord> = {},
     // Overrides the defaults above.
     ...attributes,
 
-    key: keyToString(publicKey),
+    key: publicKey.toHex(),
     publicKey,
     secretKey
   };
@@ -117,7 +128,21 @@ export const canonicalStringify = (obj: any) => {
     // really private fields (indicated by '__') are not included in the signature. In practice, this skips __type_url,
     // and it also gives a mechanism for attaching other attributes to an object without breaking the signature.
     replacer: (key: any, value: any) => {
-      return key.toString().startsWith('__') ? undefined : value;
+      if (key.toString().startsWith('__')) {
+        return undefined;
+      }
+      if (value) {
+        if (PublicKey.isPublicKey(value)) {
+          return value.toHex();
+        }
+        if (Buffer.isBuffer(value)) {
+          return value.toString('hex');
+        }
+        if (value instanceof Uint8Array || (value.data && value.type === 'Buffer')) {
+          return Buffer.from(value).toString('hex');
+        }
+      }
+      return value;
     }
   });
 };
@@ -132,7 +157,7 @@ export const canonicalStringify = (obj: any) => {
 export const signMessage = (message: any,
   keys: KeyRecord[],
   keyChainMap: Map<string, KeyChain>,
-  nonce?: Uint8Array,
+  nonce?: Buffer,
   created?: string): WithTypeUrl<SignedMessage> => {
   assert(typeof message === 'object');
   for (const key of keys) {
@@ -165,8 +190,8 @@ export const signMessage = (message: any,
     assertValidSecretKey(secretKey);
     signatures.push({
       signature: sign(buffer, secretKey),
-      key: publicKey,
-      keyChain: keyChainMap.get(keyToString(publicKey))
+      key: publicKey.asBuffer(),
+      keyChain: keyChainMap.get(publicKey.toHex())
     });
   });
 
@@ -181,7 +206,7 @@ export const signMessage = (message: any,
  * Is object `key` a KeyChain?
  */
 export const isKeyChain = (key: any = {}): key is KeyChain => {
-  return Buffer.isBuffer(key.publicKey) && key.message && key.message.signed && Array.isArray(key.message.signatures);
+  return isValidPublicKey(key.publicKey) && key.message && key.message.signed && Array.isArray(key.message.signatures);
 };
 
 /**
@@ -209,9 +234,8 @@ export const checkAndNormalizeKeyRecord = (keyRecord: Omit<KeyRecord, 'key'>) =>
     assertValidSecretKey(secretKey);
   }
 
-  const keyPair = { publicKey, secretKey };
   return createKeyRecord({
     added: createDateTimeString(),
     ...rest
-  }, keyPair);
+  }, { publicKey: PublicKey.from(publicKey).asBuffer(), secretKey });
 };

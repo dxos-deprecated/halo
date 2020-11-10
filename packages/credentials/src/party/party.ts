@@ -4,15 +4,17 @@
 
 import assert from 'assert';
 import debug from 'debug';
-import EventEmitter from 'events';
+import { EventEmitter } from 'events';
 
-import { discoveryKey, keyToString } from '@dxos/crypto';
+import { PublicKey, PublicKeyLike, discoveryKey } from '@dxos/crypto';
 
 import { isIdentityMessage } from '../identity/identity-message';
 import { IdentityMessageProcessor } from '../identity/identity-message-processor';
 import { KeyType, Keyring, keyTypeName } from '../keys';
-import { PartyCredential } from '../proto';
-import { isEnvelope, isPartyInvitationMessage } from './party-credential';
+import { assertValidPublicKey } from '../keys/keyring-helpers';
+import { Message, KeyChain, PartyCredential, SignedMessage, KeyHint } from '../proto';
+import { KeyRecord } from '../typedefs';
+import { isEnvelope, isPartyInvitationMessage, isSignedMessage } from './party-credential';
 import { PartyInvitationManager } from './party-invitation-manager';
 
 const log = debug('dxos:creds:party');
@@ -37,36 +39,39 @@ const log = debug('dxos:creds:party');
 export class Party extends EventEmitter {
   static declaredEvents = ['admit:key', 'admit:feed', 'update:key', ...IdentityMessageProcessor.declaredEvents];
 
+  _publicKey: PublicKey;
+  _keyring: Keyring;
+  _invitationManager: PartyInvitationManager;
+  _identityMessageProcessor: IdentityMessageProcessor;
+  // TODO(telackey): Switch to Buffer-aware maps.
+  _credentialMessages: Map<string, SignedMessage>;
+  _memberKeys: Map<string, PublicKey>;
+  _memberFeeds: Map<string, PublicKey>;
+  _admittedBy: Map<string, PublicKey>;
+  _readyToProcess: Promise<KeyRecord>;
+
   /**
    * Initialize with party public key
-   * @param {PublicKey} publicKey
    * @return {Party}
    */
-  constructor (publicKey) {
+  constructor (publicKey: PublicKeyLike) {
     super();
 
-    assert(Buffer.isBuffer(publicKey));
+    assertValidPublicKey(publicKey);
 
-    this._publicKey = publicKey;
+    this._publicKey = PublicKey.from(publicKey);
     this._keyring = new Keyring();
     this._invitationManager = new PartyInvitationManager(this);
     this._identityMessageProcessor = new IdentityMessageProcessor(this);
-    this._open = false;
 
-    // TODO(telackey): Switch to Buffer-aware maps.
-    /** @type {Map<string, SignedMessage>} */
-    this._credentialMessages = new Map();
-
-    /** @type {Map<string, PublicKey>} */
-    this._memberKeys = new Map();
-    /** @type {Map<string, PublicKey>} */
-    this._memberFeeds = new Map();
-    /** @type {Map<string, PublicKey>} */
-    this._admittedBy = new Map();
+    this._credentialMessages = new Map<string, SignedMessage>();
+    this._memberKeys = new Map<string, PublicKey>();
+    this._memberFeeds = new Map<string, PublicKey>();
+    this._admittedBy = new Map<string, PublicKey>();
 
     // The Keyring must contain the Party key itself.
     this._readyToProcess = this._keyring.addPublicKey({
-      publicKey,
+      publicKey: this._publicKey,
       type: KeyType.PARTY,
       own: false
     });
@@ -90,7 +95,7 @@ export class Party extends EventEmitter {
    * @returns {PublicKey}
    */
   get discoveryKey () {
-    return discoveryKey(this.publicKey);
+    return discoveryKey(this.publicKey.asBuffer());
   }
 
   /**
@@ -98,18 +103,18 @@ export class Party extends EventEmitter {
    * @return {string} topic for this party
    */
   get topic () {
-    return keyToString(this._publicKey);
+    return this._publicKey.toHex();
   }
 
   /**
-   * @return {Buffer[]} of public keys for the feeds admitted to the Party.
+   * @return {PublicKey[]} of public keys for the feeds admitted to the Party.
    */
   get memberFeeds () {
     return Array.from(this._memberFeeds.values()).filter(key => this._keyring.isTrusted(key));
   }
 
   /**
-   * @return {Buffer[]} of public keys admitted to the Party.
+   * @return {PublicKey[]} of public keys admitted to the Party.
    */
   get memberKeys () {
     return Array.from(this._memberKeys.values()).filter(key => this._keyring.isTrusted(key));
@@ -135,67 +140,44 @@ export class Party extends EventEmitter {
   }
 
   /**
-   * Is the Party open?
-   * @returns {boolean}
-   */
-  isOpen () {
-    return this._open;
-  }
-
-  /**
-   * Opens the Party.
-   */
-  open () {
-    this._open = true;
-  }
-
-  /**
-   * Closes the Party.
-   * @returns {boolean}
-   */
-  close () {
-    this._open = false;
-  }
-
-  /**
    * Retrieve an PartyInvitation by its ID.
-   * @param {Buffer} invitationID
    * @return {SignedMessage}
    */
-  getInvitation (invitationID) {
-    assert(invitationID);
+  getInvitation (invitationID: Buffer) {
+    assert(Buffer.isBuffer(invitationID));
 
     return this._invitationManager.getInvitation(invitationID);
   }
 
   /**
    * What member admitted the specified feed or member key?
-   * @param {PublicKey} publicKey
+   * @param {PublicKeyLike} publicKey
    * @returns {PublicKey|undefined}
    */
-  getAdmittedBy (publicKey) {
-    assert(Buffer.isBuffer(publicKey));
+  getAdmittedBy (publicKey: PublicKey) {
+    assertValidPublicKey(publicKey);
+    publicKey = PublicKey.from(publicKey);
 
-    return this._admittedBy.get(keyToString(publicKey));
+    return this._admittedBy.get(publicKey.toHex());
   }
 
   /**
    * Get info for the specified key (if available).
-   * @param {Buffer} publicKey
+   * @param {PublicKeyLike} publicKey
    * @return {IdentityInfo | DeviceInfo | undefined}
    */
-  getInfo (publicKey) {
-    assert(Buffer.isBuffer(publicKey));
+  getInfo (publicKey: PublicKey) {
+    assertValidPublicKey(publicKey);
+    publicKey = PublicKey.from(publicKey);
 
-    return this._identityMessageProcessor.getInfo(publicKey);
+    return this._identityMessageProcessor.getInfo(publicKey.asBuffer());
   }
 
   /**
    * Lookup the PublicKey for the Party member associated with this KeyChain.
-   * @param {KeyChain} chain
    * @return {Promise<PublicKey>}
    */
-  findMemberKeyFromChain (chain) {
+  findMemberKeyFromChain (chain: KeyChain) {
     assert(chain);
 
     const trustedKey = this._keyring.findTrusted(chain);
@@ -204,38 +186,36 @@ export class Party extends EventEmitter {
 
   /**
    * Is the indicated key a trusted key associated with this party.
-   * @param {PublicKey} publicKey
    * @returns {boolean}
    */
-  isMemberKey (publicKey) {
-    if (!publicKey) {
-      return false;
-    }
+  isMemberKey (publicKey: PublicKeyLike) {
+    assertValidPublicKey(publicKey);
+    publicKey = PublicKey.from(publicKey);
 
-    return this._memberKeys.has(keyToString(publicKey)) && this._keyring.isTrusted(publicKey);
+    return this._memberKeys.has(publicKey.toHex()) && this._keyring.isTrusted(publicKey);
   }
 
   /**
    * Is the indicated key a trusted feed associated with this party.
-   * @param {PublicKey} feedKey
+   * @param {PublicKeyLike} publicKey
    * @returns {boolean}
    */
-  isMemberFeed (feedKey) {
-    if (!feedKey) {
-      return false;
-    }
+  isMemberFeed (publicKey: PublicKeyLike) {
+    assertValidPublicKey(publicKey);
+    publicKey = PublicKey.from(publicKey);
 
-    return this._memberFeeds.has(keyToString(feedKey)) && this._keyring.isTrusted(feedKey);
+    return this._memberFeeds.has(publicKey.toHex()) && this._keyring.isTrusted(publicKey);
   }
 
   /**
    * Process an ordered array of messages, for compatibility with Model.processMessages().
    * @param {Message[]} messages
    */
-  async processMessages (messages) {
+  async processMessages (messages: Message[]) {
     assert(Array.isArray(messages));
 
     for await (const message of messages) {
+      assert(isSignedMessage(message.payload));
       await this._processMessage(message.payload);
     }
   }
@@ -246,11 +226,13 @@ export class Party extends EventEmitter {
    * @param {KeyHint[]} hints
    * @returns {void}
    */
-  async takeHints (hints = []) {
+  async takeHints (hints: KeyHint[] = []) {
     assert(Array.isArray(hints));
 
     for await (const hint of hints) {
       const { publicKey, type } = hint;
+      assert(publicKey);
+      assertValidPublicKey(publicKey);
       if (!this._keyring.hasKey(publicKey)) {
         const keyRecord = await this._admitKey(publicKey, { hint: true, type });
         if (KeyType.FEED === type) {
@@ -268,7 +250,7 @@ export class Party extends EventEmitter {
    * @return {SignedMessage}
    * @private
    */
-  _unpackEnvelope (message) {
+  _unpackEnvelope (message: SignedMessage) {
     let depth = 0;
     while (isEnvelope(message)) {
       // Verify the outer message is signed with a known, trusted key.
@@ -305,10 +287,9 @@ export class Party extends EventEmitter {
 
   /**
    * Process a Party message.
-   * @param {SignedMessage} message
    * @returns {void}
    */
-  async _processMessage (message) {
+  async _processMessage (message: SignedMessage) {
     await this._readyToProcess;
 
     // All PartyInvitation messages are handled by the PartyInvitationManager.
@@ -325,10 +306,9 @@ export class Party extends EventEmitter {
 
   /**
    * Process a replicated Party credential message, admitting keys or feeds to the Party.
-   * @param {SignedMessage} message
    * @returns {void}
    */
-  async _processCredentialMessage (message) {
+  async _processCredentialMessage (message: SignedMessage) {
     assert(message);
     const original = message;
 
@@ -364,7 +344,7 @@ export class Party extends EventEmitter {
         const admittedBy = this._determineAdmittingMember(admitKey.publicKey, original);
         assert(admittedBy);
         this._admittedBy.set(admitKey.key, admittedBy);
-        log(`Key ${admitKey.key} admitted by ${keyToString(admittedBy)}.`);
+        log(`Key ${admitKey.key} admitted by ${admittedBy.toHex()}.`);
 
         this.emit('admit:key', admitKey);
         break;
@@ -379,7 +359,7 @@ export class Party extends EventEmitter {
         const admittedBy = this._determineAdmittingMember(feedKey.publicKey, message);
         assert(admittedBy);
         this._admittedBy.set(feedKey.key, admittedBy);
-        log(`Feed ${feedKey.key} admitted by ${keyToString(admittedBy)}.`);
+        log(`Feed ${feedKey.key} admitted by ${admittedBy.toHex()}.`);
 
         this.emit('admit:feed', feedKey);
         break;
@@ -396,7 +376,7 @@ export class Party extends EventEmitter {
    * @returns {void}
    * @private
    */
-  async _processGenesisMessage (message) {
+  async _processGenesisMessage (message: SignedMessage) {
     assert(message);
 
     if (message.signed.payload.type !== PartyCredential.Type.PARTY_GENESIS) {
@@ -419,13 +399,12 @@ export class Party extends EventEmitter {
 
   /**
    * Processes an AdmitKey message, admitting a single key as a member of the Party.
-   * @param {SignedMessage} message
-   * @param {boolean} [requireSignatureFromTrustedKey=true]
-   * @param {boolean} [requirePartyMatch=true]
    * @returns {void}
    * @private
    */
-  async _processKeyAdmitMessage (message, requireSignatureFromTrustedKey, requirePartyMatch) {
+  async _processKeyAdmitMessage (message: SignedMessage,
+    requireSignatureFromTrustedKey: boolean,
+    requirePartyMatch: boolean) {
     assert(message);
 
     if (message.signed.payload.type !== PartyCredential.Type.KEY_ADMIT) {
@@ -441,11 +420,9 @@ export class Party extends EventEmitter {
 
   /**
    * Processes an AdmitFeed message, admitting a single feed to participate in the Party.
-   * @param {SignedMessage} message
-   * @param {boolean} [requireSignatureFromTrustedKey=true]
    * @private
    */
-  async _processFeedAdmitMessage (message, requireSignatureFromTrustedKey) {
+  async _processFeedAdmitMessage (message: SignedMessage, requireSignatureFromTrustedKey: boolean) {
     assert(message);
 
     if (message.signed.payload.type !== PartyCredential.Type.FEED_ADMIT) {
@@ -461,10 +438,9 @@ export class Party extends EventEmitter {
 
   /**
    * Verify that the signatures on this message are present, correct, and from trusted members of this Party.
-   * @param {SignedMessage} message
    * @return {boolean}
    */
-  verifySignatures (message) {
+  verifySignatures (message: SignedMessage) {
     assert(message, 'message null or undefined');
 
     return this._keyring.verify(message);
@@ -475,13 +451,10 @@ export class Party extends EventEmitter {
    * By default, a signature from a known, trusted key is required. In the case of an ENVELOPE, the outer message
    * will be signed by a trusted key (the key of the Greeter), but the inner key will be self-signed. In that case
    * requireSignatureFromTrustedKey should be set to false when testing the inner message.
-   * @param {SignedMessage} message
-   * @param {boolean} [requireSignatureFromTrustedKey=true]
-   * @param {boolean} [requirePartyMatch=true]
    * @returns {boolean}
    * @private
    */
-  _verifyMessage (message, requireSignatureFromTrustedKey = true, requirePartyMatch = true) {
+  _verifyMessage (message: SignedMessage, requireSignatureFromTrustedKey = true, requirePartyMatch = true) {
     assert(message);
 
     const { signed, signatures } = message;
@@ -489,9 +462,10 @@ export class Party extends EventEmitter {
       throw new Error(`Invalid message: ${message}`);
     }
 
-    const checkParty = (partyKey) => {
-      if (requirePartyMatch && !partyKey.equals(this._publicKey)) {
-        throw new Error(`Invalid party: ${keyToString(partyKey)}`);
+    const checkParty = (partyKey: PublicKeyLike) => {
+      partyKey = PublicKey.from(partyKey);
+      if (requirePartyMatch && !this._publicKey.equals(partyKey)) {
+        throw new Error(`Invalid party: ${partyKey.toHex()}`);
       }
     };
 
@@ -553,14 +527,15 @@ export class Party extends EventEmitter {
 
   /**
    * Admit the key to the allowed list.
-   * @param {PublicKey} publicKey
+   * @param {PublicKeyLike} publicKey
    * @param attributes
    * @returns {boolean} true if added, false if already present
    * @private
    */
-  async _admitKey (publicKey, attributes = {}) {
-    assert(publicKey);
-    const keyStr = keyToString(publicKey);
+  async _admitKey (publicKey: PublicKeyLike, attributes: any = {}) {
+    assertValidPublicKey(publicKey);
+    publicKey = PublicKey.from(publicKey);
+    const keyStr = publicKey.toHex();
 
     const makeRecord = () => {
       return {
@@ -598,7 +573,7 @@ export class Party extends EventEmitter {
    * @returns {undefined|PublicKey}
    * @private
    */
-  _determineAdmittingMember (publicKey, message) {
+  _determineAdmittingMember (publicKey: PublicKey, message: SignedMessage) {
     if (publicKey.equals(this._publicKey)) {
       return this._publicKey;
     }

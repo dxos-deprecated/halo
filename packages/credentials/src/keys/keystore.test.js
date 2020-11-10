@@ -6,8 +6,6 @@
 
 import memdown from 'memdown';
 
-import { keyToString } from '@dxos/crypto';
-
 import { Keyring } from './keyring';
 import { createKeyRecord, stripSecrets } from './keyring-helpers';
 import { KeyStore } from './keystore';
@@ -21,7 +19,7 @@ test('Basic store operations', async () => {
   for await (const type of Object.keys(KeyType)) {
     const keyRecord = createKeyRecord({ type: KeyType[type] });
     keyRecords.push(keyRecord);
-    await keystore.setRecord(keyToString(keyRecord.publicKey), keyRecord);
+    await keystore.setRecord(keyRecord.publicKey.toHex(), keyRecord);
   }
 
   // Do we have all the records?
@@ -33,7 +31,7 @@ test('Basic store operations', async () => {
 
   // Can we get them by key?
   for await (const keyRecord of keyRecords) {
-    expect(keyRecord).toEqual(await keystore.getRecord(keyToString(keyRecord.publicKey)));
+    expect(keyRecord).toEqual(await keystore.getRecord(keyRecord.publicKey.toHex()));
   }
 
   // How about iterating the keys?
@@ -48,7 +46,7 @@ test('Basic store operations', async () => {
   expect(entries.length).toBe(keyRecords.length);
   for await (const entry of entries) {
     const [key, value] = entry;
-    expect(key).toEqual(keyToString(value.publicKey));
+    expect(key).toEqual(value.publicKey.toHex());
   }
 });
 

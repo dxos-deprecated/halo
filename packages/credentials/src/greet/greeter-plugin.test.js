@@ -5,7 +5,7 @@
 import debug from 'debug';
 import pump from 'pump';
 
-import { keyToString, keyToBuffer, randomBytes } from '@dxos/crypto';
+import { keyToString, randomBytes } from '@dxos/crypto';
 import { Protocol } from '@dxos/protocol';
 
 import { Keyring, KeyType } from '../keys';
@@ -57,10 +57,10 @@ const createGreeter = async (targetPartyKey) => {
 /**
  * Create the Invitee with Plugin and Protocol.
  * @param {Buffer} rendezvousKey
- * @param {string} invitationId
+ * @param {Buffer} invitationId
  */
 const createInvitee = async (rendezvousKey, invitationId) => {
-  const peerId = keyToBuffer(invitationId);
+  const peerId = invitationId;
 
   const invitee = new Greeter();
   const plugin = new GreetingCommandPlugin(peerId, invitee.createMessageHandler());
@@ -163,7 +163,9 @@ test('Greeting Flow using GreetingCommandPlugin', async () => {
     expect(notarizeResponse.hints).toEqual(hints);
 
     // In the real world, the response would be signed in an envelope by the Greeter, but in this test it is not altered.
-    expect(await writePromise).toEqual(command.params);
+    const written = await writePromise;
+    expect(written.length).toBe(1);
+    expect(written[0].payload.signatures).toEqual(command.params[0].payload.signatures);
   }
 
   await plugin.send(rendezvousKey, {
