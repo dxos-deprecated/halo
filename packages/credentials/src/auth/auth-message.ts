@@ -4,7 +4,7 @@
 
 import assert from 'assert';
 
-import { PublicKey } from '@dxos/crypto';
+import { PublicKey, PublicKeyLike } from '@dxos/crypto';
 
 import { Keyring } from '../keys';
 import { wrapMessage } from '../party/party-credential';
@@ -17,7 +17,7 @@ import { KeyRecord } from '../typedefs';
  */
 export const createAuthMessage = (
   keyring: Keyring,
-  partyKey: PublicKey,
+  partyKey: PublicKeyLike,
   identityKey: KeyRecord,
   deviceKey: KeyRecord | KeyChain,
   feedKey?: KeyRecord,
@@ -25,19 +25,20 @@ export const createAuthMessage = (
 ): WithTypeUrl<Message> => {
   assert(keyring);
 
+  partyKey = PublicKey.from(partyKey);
+  const devicePublicKey = PublicKey.from(deviceKey.publicKey);
+
   const signingKeys = [deviceKey];
   if (feedKey) {
     signingKeys.push(feedKey);
   }
 
-  const devicePublicKey = PublicKey.from(deviceKey.publicKey);
-
   const authMessage: WithTypeUrl<Auth> = {
     __type_url: 'dxos.credentials.auth.Auth',
-    partyKey: partyKey.asUint8Array(),
-    identityKey: identityKey.publicKey.asUint8Array(),
-    deviceKey: devicePublicKey.asUint8Array(),
-    feedKey: feedKey?.publicKey.asUint8Array()
+    partyKey: partyKey.asBuffer(),
+    identityKey: identityKey.publicKey.asBuffer(),
+    deviceKey: devicePublicKey.asBuffer(),
+    feedKey: feedKey?.publicKey.asBuffer()
   };
 
   return wrapMessage(keyring.sign(authMessage, signingKeys, nonce));

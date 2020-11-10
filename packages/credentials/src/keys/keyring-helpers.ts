@@ -21,9 +21,21 @@ import { KeyType } from './keytype';
 /**
  * Checks for a valid publicKey Buffer.
  */
+export function isValidPublicKey (key: PublicKeyLike): key is PublicKeyLike {
+  try {
+    PublicKey.from(key);
+    return true;
+  } catch (e) {}
+  return  false;
+}
+
+
+/**
+ * Checks for a valid publicKey Buffer.
+ */
 export function assertValidPublicKey (key: PublicKeyLike): asserts key is PublicKeyLike {
   assert(key);
-  PublicKey.from(key);
+  assert(isValidPublicKey(key));
 }
 
 /**
@@ -132,7 +144,7 @@ export const canonicalStringify = (obj: any) => {
 export const signMessage = (message: any,
   keys: KeyRecord[],
   keyChainMap: Map<string, KeyChain>,
-  nonce?: Uint8Array,
+  nonce?: Buffer,
   created?: string): WithTypeUrl<SignedMessage> => {
   assert(typeof message === 'object');
   for (const key of keys) {
@@ -159,13 +171,15 @@ export const signMessage = (message: any,
 
   // Sign with each key, adding to the signatures list.
   const signatures: SignedMessage.Signature[] = [];
+  const normalized = canonicalStringify(signed);
+  console.log(normalized);
   const buffer = Buffer.from(canonicalStringify(signed));
   keys.forEach(({ publicKey, secretKey }) => {
     // TODO(burdon): Already tested above?
     assertValidSecretKey(secretKey);
     signatures.push({
       signature: sign(buffer, secretKey),
-      key: publicKey.asUint8Array(),
+      key: publicKey.asBuffer(),
       keyChain: keyChainMap.get(publicKey.toHex())
     });
   });
@@ -181,7 +195,7 @@ export const signMessage = (message: any,
  * Is object `key` a KeyChain?
  */
 export const isKeyChain = (key: any = {}): key is KeyChain => {
-  return Buffer.isBuffer(key.publicKey) && key.message && key.message.signed && Array.isArray(key.message.signatures);
+  return isValidPublicKey(key.publicKey) && key.message && key.message.signed && Array.isArray(key.message.signatures);
 };
 
 /**

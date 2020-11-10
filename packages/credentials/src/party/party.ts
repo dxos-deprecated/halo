@@ -8,7 +8,6 @@ import { EventEmitter } from 'events';
 
 import { PublicKey, PublicKeyLike, discoveryKey } from '@dxos/crypto';
 
-import { keyToString } from '../../../../../crypto/src';
 import { isIdentityMessage } from '../identity/identity-message';
 import { IdentityMessageProcessor } from '../identity/identity-message-processor';
 import { KeyType, Keyring, keyTypeName } from '../keys';

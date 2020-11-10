@@ -55,7 +55,7 @@ export const createKeyAdmitMessage = (keyring: Keyring,
   partyKey: PublicKey,
   admitKeyPair: KeyRecord,
   signingKeys: (KeyRecord | KeyChain)[] = [],
-  nonce?: Uint8Array): Message => {
+  nonce?: Buffer): Message => {
   assert(keyring.hasSecretKey(admitKeyPair));
   assert(typeof admitKeyPair.type !== 'undefined');
 
@@ -80,7 +80,7 @@ export const createFeedAdmitMessage = (keyring: Keyring,
   partyKey: PublicKey,
   feedKeyPair: KeyRecord,
   signingKeys: (KeyRecord | KeyChain)[] = [],
-  nonce?: Uint8Array): Message => {
+  nonce?: Buffer): Message => {
   const message: WithTypeUrl<PartyCredential> = {
     __type_url: TYPE_URL_PARTY_CREDENTIAL,
     type: PartyCredential.Type.FEED_ADMIT,
@@ -104,7 +104,7 @@ export const createEnvelopeMessage = (keyring: Keyring,
   partyKey: PublicKey,
   contents: Message,
   signingKeys: (KeyRecord | KeyChain)[] = [],
-  nonce?: Uint8Array): Message => {
+  nonce?: Buffer): Message => {
   const message: WithTypeUrl<PartyCredential> = {
     __type_url: TYPE_URL_PARTY_CREDENTIAL,
     type: PartyCredential.Type.ENVELOPE,
@@ -212,7 +212,7 @@ export const getPartyCredentialMessageType = (message: Message | SignedMessage, 
 /**
  * Provides a list of the publicKeys admitted by this PartyCredentialMessage.
  */
-export const admitsKeys = (message: Message | SignedMessage) => {
+export const admitsKeys = (message: Message | SignedMessage): PublicKey[] => {
   assert(message);
   assert(isPartyCredentialMessage(message));
 
@@ -243,7 +243,7 @@ export const admitsKeys = (message: Message | SignedMessage) => {
       throw Error(`Invalid type: ${type}`);
   }
 
-  return keys;
+  return keys.map(PublicKey.from);
 };
 
 /**

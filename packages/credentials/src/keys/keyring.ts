@@ -144,6 +144,7 @@ export class Keyring {
     assert(typeof message === 'object' || typeof message === 'string');
     if (typeof message === 'object') {
       message = canonicalStringify(message);
+      console.log(message);
     }
 
     const messageBuffer = Buffer.from(message);
@@ -475,7 +476,7 @@ export class Keyring {
    *   signatures: []   // An array with signature and publicKey of each signing key.
    * }
    */
-  sign (message: any, keys: (KeyRecord|KeyChain)[], nonce?: Uint8Array, created?: string) {
+  sign (message: any, keys: (KeyRecord|KeyChain)[], nonce?: Buffer, created?: string) {
     assert(typeof message === 'object');
     assert(keys);
     assert(Array.isArray(keys));
