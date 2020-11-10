@@ -14,11 +14,6 @@ export type SecretKey = Buffer;
 export type DiscoveryKey = Buffer;
 export type PeerId = Buffer;
 
-export interface KeyHint {
-    publicKey: Uint8Array;
-    type: KeyType;
-}
-
 // TODO(marik-d): Use protobuf type.
 export interface KeyRecord {
     /**
