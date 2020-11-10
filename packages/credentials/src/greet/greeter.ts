@@ -22,6 +22,7 @@ import {
   ERR_GREET_INVALID_STATE
 } from './error-codes';
 import { Invitation, InvitationOnFinish, SecretProvider, SecretValidator } from './invitation';
+import {assertValidPublicKey} from "../keys/keyring-helpers";
 
 const log = debug('dxos:creds:greet');
 
@@ -40,13 +41,13 @@ export class Greeter {
   /**
    * For a Greeter, all parameters must be properly set, but for the Invitee, they can be omitted.
    * TODO(telackey): Does it make sense to separate out the Invitee functionality?
-   * @param {Buffer} [partyKey] The publicKey of the target Party.
+   * @param {PublicKeyLike} [partyKey] The publicKey of the target Party.
    * @param {function} [partyWriter] Callback function to write messages to the Party.
    * @param {function} [hintProvider] Callback function to gather feed and key hints to give to the invitee.
    */
   constructor (partyKey?: PublicKeyLike, partyWriter?: PartyWriter, hintProvider?: HintProvider) {
     if (partyKey || partyWriter || hintProvider) {
-      assert(Buffer.isBuffer(partyKey));
+      assert(partyKey);
       assert(partyWriter);
       assert(hintProvider);
     }

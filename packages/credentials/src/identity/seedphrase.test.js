@@ -2,6 +2,7 @@
 // Copyright 2020 DXOS.org
 //
 
+import { PublicKey } from '@dxos/crypto';
 import { Keyring, KeyType } from '../keys';
 import { generateSeedPhrase, keyPairFromSeedPhrase } from './seedphrase';
 
@@ -31,7 +32,7 @@ test('Create cold identity key and recover', async () => {
   const recoveredKeyPair = keyPairFromSeedPhrase(importedSeedPhrase);
 
   // Verify same key as exported above.
-  expect(recoveredKeyPair.publicKey).toEqual(identityKeyRecord.publicKey);
+  expect(PublicKey.from(recoveredKeyPair.publicKey)).toEqual(identityKeyRecord.publicKey);
   /** @type {Keyring} */
   const newKeyring = new Keyring();
   await newKeyring.addKeyRecord({ ...recoveredKeyPair, type: KeyType.IDENTITY });

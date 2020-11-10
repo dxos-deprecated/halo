@@ -277,6 +277,7 @@ export const createPartyInvitationMessage = (keyring: Keyring,
 
   partyKey = PublicKey.from(partyKey);
   inviteeKey = PublicKey.from(inviteeKey);
+  const issuerPublicKey = PublicKey.from(issuerKey.publicKey);
 
   return {
     __type_url: TYPE_URL_MESSAGE,
@@ -284,9 +285,9 @@ export const createPartyInvitationMessage = (keyring: Keyring,
       keyring.sign({
         __type_url: TYPE_URL_PARTY_INVITATION,
         id: randomBytes(),
-        partyKey,
-        issuerKey: issuerKey.publicKey,
-        inviteeKey: inviteeKey
+        partyKey: partyKey.asUint8Array(),
+        issuerKey: issuerPublicKey.asUint8Array(),
+        inviteeKey: inviteeKey.asUint8Array()
       }, [signingKey])
   };
 };
