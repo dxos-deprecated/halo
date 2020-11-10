@@ -22,7 +22,6 @@ import {
   ERR_GREET_INVALID_STATE
 } from './error-codes';
 import { Invitation, InvitationOnFinish, SecretProvider, SecretValidator } from './invitation';
-import {assertValidPublicKey} from "../keys/keyring-helpers";
 
 const log = debug('dxos:creds:greet');
 

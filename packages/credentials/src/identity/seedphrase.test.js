@@ -3,6 +3,7 @@
 //
 
 import { PublicKey } from '@dxos/crypto';
+
 import { Keyring, KeyType } from '../keys';
 import { generateSeedPhrase, keyPairFromSeedPhrase } from './seedphrase';
 

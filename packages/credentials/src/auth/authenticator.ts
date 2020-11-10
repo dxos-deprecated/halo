@@ -10,7 +10,7 @@ import { keyToString } from '@dxos/crypto';
 
 import { Keyring, KeyType } from '../keys';
 import { isSignedMessage, Party } from '../party';
-import { Auth, codec } from '../proto';
+import { codec } from '../proto';
 
 const log = debug('dxos:creds:auth');
 

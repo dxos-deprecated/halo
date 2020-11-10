@@ -10,7 +10,6 @@ import { Protocol } from '@dxos/protocol';
 
 import { Keyring, KeyType } from '../keys';
 import { createKeyAdmitMessage } from '../party';
-import { validate } from '../proto';
 import { Command } from './constants';
 import { Greeter } from './greeter';
 import { GreetingCommandPlugin } from './greeting-command-plugin';
