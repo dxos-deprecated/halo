@@ -174,7 +174,7 @@ export class GreetingCommandPlugin extends EventEmitter {
     const response = await this._peerMessageHandler(decoded.payload, peerId, this._peerId);
     if (response) {
       log('Sent response to %s: %o', peerIdStr, response.payload);
-      return codec.encode(response);
+      return codec.encode(wrapMessage(response));
     }
     log('No response to %s', peerIdStr);
   }

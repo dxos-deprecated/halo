@@ -86,15 +86,15 @@ export class IdentityMessageProcessor extends EventEmitter {
    * @private
    */
   async _processIdentityInfoMessage (message: SignedMessage) {
-    let partyKey: PublicKey;
-    let signedIdentityInfo;
     let identityKey: PublicKey;
+    let partyKey: PublicKey;
+    let signedIdentityInfo: SignedMessage;
 
     if (isEnvelope(message)) {
       // If this message has an Envelope, the Envelope must match this Party.
       signedIdentityInfo = message.signed.payload.envelope.message.payload;
-      identityKey = signedIdentityInfo.signed.payload.publicKey;
-      partyKey = message.signed.payload.envelope.partyKey;
+      identityKey = PublicKey.from(signedIdentityInfo.signed.payload.publicKey);
+      partyKey = PublicKey.from(message.signed.payload.envelope.partyKey);
 
       assert(isSignedMessage(signedIdentityInfo));
       assert(message.signatures);
@@ -105,8 +105,8 @@ export class IdentityMessageProcessor extends EventEmitter {
         // If this has a KeyChain, check its trusted parent key, else use this exact key.
         const signingKey = signature.keyChain
           ? this._party.findMemberKeyFromChain(signature.keyChain)
-          : PublicKey.from(signature.key);
-        if (signingKey && signingKey.equals(identityKey)) {
+          : signature.key;
+        if (signingKey && identityKey.equals(signingKey)) {
           signatureMatch = true;
           break;
         }
@@ -118,17 +118,17 @@ export class IdentityMessageProcessor extends EventEmitter {
     } else {
       // If this message has no Envelope, the Identity key itself must match the Party.
       signedIdentityInfo = message;
-      identityKey = signedIdentityInfo.signed.payload.publicKey;
+      identityKey = PublicKey.from(signedIdentityInfo.signed.payload.publicKey);
       partyKey = identityKey;
     }
 
     // Check the inner message signature.
-    if (Keyring.signingKeys(signedIdentityInfo).find(key => key.equals(identityKey))) {
+    if (!Keyring.signingKeys(signedIdentityInfo).find(key => key.equals(identityKey))) {
       throw new Error(`Invalid IdentityInfo, not signed by Identity key: ${JSON.stringify(signedIdentityInfo)}`);
     }
 
     // Check the target Party matches.
-    if (!partyKey || !partyKey.equals(this._party.publicKey)) {
+    if (!partyKey || !this._party.publicKey.equals(partyKey)) {
       throw new Error(`Invalid party: ${partyKey.toHex()}`);
     }
 

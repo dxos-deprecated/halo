@@ -4,9 +4,10 @@
 
 import assert from 'assert';
 
-import { randomBytes, PublicKey } from '@dxos/crypto';
+import { randomBytes, PublicKey, PublicKeyLike } from '@dxos/crypto';
 
 import { Keyring } from '../keys';
+import { assertValidPublicKey } from '../keys/keyring-helpers';
 import { KeyChain, Message, SignedMessage, PartyCredential, Command, Auth } from '../proto';
 import { WithTypeUrl } from '../proto/any';
 import { KeyRecord } from '../typedefs';
@@ -52,12 +53,13 @@ export const createPartyGenesisMessage = (keyring: Keyring,
  * of an Envelope, also by a key which has already been admitted.
  */
 export const createKeyAdmitMessage = (keyring: Keyring,
-  partyKey: PublicKey,
+  partyKey: PublicKeyLike,
   admitKeyPair: KeyRecord,
   signingKeys: (KeyRecord | KeyChain)[] = [],
   nonce?: Buffer): Message => {
   assert(keyring.hasSecretKey(admitKeyPair));
   assert(typeof admitKeyPair.type !== 'undefined');
+  partyKey = PublicKey.from(partyKey);
 
   const message: WithTypeUrl<PartyCredential> = {
     __type_url: TYPE_URL_PARTY_CREDENTIAL,
@@ -77,10 +79,12 @@ export const createKeyAdmitMessage = (keyring: Keyring,
  * key which has already been admitted (usually by a device identity key).
  */
 export const createFeedAdmitMessage = (keyring: Keyring,
-  partyKey: PublicKey,
+  partyKey: PublicKeyLike,
   feedKeyPair: KeyRecord,
   signingKeys: (KeyRecord | KeyChain)[] = [],
   nonce?: Buffer): Message => {
+  partyKey = PublicKey.from(partyKey);
+
   const message: WithTypeUrl<PartyCredential> = {
     __type_url: TYPE_URL_PARTY_CREDENTIAL,
     type: PartyCredential.Type.FEED_ADMIT,
@@ -101,10 +105,12 @@ export const createFeedAdmitMessage = (keyring: Keyring,
  */
 // TODO(burdon): What is an envelope, distinct from above?
 export const createEnvelopeMessage = (keyring: Keyring,
-  partyKey: PublicKey,
+  partyKey: PublicKeyLike,
   contents: Message,
   signingKeys: (KeyRecord | KeyChain)[] = [],
   nonce?: Buffer): Message => {
+  partyKey = PublicKey.from(partyKey);
+
   const message: WithTypeUrl<PartyCredential> = {
     __type_url: TYPE_URL_PARTY_CREDENTIAL,
     type: PartyCredential.Type.ENVELOPE,
@@ -249,27 +255,28 @@ export const admitsKeys = (message: Message | SignedMessage): PublicKey[] => {
 /**
  * Create a `dxos.credentials.party.PartyInvitation` message.
  * @param {Keyring} keyring
- * @param {PublicKey} partyKey
- * @param {PublicKey} inviteeKey
+ * @param {PublicKeyLike} partyKey
+ * @param {PublicKeyLike} inviteeKey
  * @param {KeyRecord|KeyChain} issuerKey
  * @param {KeyRecord|KeyChain} [signingKey]
  * @returns {Message}
  */
 export const createPartyInvitationMessage = (keyring: Keyring,
-  partyKey: PublicKey,
-  inviteeKey: PublicKey,
+  partyKey: PublicKeyLike,
+  inviteeKey: PublicKeyLike,
   issuerKey: KeyRecord | KeyChain,
   signingKey?: KeyRecord | KeyChain) => {
   assert(keyring);
-  assert(Buffer.isBuffer(partyKey));
-  assert(Buffer.isBuffer(inviteeKey));
-  assert(Buffer.isBuffer(issuerKey.publicKey));
+  assertValidPublicKey(issuerKey.publicKey);
   if (!signingKey) {
     signingKey = issuerKey;
   }
   assert(signingKey);
-  assert(Buffer.isBuffer(signingKey.publicKey));
+  assertValidPublicKey(signingKey.publicKey);
   assert(keyring.hasSecretKey(signingKey));
+
+  partyKey = PublicKey.from(partyKey);
+  inviteeKey = PublicKey.from(inviteeKey);
 
   return {
     __type_url: TYPE_URL_MESSAGE,

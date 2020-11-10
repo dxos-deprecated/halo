@@ -35,10 +35,10 @@ export const createAuthMessage = (
 
   const authMessage: WithTypeUrl<Auth> = {
     __type_url: 'dxos.credentials.auth.Auth',
-    partyKey: partyKey.asBuffer(),
-    identityKey: identityKey.publicKey.asBuffer(),
-    deviceKey: devicePublicKey.asBuffer(),
-    feedKey: feedKey?.publicKey.asBuffer()
+    partyKey: partyKey.asUint8Array(),
+    identityKey: identityKey.publicKey.asUint8Array(),
+    deviceKey: devicePublicKey.asUint8Array(),
+    feedKey: feedKey?.publicKey.asUint8Array()
   };
 
   return wrapMessage(keyring.sign(authMessage, signingKeys, nonce));

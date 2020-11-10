@@ -7,7 +7,7 @@
 import assert from 'assert';
 
 import { expectToThrow } from '@dxos/async';
-import { createKeyPair, keyToString, randomBytes, verify } from '@dxos/crypto';
+import { createKeyPair, keyToString, randomBytes, verify, PublicKey } from '@dxos/crypto';
 
 import { Filter } from './filter';
 import { Keyring } from './keyring';
@@ -62,7 +62,7 @@ test('Add/retrieve single keyRecord from an external source', async () => {
   await keyring.addKeyRecord(external);
 
   const internal = keyring.getKey(external.publicKey);
-  expect(keyToString(internal.publicKey)).toEqual(keyToString(external.publicKey));
+  expect(internal.publicKey).toEqual(PublicKey.from(external.publicKey));
   expect(keyring.hasSecretKey(internal)).toBe(true);
 });
 
@@ -79,7 +79,7 @@ test('Add/retrieve a publicKey from an external source (without secret present)'
   await keyring.addPublicKey(external);
 
   const stored = keyring.getKey(external.publicKey);
-  expect(stored.publicKey).toEqual(external.publicKey);
+  expect(PublicKey.from(external.publicKey)).toEqual(stored.publicKey);
   expect(keyring.hasSecretKey(stored)).toBe(false);
 });
 
@@ -97,7 +97,7 @@ test('Sign and verify a message with a single key', async () => {
     keyring.findKey(Keyring.signingFilter({ type: KeyType.IDENTITY }))
   ]);
   expect(signed.signatures.length).toBe(1);
-  expect(signed.signatures[0].key).toEqual(original.publicKey);
+  expect(PublicKey.from(signed.signatures[0].key)).toEqual(original.publicKey);
 
   const verified = keyring.verify(signed);
   expect(verified).toBe(true);
@@ -116,7 +116,7 @@ test('Sign and verify a message with multiple keys', async () => {
   const signed = keyring.sign({ message: 'Test' }, keys);
   expect(signed.signatures.length).toEqual(keys.length);
 
-  const strKeys = keys.map(key => keyToString(key.publicKey));
+  const strKeys = keys.map(key => key.publicKey.toHex());
   for (const sig of signed.signatures) {
     expect(strKeys).toContain(keyToString(sig.key));
   }
@@ -144,7 +144,7 @@ test('Sign and verify a message using a key chain', async () => {
 
   const signed = keyringA.sign({ message: 'Test' }, [deviceABChain]);
   expect(signed.signatures.length).toBe(1);
-  expect(signed.signatures[0].key).toEqual(deviceAB.publicKey);
+  expect(PublicKey.from(signed.signatures[0].key).toHex()).toEqual(deviceAB.publicKey.toHex());
   expect(signed.signatures[0].keyChain).toBeTruthy();
 
   {
@@ -309,5 +309,5 @@ test('Raw sign', async () => {
   const message = randomBytes();
   const signature = keyring.rawSign(message, key);
 
-  expect(verify(message, signature, key.publicKey)).toBe(true);
+  expect(verify(message, signature, key.publicKey.asBuffer())).toBe(true);
 });

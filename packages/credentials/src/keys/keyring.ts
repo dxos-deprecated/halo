@@ -6,7 +6,7 @@ import assert from 'assert';
 import debug from 'debug';
 import memdown from 'memdown';
 
-import { PublicKey, PublicKeyLike, KeyPair, keyToBuffer, keyToString, sign, verify } from '@dxos/crypto';
+import { PublicKey, PublicKeyLike, KeyPair, keyToBuffer, sign, verify } from '@dxos/crypto';
 
 import { KeyChain, Message, SignedMessage } from '../proto';
 import { KeyRecord, RawSignature } from '../typedefs';
@@ -94,7 +94,7 @@ export class Keyring {
       const { signed, signatures = [] } = message;
       for (const signature of signatures) {
         if (Keyring.validateSignature(signed, signature.signature, Buffer.from(signature.key))) {
-          all.add(keyToString(signature.key));
+          all.add(PublicKey.from(signature.key).toHex());
         }
       }
     }
@@ -139,16 +139,13 @@ export class Keyring {
    */
   static validateSignature (message: any, signature: RawSignature, key: PublicKeyLike): boolean { // eslint-disable-line class-methods-use-this
     assertValidPublicKey(key);
-    key = PublicKey.from(key);
 
     assert(typeof message === 'object' || typeof message === 'string');
     if (typeof message === 'object') {
       message = canonicalStringify(message);
-      console.log(message);
     }
 
-    const messageBuffer = Buffer.from(message);
-    return verify(messageBuffer, Buffer.from(signature), key.asBuffer());
+    return verify(Buffer.from(message), Buffer.from(signature), PublicKey.from(key).asBuffer());
   }
 
   /**
@@ -418,10 +415,10 @@ export class Keyring {
     const keys = this._findFullKeys().map((key) => {
       const copy = { ...key } as any;
       if (copy.publicKey) {
-        copy.publicKey = keyToString(copy.publicKey);
+        copy.publicKey = copy.publicKey.toHex();
       }
       if (copy.secretKey) {
-        copy.secretKey = keyToString(copy.secretKey);
+        copy.secretKey = copy.secretKey.toString('hex');
       }
 
       return copy;
@@ -442,7 +439,7 @@ export class Keyring {
 
     return Promise.all(parsed.keys.map((item: any) => {
       if (item.publicKey) {
-        item.publicKey = keyToBuffer(item.publicKey);
+        item.publicKey = PublicKey.from(item.publicKey);
       }
       if (item.secretKey) {
         item.secretKey = keyToBuffer(item.secretKey);

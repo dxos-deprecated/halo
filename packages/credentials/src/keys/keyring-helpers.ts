@@ -26,9 +26,8 @@ export function isValidPublicKey (key: PublicKeyLike): key is PublicKeyLike {
     PublicKey.from(key);
     return true;
   } catch (e) {}
-  return  false;
+  return false;
 }
-
 
 /**
  * Checks for a valid publicKey Buffer.
@@ -129,7 +128,21 @@ export const canonicalStringify = (obj: any) => {
     // really private fields (indicated by '__') are not included in the signature. In practice, this skips __type_url,
     // and it also gives a mechanism for attaching other attributes to an object without breaking the signature.
     replacer: (key: any, value: any) => {
-      return key.toString().startsWith('__') ? undefined : value;
+      if (key.toString().startsWith('__')) {
+        return undefined;
+      }
+      if (value) {
+        if (PublicKey.isPublicKey(value)) {
+          return value.toHex();
+        }
+        if (Buffer.isBuffer(value)) {
+          return value.toString('hex');
+        }
+        if (value instanceof Uint8Array || (value.data && value.type === 'Buffer')) {
+          return Buffer.from(value).toString('hex');
+        }
+      }
+      return value;
     }
   });
 };
@@ -171,8 +184,6 @@ export const signMessage = (message: any,
 
   // Sign with each key, adding to the signatures list.
   const signatures: SignedMessage.Signature[] = [];
-  const normalized = canonicalStringify(signed);
-  console.log(normalized);
   const buffer = Buffer.from(canonicalStringify(signed));
   keys.forEach(({ publicKey, secretKey }) => {
     // TODO(burdon): Already tested above?
@@ -226,5 +237,5 @@ export const checkAndNormalizeKeyRecord = (keyRecord: Omit<KeyRecord, 'key'>) =>
   return createKeyRecord({
     added: createDateTimeString(),
     ...rest
-  }, { publicKey: publicKey.asBuffer(), secretKey });
+  }, { publicKey: PublicKey.from(publicKey).asBuffer(), secretKey });
 };

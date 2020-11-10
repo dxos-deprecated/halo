@@ -212,7 +212,7 @@ export class Greeter {
     await invitation.handshake();
     return {
       __type_url: 'dxos.credentials.greet.HandshakeResponse',
-      partyKey: invitation.partyKey,
+      partyKey: invitation.partyKey.asUint8Array(),
       nonce: invitation.nonce
     };
   }

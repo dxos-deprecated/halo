@@ -5,7 +5,7 @@
 import assert from 'assert';
 import debug from 'debug';
 
-import { keyToString } from '@dxos/crypto';
+import { keyToString, PublicKey } from '@dxos/crypto';
 
 import { SignedMessage } from '../proto';
 import { Party } from './party';
@@ -53,8 +53,8 @@ export class PartyInvitationManager {
     assert(invitationMessage);
 
     const invitation = this._verifyAndParse(invitationMessage);
-    const idStr = keyToString(invitation.id);
-    const keyStr = keyToString(invitation.inviteeKey);
+    const idStr = invitation.id.toString('hex');
+    const keyStr = invitation.inviteeKey.toHex();
 
     if (this._party.isMemberKey(invitation.inviteeKey)) {
       log(`Invitation ${idStr} is for existing member ${keyStr}`);
@@ -82,11 +82,11 @@ export class PartyInvitationManager {
       throw new Error(`Unverifiable message: ${invitationMessage}`);
     }
 
-    const { id, issuerKey, inviteeKey } = invitationMessage.signed.payload;
-
+    const { id } = invitationMessage.signed.payload;
     assert(Buffer.isBuffer(id));
-    assert(Buffer.isBuffer(issuerKey));
-    assert(Buffer.isBuffer(inviteeKey));
+
+    const issuerKey = PublicKey.from(invitationMessage.signed.payload.issuerKey);
+    const inviteeKey = PublicKey.from(invitationMessage.signed.payload.inviteeKey);
 
     if (!this._party.isMemberKey(issuerKey)) {
       throw new Error(`Invalid issuer: ${invitationMessage}`);
