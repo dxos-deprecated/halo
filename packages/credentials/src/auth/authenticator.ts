@@ -10,7 +10,7 @@ import { keyToString } from '@dxos/crypto';
 
 import { Keyring, KeyType } from '../keys';
 import { isSignedMessage, Party } from '../party';
-import { codec } from '../proto';
+import { codec, Message } from '../proto';
 
 const log = debug('dxos:creds:auth');
 
@@ -28,14 +28,12 @@ export abstract class Authenticator {
   // temporary work around move encapsualtion breaking code from data-client/partitions.js.
   /**
    * @param {Message} credentials
-   * @return {Buffer} encoded result
    */
-  static encodePayload (credentials: any) {
+  static encodePayload (credentials: Message) {
     return codec.encode(credentials);
   }
 
   /**
-   * @param {Buffer} credentials
    */
   static decodePayload (credentials: Buffer) {
     return codec.decode(credentials);

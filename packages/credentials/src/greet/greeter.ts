@@ -25,8 +25,8 @@ import { Invitation, InvitationOnFinish, SecretProvider, SecretValidator } from 
 
 const log = debug('dxos:creds:greet');
 
-export type PartyWriter = (params: Message[]) => Message[];
-export type HintProvider = (params: Message[]) => KeyHint[];
+export type PartyWriter = (params: Message[]) => Promise<Message[]>;
+export type HintProvider = (params: Message[]) => Promise<KeyHint[]>;
 
 /**
  * Reference Greeter that uses useable, single-use "invitations" to authenticate the invitee.

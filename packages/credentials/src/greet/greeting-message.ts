@@ -4,7 +4,7 @@
 
 import assert from 'assert';
 
-import { ClaimResponse, SignedMessage } from '../proto';
+import { ClaimResponse, SignedMessage, Message } from '../proto';
 import { WithTypeUrl } from '../proto/any';
 import { Command } from './constants';
 
@@ -39,7 +39,7 @@ export const createGreetingHandshakeMessage = (secret: Buffer, params = []): Wit
 /**
  * Create a Greeting 'NOTARIZE' command message.
  */
-export const createGreetingNotarizeMessage = (secret: Buffer, credentialMessages: WithTypeUrl<SignedMessage>[]): WithTypeUrl<Command> => {
+export const createGreetingNotarizeMessage = (secret: Buffer, credentialMessages: WithTypeUrl<SignedMessage|Message>[]): WithTypeUrl<Command> => {
   assert(Buffer.isBuffer(secret));
   assert(Array.isArray(credentialMessages));
 

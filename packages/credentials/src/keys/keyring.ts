@@ -47,7 +47,7 @@ export class Keyring {
    * @param exclude Keys which should be excluded from the chain, for example, excluding FEED keys when
    * building up a chain for a DEVICE.
    */
-  static buildKeyChain (publicKey: PublicKeyLike, signedMessageMap: Map<string, Message>, exclude: PublicKey[] = []): KeyChain {
+  static buildKeyChain (publicKey: PublicKeyLike, signedMessageMap: Map<string, Message|SignedMessage>, exclude: PublicKey[] = []): KeyChain {
     publicKey = PublicKey.from(publicKey);
 
     const message = unwrapMessage(signedMessageMap.get(publicKey.toHex()));
@@ -211,7 +211,7 @@ export class Keyring {
    * Adds a keyRecord that must contain a key pair (publicKey/secretKey).
    * @returns A copy of the KeyRecord, without secrets.
    */
-  async addKeyRecord (keyRecord: KeyPair & Omit<KeyRecord, 'key'>) {
+  async addKeyRecord (keyRecord: Omit<KeyRecord, 'key'>) {
     assertValidKeyPair(keyRecord);
 
     return this._addKeyRecord(keyRecord);
