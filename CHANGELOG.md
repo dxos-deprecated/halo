@@ -1,5 +1,12 @@
 # Changelog
 
+### [2.1.11](https://www.github.com/dxos/halo/compare/v2.1.10...v2.1.11) (2020-11-11)
+
+
+### Bug Fixes
+
+* Convert to TypeScript ([2663d54](https://www.github.com/dxos/halo/commit/2663d5440d10d5066cbb7b0a9c9d9d02202dce1e))
+
 ### [2.1.10](https://www.github.com/dxos/halo/compare/v2.1.9...v2.1.10) (2020-10-29)
 
 
