@@ -20,7 +20,7 @@ import {
   signMessage,
   stripSecrets,
   isKeyChain,
-  checkAndNormalizeKeyRecord, isSignedMessage
+  checkAndNormalizeKeyRecord, isSignedMessage, encodeForSigning
 } from './keyring-helpers';
 import { KeyStore } from './keystore';
 import { KeyType } from './keytype';
@@ -140,12 +140,11 @@ export class Keyring {
   static validateSignature (message: any, signature: RawSignature, key: PublicKeyLike): boolean { // eslint-disable-line class-methods-use-this
     assertValidPublicKey(key);
 
-    assert(typeof message === 'object' || typeof message === 'string');
-    if (typeof message === 'object') {
-      message = canonicalStringify(message);
+    if (!Buffer.isBuffer(message)) {
+      message = encodeForSigning(message);
     }
 
-    return verify(Buffer.from(message), Buffer.from(signature), PublicKey.from(key).asBuffer());
+    return verify(message, Buffer.from(signature), PublicKey.from(key).asBuffer());
   }
 
   /**

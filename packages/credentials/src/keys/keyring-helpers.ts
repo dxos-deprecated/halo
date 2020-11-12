@@ -8,15 +8,21 @@
 //
 
 import assert from 'assert';
+import debug from 'debug';
 import stableStringify from 'json-stable-stringify';
 
 import { createKeyPair, KeyPair, randomBytes, sign, PublicKey, PublicKeyLike } from '@dxos/crypto';
 
-import { KeyChain, SignedMessage } from '../proto';
+import { KeyChain, schema, SignedMessage } from '../proto';
 import { WithTypeUrl } from '../proto/any';
 import { createDateTimeString } from '../proto/datetime';
 import { KeyRecord, MakeOptional, SecretKey } from '../typedefs';
 import { KeyType } from './keytype';
+
+const log = debug('dxos:creds:keys'); // eslint-disable-line @typescript-eslint/no-unused-vars
+
+// TODO(telackey): Remove once we have full confidence.
+const VERIFY_ENCODING_FOR_SIGNATURE = true;
 
 /**
  * Checks for a valid publicKey Buffer.
@@ -148,6 +154,19 @@ export const canonicalStringify = (obj: any) => {
 };
 
 /**
+ * Encode the object to bytes suitable for generating a signature.
+ * @param obj
+ */
+export const encodeForSigning = (obj: any): Buffer => {
+  let encoded = tryEncode(obj);
+  if (!encoded) {
+    log('codec not available for object, using canonicalStringify', obj);
+    encoded = Buffer.from(canonicalStringify(obj));
+  }
+  return encoded;
+};
+
+/**
  * Sign the message with the indicated key or keys. The returned signed object will be of the form:
  * {
  *   signed: { ... }, // The message as signed, including timestamp and nonce.
@@ -184,7 +203,7 @@ export const signMessage = (message: any,
 
   // Sign with each key, adding to the signatures list.
   const signatures: SignedMessage.Signature[] = [];
-  const buffer = Buffer.from(canonicalStringify(signed));
+  const buffer = encodeForSigning(signed);
   keys.forEach(({ publicKey, secretKey }) => {
     // TODO(burdon): Already tested above?
     assertValidSecretKey(secretKey);
@@ -207,6 +226,33 @@ export const signMessage = (message: any,
  */
 export const isKeyChain = (key: any = {}): key is KeyChain => {
   return isValidPublicKey(key.publicKey) && key.message && key.message.signed && Array.isArray(key.message.signatures);
+};
+
+/**
+ * Is object `obj` a Message?
+ */
+export const tryEncode = (message: any) => {
+  let result = null;
+  try {
+    let codec;
+    if (message.__type_url) {
+      codec = schema.getCodecForType(message.__type_url);
+    } else if (message.payload && message.nonce && message.created) {
+      codec = schema.getCodecForType('dxos.credentials.SignedMessage.Signed');
+    }
+
+    if (codec) {
+      const encoded = codec.encode(message);
+      if (VERIFY_ENCODING_FOR_SIGNATURE) {
+        const decoded = codec.decode(encoded);
+        if (canonicalStringify(message) !== canonicalStringify(decoded)) {
+          throw new Error('ERROR: decoded object does not match original');
+        }
+      }
+      result = Buffer.from(encoded);
+    }
+  } catch (e) {}
+  return result;
 };
 
 /**
