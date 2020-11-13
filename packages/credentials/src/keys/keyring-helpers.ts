@@ -22,7 +22,7 @@ import { KeyType } from './keytype';
 const log = debug('dxos:creds:keys'); // eslint-disable-line @typescript-eslint/no-unused-vars
 
 // TODO(telackey): Remove once we have full confidence.
-const VERIFY_ENCODING_FOR_SIGNATURE = true;
+const VERIFY_SUCCESSFUL_ENCODING_BEFORE_SIGNING = true;
 
 /**
  * Checks for a valid publicKey Buffer.
@@ -233,8 +233,10 @@ export const isKeyChain = (key: any = {}): key is KeyChain => {
  */
 export const tryEncode = (message: any) => {
   let result = null;
+
   try {
     let codec;
+
     if (message.__type_url) {
       codec = schema.getCodecForType(message.__type_url);
     } else if (message.payload && message.nonce && message.created) {
@@ -243,7 +245,7 @@ export const tryEncode = (message: any) => {
 
     if (codec) {
       const encoded = codec.encode(message);
-      if (VERIFY_ENCODING_FOR_SIGNATURE) {
+      if (VERIFY_SUCCESSFUL_ENCODING_BEFORE_SIGNING) {
         const decoded = codec.decode(encoded);
         if (canonicalStringify(message) !== canonicalStringify(decoded)) {
           throw new Error('ERROR: decoded object does not match original');
@@ -252,6 +254,7 @@ export const tryEncode = (message: any) => {
       result = Buffer.from(encoded);
     }
   } catch (e) {}
+
   return result;
 };
 
