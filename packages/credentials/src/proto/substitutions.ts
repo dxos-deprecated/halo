@@ -1,11 +1,10 @@
-// TODO(marik-d): Workaround to avoid name colisions in generated files.
 //
 // Copyright 2020 DXOS.org
 //
 
 import { Schema as CodecSchema } from '@dxos/codec-protobuf';
 
-import { DecodedAny } from './any';
+import { DecodedAny, KnownAny } from './any';
 
 export default {
   'google.protobuf.Any': {
@@ -17,7 +16,7 @@ export default {
         value: data
       };
     },
-    decode: (value: any, schema: CodecSchema<any>): DecodedAny => {
+    decode: (value: any, schema: CodecSchema<any>): KnownAny => {
       const codec = schema.tryGetCodecForType(value.type_url);
       const data = codec.decode(value.value);
       return {
