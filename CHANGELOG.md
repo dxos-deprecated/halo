@@ -1,5 +1,12 @@
 # Changelog
 
+### [2.1.12](https://www.github.com/dxos/halo/compare/v2.1.11...v2.1.12) (2020-11-17)
+
+
+### Bug Fixes
+
+* replace KeyRecord with protobuf version ([#113](https://www.github.com/dxos/halo/issues/113)) ([d5e1210](https://www.github.com/dxos/halo/commit/d5e1210c719343d94ba933535adfecabf26d1a6e))
+
 ### [2.1.11](https://www.github.com/dxos/halo/compare/v2.1.10...v2.1.11) (2020-11-11)
 
 
