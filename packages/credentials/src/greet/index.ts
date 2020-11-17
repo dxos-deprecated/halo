@@ -2,7 +2,6 @@
 // Copyright 2019 DXOS.org
 //
 
-export * from './constants';
 export * from './greeter';
 export * from './greeting-command-plugin';
 export * from './greeting-message';

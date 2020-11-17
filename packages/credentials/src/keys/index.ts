@@ -3,7 +3,6 @@
 //
 
 export * from './filter';
-export * from './keyrecord';
 export * from './keyring';
 export * from './keystore';
 export * from './keytype';

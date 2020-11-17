@@ -11,7 +11,8 @@ import { randomBytes } from '@dxos/crypto';
 
 import { createGreetingClaimMessage } from '../greet';
 import { PartyInvitationClaimHandler } from '../greet/party-invitation-claim-handler';
-import { Filter, Keyring, KeyType } from '../keys';
+import { Filter, Keyring } from '../keys';
+import { KeyType } from '../proto';
 import { Party } from './party';
 import {
   createKeyAdmitMessage, createPartyGenesisMessage,

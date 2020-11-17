@@ -6,9 +6,9 @@ import assert from 'assert';
 
 import { PublicKey, PublicKeyLike } from '@dxos/crypto';
 
-import { Keyring, KeyRecord } from '../keys';
+import { Keyring } from '../keys';
 import { wrapMessage } from '../party/party-credential';
-import { Auth, KeyChain, Message } from '../proto';
+import { Auth, KeyChain, KeyRecord, Message } from '../proto';
 import { WithTypeUrl } from '../proto/any';
 
 /**

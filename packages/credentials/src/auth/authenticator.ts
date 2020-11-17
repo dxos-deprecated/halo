@@ -8,9 +8,9 @@ import moment from 'moment';
 
 import { keyToString } from '@dxos/crypto';
 
-import { Keyring, KeyType } from '../keys';
+import { Keyring } from '../keys';
 import { isSignedMessage, Party } from '../party';
-import { codec, Message } from '../proto';
+import { codec, KeyType, Message } from '../proto';
 
 const log = debug('dxos:creds:auth');
 

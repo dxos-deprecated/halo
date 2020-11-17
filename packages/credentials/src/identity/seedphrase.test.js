@@ -4,7 +4,8 @@
 
 import { PublicKey } from '@dxos/crypto';
 
-import { Keyring, KeyType } from '../keys';
+import { Keyring } from '../keys';
+import { KeyType } from '../proto';
 import { generateSeedPhrase, keyPairFromSeedPhrase } from './seedphrase';
 
 test('Create cold identity key and recover', async () => {

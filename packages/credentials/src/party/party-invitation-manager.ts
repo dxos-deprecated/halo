@@ -7,8 +7,7 @@ import debug from 'debug';
 
 import { PublicKey } from '@dxos/crypto';
 
-import { KeyRecord } from '../keys';
-import { SignedMessage } from '../proto';
+import { KeyRecord, SignedMessage } from '../proto';
 import { Party } from './party';
 
 const log = debug('dxos:creds:party');

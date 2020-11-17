@@ -12,12 +12,11 @@ import stableStringify from 'json-stable-stringify';
 
 import { createKeyPair, KeyPair, randomBytes, sign, PublicKey, PublicKeyLike } from '@dxos/crypto';
 
-import { KeyChain, SignedMessage } from '../proto';
+import { KeyChain, KeyRecord, KeyType, SignedMessage } from '../proto';
 import { WithTypeUrl } from '../proto/any';
 import { createDateTimeString } from '../proto/datetime';
 import { MakeOptional } from '../typedefs';
-import { KeyRecord } from './keyrecord';
-import { KeyType, SecretKey } from './keytype';
+import { SecretKey } from './keytype';
 
 /**
  * Checks for a valid publicKey Buffer.
@@ -42,7 +41,7 @@ export function assertValidPublicKey (key: PublicKeyLike): asserts key is Public
  * Checks for a valid secretKey Buffer.
  */
 export function assertValidSecretKey (key?: SecretKey): asserts key is SecretKey {
-  assert(key && Buffer.isBuffer(key) && key.length === 64);
+  assert(key && key.length === 64);
 }
 
 /**
@@ -189,8 +188,8 @@ export const signMessage = (message: any,
     // TODO(burdon): Already tested above?
     assertValidSecretKey(secretKey);
     signatures.push({
-      signature: sign(buffer, secretKey),
-      key: publicKey.asBuffer(),
+      signature: sign(buffer, Buffer.from(secretKey)),
+      key: publicKey,
       keyChain: keyChainMap.get(publicKey.toHex())
     });
   });
@@ -237,5 +236,9 @@ export const checkAndNormalizeKeyRecord = (keyRecord: Omit<KeyRecord, 'key'>) =>
   return createKeyRecord({
     added: createDateTimeString(),
     ...rest
-  }, { publicKey: PublicKey.from(publicKey).asBuffer(), secretKey });
+  },
+  {
+    publicKey: PublicKey.from(publicKey).asBuffer(),
+    secretKey: secretKey ? Buffer.from(secretKey) : undefined
+  });
 };

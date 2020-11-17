@@ -4,9 +4,9 @@
 
 import assert from 'assert';
 
-import { Keyring, KeyRecord } from '../keys';
+import { Keyring } from '../keys';
 import { unwrapEnvelopes, extractContents, unwrapMessage, wrapMessage } from '../party/party-credential';
-import { DeviceInfo, IdentityInfo, Message, SignedMessage } from '../proto';
+import { DeviceInfo, IdentityInfo, KeyRecord, Message, SignedMessage } from '../proto';
 import { WithTypeUrl } from '../proto/any';
 
 /**

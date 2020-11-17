@@ -8,9 +8,9 @@ import pump from 'pump';
 import { keyToString, randomBytes } from '@dxos/crypto';
 import { Protocol } from '@dxos/protocol';
 
-import { Keyring, KeyType } from '../keys';
+import { Keyring } from '../keys';
 import { createKeyAdmitMessage } from '../party';
-import { Command } from './constants';
+import { Command, KeyType } from '../proto';
 import { Greeter } from './greeter';
 import { GreetingCommandPlugin } from './greeting-command-plugin';
 

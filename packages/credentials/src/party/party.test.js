@@ -9,8 +9,8 @@ import debug from 'debug';
 import { expectToThrow } from '@dxos/async';
 
 import { createIdentityInfoMessage } from '../identity/identity-message';
-import { Filter, Keyring, KeyType } from '../keys';
-import { validate } from '../proto';
+import { Filter, Keyring } from '../keys';
+import { codecLoop, KeyType } from '../proto';
 import { Party } from './party';
 import {
   createEnvelopeMessage,
@@ -75,7 +75,7 @@ test('Process basic message types', async () => {
       createIdentityInfoMessage(keyring, 'IdentityB', identityKeyB),
       [deviceKeyChain]
     )
-  ].map(validate);
+  ].map(codecLoop);
 
   expect(party.memberKeys.length).toEqual(0);
   expect(party.memberFeeds.length).toEqual(0);
@@ -114,7 +114,7 @@ test('GreetingCommandPlugin envelopes', async () => {
   expect(party.memberKeys.length).toEqual(0);
   expect(party.memberFeeds.length).toEqual(0);
 
-  const genesis = validate(
+  const genesis = codecLoop(
     createPartyGenesisMessage(greeterKeyring,
       greeterKeyring.findKey(Filter.matches({ type: KeyType.PARTY })),
       greeterKeyring.findKeys(Keyring.signingFilter({ type: KeyType.FEED }))[0],
@@ -132,7 +132,7 @@ test('GreetingCommandPlugin envelopes', async () => {
     inviteeKeyring.findKey(Keyring.signingFilter({ type: KeyType.IDENTITY })),
     [inviteeKeyring.findKey(Keyring.signingFilter({ type: KeyType.IDENTITY }))]);
 
-  const envelope = validate(
+  const envelope = codecLoop(
     createEnvelopeMessage(greeterKeyring,
       partyKey,
       pseudo,
@@ -158,7 +158,7 @@ test('Reject message from unknown source', async () => {
       keyring.findKey(Filter.matches({ type: KeyType.PARTY })).publicKey,
       keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE })),
       [alienKey])
-  ].map(validate);
+  ].map(codecLoop);
 
   expect(party.memberKeys.length).toEqual(0);
   expect(party.memberFeeds.length).toEqual(0);
@@ -184,7 +184,7 @@ test('Message signed by known and unknown key should not admit unknown key', asy
       keyring.findKey(Filter.matches({ type: KeyType.PARTY })).publicKey,
       keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE })),
       [alienKey, keyring.findKey(Keyring.signingFilter({ type: KeyType.IDENTITY }))])
-  ].map(validate);
+  ].map(codecLoop);
 
   expect(party.memberKeys.length).toEqual(0);
   expect(party.memberFeeds.length).toEqual(0);
@@ -208,7 +208,7 @@ test('Reject Genesis not signed by Party key', async () => {
       keyring.findKeys(Keyring.signingFilter({ type: KeyType.FEED }))[0],
       keyring.findKey(Keyring.signingFilter({ type: KeyType.IDENTITY }))
     )
-  ].map(validate);
+  ].map(codecLoop);
 
   expect(party.memberKeys.length).toEqual(0);
   expect(party.memberFeeds.length).toEqual(0);
@@ -231,7 +231,7 @@ test('Reject admit key message with wrong Party', async () => {
       keyring.findKeys(Keyring.signingFilter({ type: KeyType.FEED }))[0],
       keyring.findKey(Keyring.signingFilter({ type: KeyType.IDENTITY }))
     )
-  ].map(validate);
+  ].map(codecLoop);
 
   expect(party.memberKeys.length).toEqual(0);
   expect(party.memberFeeds.length).toEqual(0);
@@ -247,7 +247,7 @@ test('Reject admit key message with wrong Party', async () => {
       keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE })),
       [keyring.findKey(Keyring.signingFilter({ type: KeyType.IDENTITY }))]
     )
-  ].map(validate);
+  ].map(codecLoop);
 
   await expectToThrow(() => party.processMessages(messages));
 
@@ -268,7 +268,7 @@ test('Reject admit feed message with wrong Party', async () => {
       keyring.findKeys(Keyring.signingFilter({ type: KeyType.FEED }))[0],
       keyring.findKey(Keyring.signingFilter({ type: KeyType.IDENTITY }))
     )
-  ].map(validate);
+  ].map(codecLoop);
 
   expect(party.memberKeys.length).toEqual(0);
   expect(party.memberFeeds.length).toEqual(0);
@@ -284,7 +284,7 @@ test('Reject admit feed message with wrong Party', async () => {
       keyring.findKeys(Keyring.signingFilter({ type: KeyType.FEED }))[1],
       [keyring.findKey(Keyring.signingFilter({ type: KeyType.IDENTITY }))]
     )
-  ].map(validate);
+  ].map(codecLoop);
 
   await expectToThrow(() => party.processMessages(messages));
 
@@ -303,7 +303,7 @@ test('Reject tampered Genesis message', async () => {
       keyring.findKeys(Keyring.signingFilter({ type: KeyType.FEED }))[0],
       keyring.findKey(Keyring.signingFilter({ type: KeyType.IDENTITY }))
     )
-  ].map(validate);
+  ].map(codecLoop);
 
   messages[0].payload.signed.nonce = Buffer.from('wrong');
 
@@ -328,7 +328,7 @@ test('Reject tampered admit feed message', async () => {
       keyring.findKeys(Keyring.signingFilter({ type: KeyType.FEED }))[0],
       keyring.findKey(Keyring.signingFilter({ type: KeyType.IDENTITY }))
     )
-  ].map(validate);
+  ].map(codecLoop);
 
   expect(party.memberKeys.length).toEqual(0);
   expect(party.memberFeeds.length).toEqual(0);
@@ -344,7 +344,7 @@ test('Reject tampered admit feed message', async () => {
       keyring.findKeys(Keyring.signingFilter({ type: KeyType.FEED }))[1],
       [keyring.findKey(Keyring.signingFilter({ type: KeyType.IDENTITY }))]
     )
-  ].map(validate);
+  ].map(codecLoop);
 
   messages[0].payload.signed.nonce = Buffer.from('wrong');
 
@@ -364,7 +364,7 @@ test('Reject tampered admit key message', async () => {
       keyring.findKey(Filter.matches({ type: KeyType.PARTY })),
       keyring.findKeys(Keyring.signingFilter({ type: KeyType.FEED }))[0],
       keyring.findKey(Keyring.signingFilter({ type: KeyType.IDENTITY })))
-  ].map(validate);
+  ].map(codecLoop);
 
   expect(party.memberKeys.length).toEqual(0);
   expect(party.memberFeeds.length).toEqual(0);
@@ -379,7 +379,7 @@ test('Reject tampered admit key message', async () => {
       keyring.findKey(Filter.matches({ type: KeyType.PARTY })).publicKey,
       keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE })),
       [keyring.findKey(Keyring.signingFilter({ type: KeyType.IDENTITY }))])
-  ].map(validate);
+  ].map(codecLoop);
 
   messages[0].payload.signed.nonce = Buffer.from('wrong');
 

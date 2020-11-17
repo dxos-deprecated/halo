@@ -16,8 +16,8 @@ import { FeedStore } from '@dxos/feed-store';
 import { Protocol } from '@dxos/protocol';
 import { Replicator } from '@dxos/protocol-plugin-replicator';
 
-import { Keyring, KeyType } from '../keys';
-import { codec } from '../proto';
+import { Keyring } from '../keys';
+import { codec, KeyType } from '../proto';
 import { AuthPlugin } from './auth-plugin';
 import { Authenticator } from './authenticator';
 

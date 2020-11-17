@@ -9,9 +9,9 @@ import assert from 'assert';
 import { expectToThrow } from '@dxos/async';
 import { createKeyPair, keyToString, randomBytes, verify, PublicKey } from '@dxos/crypto';
 
+import { KeyType } from '../proto';
 import { Filter } from './filter';
 import { Keyring } from './keyring';
-import { KeyType } from './keytype';
 
 test('Generate keys', async () => {
   const keyring = new Keyring();
@@ -118,7 +118,7 @@ test('Sign and verify a message with multiple keys', async () => {
 
   const strKeys = keys.map(key => key.publicKey.toHex());
   for (const sig of signed.signatures) {
-    expect(strKeys).toContain(keyToString(sig.key));
+    expect(strKeys).toContain(sig.key.toHex());
   }
 
   const verified = keyring.verify(signed);

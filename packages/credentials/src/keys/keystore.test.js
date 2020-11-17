@@ -6,10 +6,10 @@
 
 import memdown from 'memdown';
 
+import { KeyType } from '../proto';
 import { Keyring } from './keyring';
 import { createKeyRecord, stripSecrets } from './keyring-helpers';
 import { KeyStore } from './keystore';
-import { KeyType } from './keytype';
 
 test('Basic store operations', async () => {
   const keystore = new KeyStore();

@@ -8,10 +8,9 @@ import memdown from 'memdown';
 
 import { PublicKey, PublicKeyLike, KeyPair, keyToBuffer, sign, verify } from '@dxos/crypto';
 
-import { KeyChain, Message, SignedMessage } from '../proto';
+import { KeyChain, KeyRecord, KeyType, Message, SignedMessage } from '../proto';
 import { RawSignature } from '../typedefs';
 import { Filter, FilterFuntion } from './filter';
-import { KeyRecord } from './keyrecord';
 import {
   canonicalStringify,
   createKeyRecord,
@@ -24,7 +23,6 @@ import {
   checkAndNormalizeKeyRecord, isSignedMessage
 } from './keyring-helpers';
 import { KeyStore } from './keystore';
-import { KeyType } from './keytype';
 
 const log = debug('dxos:creds:keys'); // eslint-disable-line @typescript-eslint/no-unused-vars
 
@@ -57,7 +55,7 @@ export class Keyring {
     }
 
     const chain: KeyChain = {
-      publicKey: publicKey.asUint8Array(),
+      publicKey,
       message,
       parents: []
     };
@@ -94,7 +92,7 @@ export class Keyring {
     if (isSignedMessage(message)) {
       const { signed, signatures = [] } = message;
       for (const signature of signatures) {
-        if (Keyring.validateSignature(signed, signature.signature, Buffer.from(signature.key))) {
+        if (Keyring.validateSignature(signed, signature.signature, signature.key.asBuffer())) {
           all.add(PublicKey.from(signature.key).toHex());
         }
       }
@@ -126,7 +124,7 @@ export class Keyring {
     const { signed, signatures } = message;
 
     for (const sig of signatures) {
-      if (!Keyring.validateSignature(signed, sig.signature, Buffer.from(sig.key))) {
+      if (!Keyring.validateSignature(signed, sig.signature, sig.key)) {
         return false;
       }
     }
@@ -532,7 +530,7 @@ export class Keyring {
     for (const signatureInformation of signatures) {
       const { key, keyChain } = signatureInformation;
 
-      const keyRecord = this.getKey(Buffer.from(key));
+      const keyRecord = this.getKey(key);
       if (keyRecord && keyRecord.trusted) {
         // The simple case is that we already trust this key.
         trustedSignatures++;
@@ -568,7 +566,7 @@ export class Keyring {
         throw new Error('Message not signed by indicated key.');
       }
 
-      const key = this.getKey(Buffer.from(chain.publicKey));
+      const key = this.getKey(chain.publicKey);
       messages.push(chain.message);
 
       // Do we have the key?

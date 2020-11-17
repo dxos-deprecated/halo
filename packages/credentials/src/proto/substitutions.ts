@@ -5,7 +5,7 @@
 import { Schema as CodecSchema } from '@dxos/codec-protobuf';
 import { PublicKey } from '@dxos/crypto';
 
-import { KeyRecord } from '../keys/keyrecord';
+import { SecretKey } from '../keys';
 import { DecodedAny, KnownAny } from './any';
 
 export default {
@@ -27,19 +27,12 @@ export default {
       };
     }
   },
-  'dxos.credentials.keys.Key': {
-    encode: (value: KeyRecord) => {
-      return {
-        ...value,
-        publicKey: PublicKey.from(value.publicKey).asUint8Array()
-      };
-    },
-    decode: (value: any): KeyRecord => {
-      return {
-        ...value,
-        publicKey: PublicKey.from(value.publicKey),
-        secretKey: value.secretKey ? Buffer.from(value.secretKey) : undefined
-      };
-    }
+  'dxos.credentials.keys.PubKey': {
+    encode: (value: PublicKey) => ({ data: value.asUint8Array() }),
+    decode: (value: any) => PublicKey.from(value.data)
+  },
+  'dxos.credentials.keys.PrivKey': {
+    encode: (value: SecretKey) => ({ data: value }),
+    decode: (value: any) => Buffer.from(value.data)
   }
 };

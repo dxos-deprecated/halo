@@ -10,9 +10,9 @@ import { PublicKey, PublicKeyLike, discoveryKey } from '@dxos/crypto';
 
 import { isIdentityMessage } from '../identity/identity-message';
 import { IdentityMessageProcessor } from '../identity/identity-message-processor';
-import { KeyType, Keyring, keyTypeName, KeyRecord } from '../keys';
+import { Keyring, keyTypeName } from '../keys';
 import { assertValidPublicKey } from '../keys/keyring-helpers';
-import { Message, KeyChain, PartyCredential, SignedMessage, KeyHint } from '../proto';
+import { Message, KeyChain, KeyHint, KeyRecord, KeyType, PartyCredential, SignedMessage } from '../proto';
 import { isEnvelope, isPartyInvitationMessage, isSignedMessage } from './party-credential';
 import { PartyInvitationManager } from './party-invitation-manager';
 
