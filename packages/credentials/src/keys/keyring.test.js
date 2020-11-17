@@ -9,7 +9,7 @@ import assert from 'assert';
 import { expectToThrow } from '@dxos/async';
 import { createKeyPair, keyToString, randomBytes, verify, PublicKey } from '@dxos/crypto';
 
-import { KeyType } from '../proto';
+import { KeyType, schema } from '../proto';
 import { Filter } from './filter';
 import { Keyring } from './keyring';
 
@@ -17,15 +17,19 @@ test('Generate keys', async () => {
   const keyring = new Keyring();
 
   const byType = new Map();
-  for await (const type of Object.keys(KeyType)) {
-    const keyRecord = await keyring.createKeyRecord({ type: KeyType[type] });
-    byType.set(type, keyRecord);
+  for await (const type of Object.values(KeyType)) {
+    if (typeof type === 'string') {
+      const keyRecord = await keyring.createKeyRecord({ type: KeyType[type] });
+      byType.set(type, keyRecord);
+    }
   }
 
-  for (const type of Object.keys(KeyType)) {
-    const match = keyring.findKey(Filter.matches({ type: KeyType[type] }));
-    expect(match.publicKey).toEqual(byType.get(type).publicKey);
-    expect(keyring.hasSecretKey(match)).toBe(true);
+  for (const type of Object.values(KeyType)) {
+    if (typeof type === 'string') {
+      const match = keyring.findKey(Filter.matches({ type: KeyType[type] }));
+      expect(match.publicKey).toEqual(byType.get(type).publicKey);
+      expect(keyring.hasSecretKey(match)).toBe(true);
+    }
   }
 });
 
@@ -291,8 +295,10 @@ test('Tamper with the signature key of a signed message', async () => {
 
 test('To/from JSON', async () => {
   const original = new Keyring();
-  for (const type of Object.keys(KeyType)) {
-    await original.createKeyRecord({ type: KeyType[type] });
+  for (const type of Object.values(KeyType)) {
+    if (typeof type === 'string') {
+      await original.createKeyRecord({ type: KeyType[type] });
+    }
   }
 
   const copy = new Keyring();
@@ -310,4 +316,22 @@ test('Raw sign', async () => {
   const signature = keyring.rawSign(message, key);
 
   expect(verify(message, signature, key.publicKey.asBuffer())).toBe(true);
+});
+
+test('To/from Protobuf', async () => {
+  const original = new Keyring();
+  for (const type of Object.values(KeyType)) {
+    if (typeof type === 'string') {
+      await original.createKeyRecord({ type: KeyType[type] });
+    }
+  }
+
+  const copy = new Keyring();
+  const codec = schema.getCodecForType('dxos.credentials.keys.KeyRecordList');
+  const bytes = codec.encode(original.export());
+  const decoded = codec.decode(bytes);
+  await copy.import(decoded);
+
+  expect(original.toJSON()).toEqual(copy.toJSON());
+  expect(copy.keys).toEqual(original.keys);
 });

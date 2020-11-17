@@ -8,7 +8,7 @@ import memdown from 'memdown';
 
 import { PublicKey, PublicKeyLike, KeyPair, keyToBuffer, sign, verify } from '@dxos/crypto';
 
-import { KeyChain, KeyRecord, KeyType, Message, SignedMessage } from '../proto';
+import { KeyChain, KeyRecord, KeyRecordList, KeyType, Message, SignedMessage } from '../proto';
 import { RawSignature } from '../typedefs';
 import { Filter, FilterFuntion } from './filter';
 import {
@@ -424,7 +424,7 @@ export class Keyring {
     });
 
     return canonicalStringify({
-      __type_url: 'dxos.credentials.keys.Keyring',
+      __type_url: 'dxos.credentials.keys.KeyRecordList',
       keys
     });
   }
@@ -450,6 +450,28 @@ export class Keyring {
         return this.addPublicKey(item);
       }
     }));
+  }
+
+  /**
+   * Export the Keyring contents.
+   */
+  export () {
+    return { keys: this._findFullKeys() };
+  }
+
+  /**
+   * Import KeyRecords into the KeyRing.
+   * @param records
+   */
+  async import (records: KeyRecordList) {
+    const { keys = [] } = records;
+    for (const keyRecord of keys) {
+      if (keyRecord.secretKey) {
+        await this.addKeyRecord(keyRecord);
+      } else {
+        await this.addPublicKey(keyRecord);
+      }
+    }
   }
 
   /**

@@ -28,7 +28,7 @@ export const createDeviceInfoMessage = (keyring: Keyring, displayName: string, d
 
   const message: WithTypeUrl<DeviceInfo> = {
     __type_url: 'dxos.credentials.identity.DeviceInfo',
-    publicKey: deviceKey.publicKey.asUint8Array(),
+    publicKey: deviceKey.publicKey,
     displayName
   };
 
@@ -45,7 +45,7 @@ export const createIdentityInfoMessage = (keyring: Keyring, displayName: string,
 
   const message: WithTypeUrl<IdentityInfo> = {
     __type_url: 'dxos.credentials.identity.IdentityInfo',
-    publicKey: identityKey.publicKey.asUint8Array(),
+    publicKey: identityKey.publicKey,
     displayName
   };
 

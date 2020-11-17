@@ -25,8 +25,10 @@ const log = debug('dxos:creds:party:test');
 const createPartyKeyrings = async () => {
   // This Keyring has all the keypairs, so it is the initial source of things.
   const keyring = new Keyring();
-  for (const type of Object.keys(KeyType)) {
-    await keyring.createKeyRecord({ type: KeyType[type] });
+  for (const type of Object.values(KeyType)) {
+    if (typeof type === 'string') {
+      await keyring.createKeyRecord({ type: KeyType[type] });
+    }
   }
 
   const partyKey = keyring.findKey(Filter.matches({ type: KeyType.PARTY }));

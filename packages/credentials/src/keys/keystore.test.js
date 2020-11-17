@@ -16,10 +16,12 @@ test('Basic store operations', async () => {
   const keyRecords = [];
 
   // Create and store some keys.
-  for await (const type of Object.keys(KeyType)) {
-    const keyRecord = createKeyRecord({ type: KeyType[type] });
-    keyRecords.push(keyRecord);
-    await keystore.setRecord(keyRecord.publicKey.toHex(), keyRecord);
+  for await (const type of Object.values(KeyType)) {
+    if (typeof type === 'string') {
+      const keyRecord = createKeyRecord({ type: KeyType[type] });
+      keyRecords.push(keyRecord);
+      await keystore.setRecord(keyRecord.publicKey.toHex(), keyRecord);
+    }
   }
 
   // Do we have all the records?
@@ -60,9 +62,11 @@ test('Test reloading', async () => {
     const keyring = new Keyring(keystore);
 
     // Create and store some keys.
-    for await (const type of Object.keys(KeyType)) {
-      const keyRecord = await keyring.createKeyRecord({ type: KeyType[type] });
-      keyRecords.push(keyring.getKey(keyRecord.publicKey));
+    for await (const type of Object.values(KeyType)) {
+      if (typeof type === 'string') {
+        const keyRecord = await keyring.createKeyRecord({ type: KeyType[type] });
+        keyRecords.push(keyring.getKey(keyRecord.publicKey));
+      }
     }
 
     // Do we have all the records?

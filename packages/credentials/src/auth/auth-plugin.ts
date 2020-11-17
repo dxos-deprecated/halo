@@ -114,7 +114,7 @@ export class AuthPlugin extends EventEmitter {
 
     // The peerId in the normal session info should match that in the signed credentials.
     const { payload: { deviceKey: credsPeerId } } = payload?.signed || {};
-    if (!sessionPeerId || !credsPeerId || keyToString(sessionPeerId) !== keyToString(credsPeerId)) {
+    if (!sessionPeerId || !credsPeerId || !credsPeerId.equals(sessionPeerId)) {
       protocol.stream.destroy();
       throw new ERR_EXTENSION_RESPONSE_FAILED(ERR_AUTH_REJECTED, 'Authentication rejected: bad peerId.');
     }
@@ -132,9 +132,9 @@ export class AuthPlugin extends EventEmitter {
     }
 
     // Success!
-    log(`Authenticated peer: ${keyToString(credsPeerId)}`);
+    log(`Authenticated peer: ${credsPeerId.toHex()}`);
     // TODO(dboreham): should this be a callback rather than an event, or communicated some other way to
     //   code that needs to know about auth success events?
-    this.emit('authenticated', credsPeerId);
+    this.emit('authenticated', credsPeerId.asBuffer());
   }
 }

@@ -25,7 +25,6 @@ export const createAuthMessage = (
   assert(keyring);
 
   partyKey = PublicKey.from(partyKey);
-  const devicePublicKey = PublicKey.from(deviceKey.publicKey);
 
   const signingKeys = [deviceKey];
   if (feedKey) {
@@ -34,10 +33,10 @@ export const createAuthMessage = (
 
   const authMessage: WithTypeUrl<Auth> = {
     __type_url: 'dxos.credentials.auth.Auth',
-    partyKey: partyKey.asUint8Array(),
-    identityKey: identityKey.publicKey.asUint8Array(),
-    deviceKey: devicePublicKey.asUint8Array(),
-    feedKey: feedKey?.publicKey.asUint8Array()
+    partyKey,
+    identityKey: identityKey.publicKey,
+    deviceKey: deviceKey.publicKey,
+    feedKey: feedKey?.publicKey
   };
 
   return wrapMessage(keyring.sign(authMessage, signingKeys, nonce));
