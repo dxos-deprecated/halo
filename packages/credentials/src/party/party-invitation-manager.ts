@@ -7,6 +7,7 @@ import debug from 'debug';
 
 import { PublicKey } from '@dxos/crypto';
 
+import { KeyRecord } from '../keys';
 import { SignedMessage } from '../proto';
 import { Party } from './party';
 
@@ -25,16 +26,16 @@ export class PartyInvitationManager {
     assert(party);
 
     this._party = party;
-    this._activeInvitations = new Map();
-    this._invitationsByKey = new Map();
+    this._activeInvitations = new Map<string, SignedMessage>();
+    this._invitationsByKey = new Map<string, Set<string>>();
 
-    this._party.on('admit:key', (keyRecord) => {
-      const byKey = this._invitationsByKey.get(keyRecord.key) || new Set();
+    this._party.on('admit:key', (keyRecord: KeyRecord) => {
+      const byKey = this._invitationsByKey.get(keyRecord.publicKey.toHex()) || new Set();
       for (const idStr of byKey) {
-        log(`${keyRecord.key} admitted, deactivating Invitation ${idStr}.`);
+        log(`${keyRecord.publicKey.toHex()} admitted, deactivating Invitation ${idStr}.`);
         this._activeInvitations.delete(idStr);
       }
-      this._invitationsByKey.delete(keyRecord.key);
+      this._invitationsByKey.delete(keyRecord.publicKey.toHex());
     });
   }
 

@@ -9,8 +9,9 @@ import memdown from 'memdown';
 import { PublicKey, PublicKeyLike, KeyPair, keyToBuffer, sign, verify } from '@dxos/crypto';
 
 import { KeyChain, Message, SignedMessage } from '../proto';
-import { KeyRecord, RawSignature } from '../typedefs';
+import { RawSignature } from '../typedefs';
 import { Filter, FilterFuntion } from './filter';
+import { KeyRecord } from './keyrecord';
 import {
   canonicalStringify,
   createKeyRecord,
@@ -246,8 +247,8 @@ export class Keyring {
       }
     }
 
-    await this._keystore.setRecord(copy.key, copy);
-    this._cache.set(copy.key, copy);
+    await this._keystore.setRecord(copy.publicKey.toHex(), copy);
+    this._cache.set(copy.publicKey.toHex(), copy);
 
     return stripSecrets(copy);
   }
@@ -269,7 +270,7 @@ export class Keyring {
       }
     }
 
-    this._cache.set(copy.key, copy);
+    this._cache.set(copy.publicKey.toHex(), copy);
 
     return stripSecrets(copy);
   }
@@ -310,8 +311,8 @@ export class Keyring {
     const existing = this._getFullKey(keyRecord.publicKey);
     if (existing) {
       const cleaned = stripSecrets(existing);
-      await this._keystore.setRecord(cleaned.key, cleaned);
-      this._cache.set(cleaned.key, cleaned);
+      await this._keystore.setRecord(cleaned.publicKey.toHex(), cleaned);
+      this._cache.set(cleaned.publicKey.toHex(), cleaned);
     }
   }
 
@@ -354,7 +355,7 @@ export class Keyring {
     assertValidPublicKey(publicKey);
     publicKey = PublicKey.from(publicKey);
 
-    return this._findFullKey(Filter.matches({ key: publicKey.toHex() }));
+    return this._findFullKey(Filter.hasKey('publicKey', publicKey));
   }
 
   /**
@@ -486,7 +487,7 @@ export class Keyring {
       assertValidKeyPair(fullKey);
       fullKeys.push(fullKey);
       if (isKeyChain(key)) {
-        chains.set(fullKey.key, key);
+        chains.set(fullKey.publicKey.toHex(), key);
       }
     });
 

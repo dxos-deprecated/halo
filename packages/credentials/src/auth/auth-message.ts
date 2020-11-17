@@ -6,11 +6,10 @@ import assert from 'assert';
 
 import { PublicKey, PublicKeyLike } from '@dxos/crypto';
 
-import { Keyring } from '../keys';
+import { Keyring, KeyRecord } from '../keys';
 import { wrapMessage } from '../party/party-credential';
 import { Auth, KeyChain, Message } from '../proto';
 import { WithTypeUrl } from '../proto/any';
-import { KeyRecord } from '../typedefs';
 
 /**
  * Create `dxos.credentials.auth.Auth` credentials.

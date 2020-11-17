@@ -6,11 +6,10 @@ import assert from 'assert';
 
 import { randomBytes, PublicKey, PublicKeyLike } from '@dxos/crypto';
 
-import { Keyring } from '../keys';
+import { Keyring, KeyRecord } from '../keys';
 import { assertValidPublicKey } from '../keys/keyring-helpers';
 import { KeyChain, Message, SignedMessage, PartyCredential, Command, Auth } from '../proto';
 import { WithTypeUrl } from '../proto/any';
-import { KeyRecord } from '../typedefs';
 
 export const TYPE_URL_MESSAGE = 'dxos.credentials.Message';
 export const TYPE_URL_SIGNED_MESSAGE = 'dxos.credentials.SignedMessage';

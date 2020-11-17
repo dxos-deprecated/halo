@@ -136,9 +136,9 @@ test('Sign and verify a message using a key chain', async () => {
   await keyringB.addPublicKey(identityA);
 
   const keyMessages = new Map();
-  keyMessages.set(identityA.key, keyringA.sign({ message: 'Test' }, [identityA]));
-  keyMessages.set(deviceAA.key, keyringA.sign({ message: 'Test' }, [identityA, deviceAA]));
-  keyMessages.set(deviceAB.key, keyringA.sign({ message: 'Test' }, [deviceAB, deviceAA]));
+  keyMessages.set(identityA.publicKey.toHex(), keyringA.sign({ message: 'Test' }, [identityA]));
+  keyMessages.set(deviceAA.publicKey.toHex(), keyringA.sign({ message: 'Test' }, [identityA, deviceAA]));
+  keyMessages.set(deviceAB.publicKey.toHex(), keyringA.sign({ message: 'Test' }, [deviceAB, deviceAA]));
 
   const deviceABChain = Keyring.buildKeyChain(deviceAB.publicKey, keyMessages);
 

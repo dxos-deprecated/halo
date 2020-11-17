@@ -94,7 +94,7 @@ export class IdentityMessageProcessor extends EventEmitter {
       // If this message has an Envelope, the Envelope must match this Party.
       signedIdentityInfo = message.signed.payload.envelope.message.payload;
       identityKey = PublicKey.from(signedIdentityInfo.signed.payload.publicKey);
-      partyKey = PublicKey.from(message.signed.payload.envelope.partyKey);
+      partyKey = message.signed.payload.envelope.partyKey;
 
       assert(isSignedMessage(signedIdentityInfo));
       assert(message.signatures);

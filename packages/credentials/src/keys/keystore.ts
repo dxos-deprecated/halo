@@ -12,7 +12,7 @@ import toArray from 'stream-to-array';
 
 import { PublicKey } from '@dxos/crypto';
 
-import { KeyRecord } from '../typedefs';
+import { KeyRecord } from './keyrecord';
 
 const log = debug('dxos:creds:keys:keystore'); // eslint-disable-line @typescript-eslint/no-unused-vars
 

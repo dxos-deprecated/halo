@@ -15,8 +15,9 @@ import { createKeyPair, KeyPair, randomBytes, sign, PublicKey, PublicKeyLike } f
 import { KeyChain, SignedMessage } from '../proto';
 import { WithTypeUrl } from '../proto/any';
 import { createDateTimeString } from '../proto/datetime';
-import { KeyRecord, MakeOptional, SecretKey } from '../typedefs';
-import { KeyType } from './keytype';
+import { MakeOptional } from '../typedefs';
+import { KeyRecord } from './keyrecord';
+import { KeyType, SecretKey } from './keytype';
 
 /**
  * Checks for a valid publicKey Buffer.
@@ -112,7 +113,6 @@ export const createKeyRecord = (attributes: Partial<KeyRecord> = {},
     // Overrides the defaults above.
     ...attributes,
 
-    key: publicKey.toHex(),
     publicKey,
     secretKey
   };

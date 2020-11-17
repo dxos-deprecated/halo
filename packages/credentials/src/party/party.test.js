@@ -53,9 +53,9 @@ test('Process basic message types', async () => {
   {
     const haloMessages = new Map();
     const haloGenesis = createPartyGenesisMessage(keyring, identityKeyB, haloFeedKey, deviceKey);
-    haloMessages.set(identityKeyB.key, haloGenesis);
-    haloMessages.set(haloFeedKey.key, haloGenesis);
-    haloMessages.set(deviceKey.key, haloGenesis);
+    haloMessages.set(identityKeyB.publicKey.toHex(), haloGenesis);
+    haloMessages.set(haloFeedKey.publicKey.toHex(), haloGenesis);
+    haloMessages.set(deviceKey.publicKey.toHex(), haloGenesis);
     deviceKeyChain = Keyring.buildKeyChain(deviceKey.publicKey, haloMessages, [haloFeedKey.publicKey]);
   }
 
@@ -92,15 +92,15 @@ test('Process basic message types', async () => {
   expect(party.memberFeeds).toContainEqual(feedKeyB.publicKey);
 
   expect(party.credentialMessages.size).toBe(4);
-  expect(party.credentialMessages.has(identityKeyA.key)).toBe(true);
-  expect(party.credentialMessages.has(identityKeyB.key)).toBe(true);
-  expect(party.credentialMessages.has(feedKeyA.key)).toBe(true);
-  expect(party.credentialMessages.has(deviceKey.key)).toBe(false);
+  expect(party.credentialMessages.has(identityKeyA.publicKey.toHex())).toBe(true);
+  expect(party.credentialMessages.has(identityKeyB.publicKey.toHex())).toBe(true);
+  expect(party.credentialMessages.has(feedKeyA.publicKey.toHex())).toBe(true);
+  expect(party.credentialMessages.has(deviceKey.publicKey.toHex())).toBe(false);
 
   expect(party.infoMessages.size).toBe(1);
   // We did not write and IdentityInfo message for IdentityA.
-  expect(party.infoMessages.has(identityKeyA.key)).toBe(false);
-  expect(party.infoMessages.has(identityKeyB.key)).toBe(true);
+  expect(party.infoMessages.has(identityKeyA.publicKey.toHex())).toBe(false);
+  expect(party.infoMessages.has(identityKeyB.publicKey.toHex())).toBe(true);
 
   const identityInfo = party.getInfo(identityKeyB.publicKey);
   expect(identityInfo.displayName).toEqual('IdentityB');

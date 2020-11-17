@@ -4,11 +4,10 @@
 
 import assert from 'assert';
 
-import { Keyring } from '../keys';
+import { Keyring, KeyRecord } from '../keys';
 import { unwrapEnvelopes, extractContents, unwrapMessage, wrapMessage } from '../party/party-credential';
 import { DeviceInfo, IdentityInfo, Message, SignedMessage } from '../proto';
 import { WithTypeUrl } from '../proto/any';
-import { KeyRecord } from '../typedefs';
 
 /**
  * Return the __type_url, if present.
