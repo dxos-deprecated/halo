@@ -5,7 +5,7 @@
 import { KeyType } from '../proto/gen/dxos/credentials/keys';
 
 export type SecretKey = Buffer;
-export type DiscoveryKey = Uint8Array;
+export type DiscoveryKey = Buffer;
 
 export const keyTypeName = (keyType: KeyType) => {
   return KeyType[keyType];
