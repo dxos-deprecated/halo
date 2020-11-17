@@ -10,10 +10,9 @@ import { PublicKey, PublicKeyLike, discoveryKey } from '@dxos/crypto';
 
 import { isIdentityMessage } from '../identity/identity-message';
 import { IdentityMessageProcessor } from '../identity/identity-message-processor';
-import { KeyType, Keyring, keyTypeName } from '../keys';
+import { Keyring, keyTypeName } from '../keys';
 import { assertValidPublicKey } from '../keys/keyring-helpers';
-import { Message, KeyChain, PartyCredential, SignedMessage, KeyHint } from '../proto';
-import { KeyRecord } from '../typedefs';
+import { Message, KeyChain, KeyHint, KeyRecord, KeyType, PartyCredential, SignedMessage } from '../proto';
 import { isEnvelope, isPartyInvitationMessage, isSignedMessage } from './party-credential';
 import { PartyInvitationManager } from './party-invitation-manager';
 
@@ -310,12 +309,12 @@ export class Party extends EventEmitter {
     switch (message.signed.payload.type) {
       case PartyCredential.Type.PARTY_GENESIS: {
         const { admitKey, feedKey } = await this._processGenesisMessage(message);
-        this._credentialMessages.set(admitKey.key, original);
-        this._credentialMessages.set(feedKey.key, original);
+        this._credentialMessages.set(admitKey.publicKey.toHex(), original);
+        this._credentialMessages.set(feedKey.publicKey.toHex(), original);
 
         // There is no question of who is admitting on the GENESIS.
-        this._admittedBy.set(admitKey.key, this._publicKey);
-        this._admittedBy.set(feedKey.key, this._publicKey);
+        this._admittedBy.set(admitKey.publicKey.toHex(), this._publicKey);
+        this._admittedBy.set(feedKey.publicKey.toHex(), this._publicKey);
 
         this.emit('admit:key', admitKey);
         this.emit('admit:feed', feedKey);
@@ -324,12 +323,12 @@ export class Party extends EventEmitter {
 
       case PartyCredential.Type.KEY_ADMIT: {
         const admitKey = await this._processKeyAdmitMessage(message, !envelopedMessage, !envelopedMessage);
-        this._credentialMessages.set(admitKey.key, original);
+        this._credentialMessages.set(admitKey.publicKey.toHex(), original);
 
         const admittedBy = this._determineAdmittingMember(admitKey.publicKey, original);
         assert(admittedBy);
-        this._admittedBy.set(admitKey.key, admittedBy);
-        log(`Key ${admitKey.key} admitted by ${admittedBy.toHex()}.`);
+        this._admittedBy.set(admitKey.publicKey.toHex(), admittedBy);
+        log(`Key ${admitKey.publicKey.toHex()} admitted by ${admittedBy.toHex()}.`);
 
         this.emit('admit:key', admitKey);
         break;
@@ -337,14 +336,14 @@ export class Party extends EventEmitter {
 
       case PartyCredential.Type.FEED_ADMIT: {
         const feedKey = await this._processFeedAdmitMessage(message, !envelopedMessage);
-        this._credentialMessages.set(feedKey.key, original);
+        this._credentialMessages.set(feedKey.publicKey.toHex(), original);
 
         // This uses 'message' rather than 'original', since in a Greeting/Envelope case we want to record the
         // feed's actual owner, not the Greeter writing the message on their behalf.
         const admittedBy = this._determineAdmittingMember(feedKey.publicKey, message);
         assert(admittedBy);
-        this._admittedBy.set(feedKey.key, admittedBy);
-        log(`Feed ${feedKey.key} admitted by ${admittedBy.toHex()}.`);
+        this._admittedBy.set(feedKey.publicKey.toHex(), admittedBy);
+        log(`Feed ${feedKey.publicKey.toHex()} admitted by ${admittedBy.toHex()}.`);
 
         this.emit('admit:feed', feedKey);
         break;

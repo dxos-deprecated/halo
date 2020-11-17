@@ -7,7 +7,7 @@ import debug from 'debug';
 
 import { ERR_EXTENSION_RESPONSE_FAILED } from '@dxos/protocol';
 
-import { Command } from './constants';
+import { Command } from '../proto';
 import { ERR_GREET_GENERAL, ERR_GREET_INVALID_COMMAND, ERR_GREET_INVALID_INVITATION } from './error-codes';
 import { createGreetingClaimResponse } from './greeting-message';
 

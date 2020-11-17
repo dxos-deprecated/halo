@@ -4,9 +4,8 @@
 
 import assert from 'assert';
 
-import { ClaimResponse, SignedMessage, Message } from '../proto';
+import { ClaimResponse, Command, SignedMessage, Message } from '../proto';
 import { WithTypeUrl } from '../proto/any';
-import { Command } from './constants';
 
 const TYPE_URL_GREETING_COMMAND = 'dxos.credentials.greet.Command';
 

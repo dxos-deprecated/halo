@@ -9,7 +9,7 @@ import moment from 'moment';
 
 import { randomBytes } from '@dxos/crypto';
 
-import { Filter, Keyring, KeyType } from '../keys';
+import { Filter, Keyring } from '../keys';
 import {
   admitsKeys,
   createEnvelopeMessage,
@@ -17,7 +17,7 @@ import {
   createPartyGenesisMessage,
   Party
 } from '../party';
-import { validate } from '../proto';
+import { codecLoop, KeyType } from '../proto';
 import { createAuthMessage } from './auth-message';
 import { PartyAuthenticator } from './authenticator';
 
@@ -27,8 +27,10 @@ const log = debug('dxos:creds:auth:test');
 const createPartyKeyrings = async () => {
   // This Keyring has the full key pairs, which is the case when creating a new Party.
   const keyring = new Keyring();
-  for (const type of Object.keys(KeyType)) {
-    await keyring.createKeyRecord({ type: KeyType[type] });
+  for (const type of Object.values(KeyType)) {
+    if (typeof type === 'string') {
+      await keyring.createKeyRecord({ type: KeyType[type] });
+    }
   }
 
   const partyKey = keyring.findKey(Filter.matches({ type: KeyType.PARTY })).publicKey;
@@ -151,7 +153,7 @@ test('PartyAuthenticator - good direct', async () => {
   // Only add the Identity to the party keyring.
   await party.processMessages(messages);
 
-  const wrappedCredentials = validate(
+  const wrappedCredentials = codecLoop(
     createAuthMessage(
       keyring,
       partyKey,
@@ -184,7 +186,7 @@ test('PartyAuthenticator - good chain', async () => {
   // Only add the Identity to the party keyring.
   await party.processMessages(messages);
 
-  const wrappedCredentials = validate(
+  const wrappedCredentials = codecLoop(
     createAuthMessage(
       keyring,
       partyKey,
@@ -238,7 +240,7 @@ test('PartyAuthenticator - bad chain', async () => {
     )
   );
 
-  const wrappedCredentials = validate(
+  const wrappedCredentials = codecLoop(
     createAuthMessage(
       keyring,
       partyKey,
@@ -267,7 +269,7 @@ test('PartyAuthenticator - wrong key', async () => {
   ];
   await party.processMessages(messages);
 
-  const wrappedCredentials = validate(
+  const wrappedCredentials = codecLoop(
     createAuthMessage(
       keyring,
       partyKey,
@@ -295,7 +297,7 @@ test('PartyAuthenticator - wrong party', async () => {
   ];
   await party.processMessages(messages);
 
-  const wrappedCredentials = validate(
+  const wrappedCredentials = codecLoop(
     createAuthMessage(
       keyring,
       randomBytes(32),
@@ -354,7 +356,7 @@ test('PartyAuthenticator - tampered message', async () => {
 
   await party.processMessages(messages);
 
-  const wrappedCredentials = validate(
+  const wrappedCredentials = codecLoop(
     createAuthMessage(
       keyring,
       partyKey,
@@ -388,7 +390,7 @@ test('PartyAuthenticator - tampered signature', async () => {
 
   await party.processMessages(messages);
 
-  const wrappedCredentials = validate(
+  const wrappedCredentials = codecLoop(
     createAuthMessage(
       keyring,
       partyKey,

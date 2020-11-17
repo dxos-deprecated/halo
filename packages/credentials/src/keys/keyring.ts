@@ -8,8 +8,8 @@ import memdown from 'memdown';
 
 import { PublicKey, PublicKeyLike, KeyPair, keyToBuffer, sign, verify } from '@dxos/crypto';
 
-import { KeyChain, Message, SignedMessage } from '../proto';
-import { KeyRecord, RawSignature } from '../typedefs';
+import { KeyChain, KeyRecord, KeyRecordList, KeyType, Message, SignedMessage } from '../proto';
+import { RawSignature } from '../typedefs';
 import { Filter, FilterFuntion } from './filter';
 import {
   canonicalStringify,
@@ -23,7 +23,6 @@ import {
   checkAndNormalizeKeyRecord, isSignedMessage
 } from './keyring-helpers';
 import { KeyStore } from './keystore';
-import { KeyType } from './keytype';
 
 const log = debug('dxos:creds:keys'); // eslint-disable-line @typescript-eslint/no-unused-vars
 
@@ -56,7 +55,7 @@ export class Keyring {
     }
 
     const chain: KeyChain = {
-      publicKey: publicKey.asUint8Array(),
+      publicKey,
       message,
       parents: []
     };
@@ -93,7 +92,7 @@ export class Keyring {
     if (isSignedMessage(message)) {
       const { signed, signatures = [] } = message;
       for (const signature of signatures) {
-        if (Keyring.validateSignature(signed, signature.signature, Buffer.from(signature.key))) {
+        if (Keyring.validateSignature(signed, signature.signature, signature.key.asBuffer())) {
           all.add(PublicKey.from(signature.key).toHex());
         }
       }
@@ -125,7 +124,7 @@ export class Keyring {
     const { signed, signatures } = message;
 
     for (const sig of signatures) {
-      if (!Keyring.validateSignature(signed, sig.signature, Buffer.from(sig.key))) {
+      if (!Keyring.validateSignature(signed, sig.signature, sig.key)) {
         return false;
       }
     }
@@ -246,8 +245,8 @@ export class Keyring {
       }
     }
 
-    await this._keystore.setRecord(copy.key, copy);
-    this._cache.set(copy.key, copy);
+    await this._keystore.setRecord(copy.publicKey.toHex(), copy);
+    this._cache.set(copy.publicKey.toHex(), copy);
 
     return stripSecrets(copy);
   }
@@ -269,7 +268,7 @@ export class Keyring {
       }
     }
 
-    this._cache.set(copy.key, copy);
+    this._cache.set(copy.publicKey.toHex(), copy);
 
     return stripSecrets(copy);
   }
@@ -310,8 +309,8 @@ export class Keyring {
     const existing = this._getFullKey(keyRecord.publicKey);
     if (existing) {
       const cleaned = stripSecrets(existing);
-      await this._keystore.setRecord(cleaned.key, cleaned);
-      this._cache.set(cleaned.key, cleaned);
+      await this._keystore.setRecord(cleaned.publicKey.toHex(), cleaned);
+      this._cache.set(cleaned.publicKey.toHex(), cleaned);
     }
   }
 
@@ -354,7 +353,7 @@ export class Keyring {
     assertValidPublicKey(publicKey);
     publicKey = PublicKey.from(publicKey);
 
-    return this._findFullKey(Filter.matches({ key: publicKey.toHex() }));
+    return this._findFullKey(Filter.hasKey('publicKey', publicKey));
   }
 
   /**
@@ -425,7 +424,7 @@ export class Keyring {
     });
 
     return canonicalStringify({
-      __type_url: 'dxos.credentials.keys.Keyring',
+      __type_url: 'dxos.credentials.keys.KeyRecordList',
       keys
     });
   }
@@ -451,6 +450,28 @@ export class Keyring {
         return this.addPublicKey(item);
       }
     }));
+  }
+
+  /**
+   * Export the Keyring contents.
+   */
+  export () {
+    return { keys: this._findFullKeys() };
+  }
+
+  /**
+   * Import KeyRecords into the KeyRing.
+   * @param records
+   */
+  async import (records: KeyRecordList) {
+    const { keys = [] } = records;
+    for (const keyRecord of keys) {
+      if (keyRecord.secretKey) {
+        await this.addKeyRecord(keyRecord);
+      } else {
+        await this.addPublicKey(keyRecord);
+      }
+    }
   }
 
   /**
@@ -486,7 +507,7 @@ export class Keyring {
       assertValidKeyPair(fullKey);
       fullKeys.push(fullKey);
       if (isKeyChain(key)) {
-        chains.set(fullKey.key, key);
+        chains.set(fullKey.publicKey.toHex(), key);
       }
     });
 
@@ -531,7 +552,7 @@ export class Keyring {
     for (const signatureInformation of signatures) {
       const { key, keyChain } = signatureInformation;
 
-      const keyRecord = this.getKey(Buffer.from(key));
+      const keyRecord = this.getKey(key);
       if (keyRecord && keyRecord.trusted) {
         // The simple case is that we already trust this key.
         trustedSignatures++;
@@ -567,7 +588,7 @@ export class Keyring {
         throw new Error('Message not signed by indicated key.');
       }
 
-      const key = this.getKey(Buffer.from(chain.publicKey));
+      const key = this.getKey(chain.publicKey);
       messages.push(chain.message);
 
       // Do we have the key?

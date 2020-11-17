@@ -9,23 +9,27 @@ import assert from 'assert';
 import { expectToThrow } from '@dxos/async';
 import { createKeyPair, keyToString, randomBytes, verify, PublicKey } from '@dxos/crypto';
 
+import { KeyType, schema } from '../proto';
 import { Filter } from './filter';
 import { Keyring } from './keyring';
-import { KeyType } from './keytype';
 
 test('Generate keys', async () => {
   const keyring = new Keyring();
 
   const byType = new Map();
-  for await (const type of Object.keys(KeyType)) {
-    const keyRecord = await keyring.createKeyRecord({ type: KeyType[type] });
-    byType.set(type, keyRecord);
+  for await (const type of Object.values(KeyType)) {
+    if (typeof type === 'string') {
+      const keyRecord = await keyring.createKeyRecord({ type: KeyType[type] });
+      byType.set(type, keyRecord);
+    }
   }
 
-  for (const type of Object.keys(KeyType)) {
-    const match = keyring.findKey(Filter.matches({ type: KeyType[type] }));
-    expect(match.publicKey).toEqual(byType.get(type).publicKey);
-    expect(keyring.hasSecretKey(match)).toBe(true);
+  for (const type of Object.values(KeyType)) {
+    if (typeof type === 'string') {
+      const match = keyring.findKey(Filter.matches({ type: KeyType[type] }));
+      expect(match.publicKey).toEqual(byType.get(type).publicKey);
+      expect(keyring.hasSecretKey(match)).toBe(true);
+    }
   }
 });
 
@@ -118,7 +122,7 @@ test('Sign and verify a message with multiple keys', async () => {
 
   const strKeys = keys.map(key => key.publicKey.toHex());
   for (const sig of signed.signatures) {
-    expect(strKeys).toContain(keyToString(sig.key));
+    expect(strKeys).toContain(sig.key.toHex());
   }
 
   const verified = keyring.verify(signed);
@@ -136,9 +140,9 @@ test('Sign and verify a message using a key chain', async () => {
   await keyringB.addPublicKey(identityA);
 
   const keyMessages = new Map();
-  keyMessages.set(identityA.key, keyringA.sign({ message: 'Test' }, [identityA]));
-  keyMessages.set(deviceAA.key, keyringA.sign({ message: 'Test' }, [identityA, deviceAA]));
-  keyMessages.set(deviceAB.key, keyringA.sign({ message: 'Test' }, [deviceAB, deviceAA]));
+  keyMessages.set(identityA.publicKey.toHex(), keyringA.sign({ message: 'Test' }, [identityA]));
+  keyMessages.set(deviceAA.publicKey.toHex(), keyringA.sign({ message: 'Test' }, [identityA, deviceAA]));
+  keyMessages.set(deviceAB.publicKey.toHex(), keyringA.sign({ message: 'Test' }, [deviceAB, deviceAA]));
 
   const deviceABChain = Keyring.buildKeyChain(deviceAB.publicKey, keyMessages);
 
@@ -291,8 +295,10 @@ test('Tamper with the signature key of a signed message', async () => {
 
 test('To/from JSON', async () => {
   const original = new Keyring();
-  for (const type of Object.keys(KeyType)) {
-    await original.createKeyRecord({ type: KeyType[type] });
+  for (const type of Object.values(KeyType)) {
+    if (typeof type === 'string') {
+      await original.createKeyRecord({ type: KeyType[type] });
+    }
   }
 
   const copy = new Keyring();
@@ -310,4 +316,22 @@ test('Raw sign', async () => {
   const signature = keyring.rawSign(message, key);
 
   expect(verify(message, signature, key.publicKey.asBuffer())).toBe(true);
+});
+
+test('To/from Protobuf', async () => {
+  const original = new Keyring();
+  for (const type of Object.values(KeyType)) {
+    if (typeof type === 'string') {
+      await original.createKeyRecord({ type: KeyType[type] });
+    }
+  }
+
+  const copy = new Keyring();
+  const codec = schema.getCodecForType('dxos.credentials.keys.KeyRecordList');
+  const bytes = codec.encode(original.export());
+  const decoded = codec.decode(bytes);
+  await copy.import(decoded);
+
+  expect(original.toJSON()).toEqual(copy.toJSON());
+  expect(copy.keys).toEqual(original.keys);
 });

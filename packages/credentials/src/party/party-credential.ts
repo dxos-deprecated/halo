@@ -8,9 +8,8 @@ import { randomBytes, PublicKey, PublicKeyLike } from '@dxos/crypto';
 
 import { Keyring } from '../keys';
 import { assertValidPublicKey } from '../keys/keyring-helpers';
-import { KeyChain, Message, SignedMessage, PartyCredential, Command, Auth } from '../proto';
+import { KeyChain, KeyRecord, Message, SignedMessage, PartyCredential, Command, Auth } from '../proto';
 import { WithTypeUrl } from '../proto/any';
-import { KeyRecord } from '../typedefs';
 
 export const TYPE_URL_MESSAGE = 'dxos.credentials.Message';
 export const TYPE_URL_SIGNED_MESSAGE = 'dxos.credentials.SignedMessage';
@@ -38,9 +37,9 @@ export const createPartyGenesisMessage = (keyring: Keyring,
     __type_url: TYPE_URL_PARTY_CREDENTIAL,
     type: PartyCredential.Type.PARTY_GENESIS,
     partyGenesis: {
-      partyKey: partyKeyPair.publicKey.asUint8Array(),
-      feedKey: feedKeyPair.publicKey.asUint8Array(),
-      admitKey: admitKeyPair.publicKey.asUint8Array(),
+      partyKey: partyKeyPair.publicKey,
+      feedKey: feedKeyPair.publicKey,
+      admitKey: admitKeyPair.publicKey,
       admitKeyType: admitKeyPair.type
     }
   };
@@ -65,8 +64,8 @@ export const createKeyAdmitMessage = (keyring: Keyring,
     __type_url: TYPE_URL_PARTY_CREDENTIAL,
     type: PartyCredential.Type.KEY_ADMIT,
     keyAdmit: {
-      partyKey: partyKey.asUint8Array(),
-      admitKey: admitKeyPair.publicKey.asUint8Array(),
+      partyKey,
+      admitKey: admitKeyPair.publicKey,
       admitKeyType: admitKeyPair.type
     }
   };
@@ -89,8 +88,8 @@ export const createFeedAdmitMessage = (keyring: Keyring,
     __type_url: TYPE_URL_PARTY_CREDENTIAL,
     type: PartyCredential.Type.FEED_ADMIT,
     feedAdmit: {
-      partyKey: partyKey.asUint8Array(),
-      feedKey: feedKeyPair.publicKey.asUint8Array()
+      partyKey,
+      feedKey: feedKeyPair.publicKey
     }
   };
 
@@ -115,7 +114,7 @@ export const createEnvelopeMessage = (keyring: Keyring,
     __type_url: TYPE_URL_PARTY_CREDENTIAL,
     type: PartyCredential.Type.ENVELOPE,
     envelope: {
-      partyKey: partyKey.asUint8Array(),
+      partyKey,
       message: contents
     }
   };
@@ -277,7 +276,6 @@ export const createPartyInvitationMessage = (keyring: Keyring,
 
   partyKey = PublicKey.from(partyKey);
   inviteeKey = PublicKey.from(inviteeKey);
-  const issuerPublicKey = PublicKey.from(issuerKey.publicKey);
 
   return {
     __type_url: TYPE_URL_MESSAGE,
@@ -285,9 +283,9 @@ export const createPartyInvitationMessage = (keyring: Keyring,
       keyring.sign({
         __type_url: TYPE_URL_PARTY_INVITATION,
         id: randomBytes(),
-        partyKey: partyKey.asUint8Array(),
-        issuerKey: issuerPublicKey.asUint8Array(),
-        inviteeKey: inviteeKey.asUint8Array()
+        partyKey,
+        issuerKey: issuerKey.publicKey,
+        inviteeKey
       }, [signingKey])
   };
 };

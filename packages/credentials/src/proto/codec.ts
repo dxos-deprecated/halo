@@ -6,7 +6,10 @@ import { schemaJson as Schema, schema } from './gen';
 
 export const codec = schema.getCodecForType('dxos.credentials.Message');
 
-// TODO(dboreham): what is this validating and why would the caller be calling it?
-export const validate = (message: any) => codec.decode(codec.encode(message));
+/**
+ * Loop the message through the codec. Useful for checking that the object properly conforms to protobuf.
+ * @param message
+ */
+export const codecLoop = (message: any) => codec.decode(codec.encode(message));
 
 export { Schema, schema };

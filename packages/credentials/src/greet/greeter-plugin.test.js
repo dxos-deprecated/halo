@@ -5,12 +5,12 @@
 import debug from 'debug';
 import pump from 'pump';
 
-import { keyToString, randomBytes } from '@dxos/crypto';
+import { keyToString, randomBytes, PublicKey } from '@dxos/crypto';
 import { Protocol } from '@dxos/protocol';
 
-import { Keyring, KeyType } from '../keys';
+import { Keyring } from '../keys';
 import { createKeyAdmitMessage } from '../party';
-import { Command } from './constants';
+import { Command, KeyType } from '../proto';
 import { Greeter } from './greeter';
 import { GreetingCommandPlugin } from './greeting-command-plugin';
 
@@ -27,10 +27,10 @@ const createGreeter = async (targetPartyKey) => {
   });
 
   const hints = [
-    { publicKey: randomBytes(32), type: KeyType.IDENTITY },
-    { publicKey: randomBytes(32), type: KeyType.DEVICE },
-    { publicKey: randomBytes(32), type: KeyType.FEED },
-    { publicKey: randomBytes(32), type: KeyType.FEED }
+    { publicKey: PublicKey.from(randomBytes(32)), type: KeyType.IDENTITY },
+    { publicKey: PublicKey.from(randomBytes(32)), type: KeyType.DEVICE },
+    { publicKey: PublicKey.from(randomBytes(32)), type: KeyType.FEED },
+    { publicKey: PublicKey.from(randomBytes(32)), type: KeyType.FEED }
   ];
 
   const greeter = new Greeter(
@@ -97,7 +97,7 @@ const connect = (source, target) => {
 };
 
 test('Greeting Flow using GreetingCommandPlugin', async () => {
-  const targetPartyKey = randomBytes(32);
+  const targetPartyKey = PublicKey.from(randomBytes(32));
   const secret = '0000';
 
   const secretProvider = async () => Buffer.from(secret);

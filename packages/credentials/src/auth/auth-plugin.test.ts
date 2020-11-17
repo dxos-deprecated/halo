@@ -16,8 +16,9 @@ import { FeedStore } from '@dxos/feed-store';
 import { Protocol } from '@dxos/protocol';
 import { Replicator } from '@dxos/protocol-plugin-replicator';
 
-import { Keyring, KeyType } from '../keys';
-import { codec } from '../proto';
+import { Keyring } from '../keys';
+import { codec, codecLoop, KeyType } from '../proto';
+import { createAuthMessage } from './auth-message';
 import { AuthPlugin } from './auth-plugin';
 import { Authenticator } from './authenticator';
 
@@ -27,7 +28,7 @@ const createTestKeyring = async () => {
   const keyring = new Keyring();
   await keyring.load();
 
-  for (const type of Object.keys(KeyType)) {
+  for (const type of Object.values(KeyType)) {
     if (typeof type === 'string') {
       await keyring.createKeyRecord({ type: KeyType[type as any] });
     }
@@ -67,20 +68,16 @@ class ExpectedKeyAuthenticator extends Authenticator {
  */
 const createProtocol = async (partyKey: PublicKey, authenticator: Authenticator, keyring: Keyring) => {
   const topic = partyKey.toHex();
-  const peerId = randomBytes(32); // createId();
+  const identityKey = keyring.findKey(Keyring.signingFilter({ type: KeyType.IDENTITY }));
+  const deviceKey = keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE }));
+  const peerId = deviceKey!.publicKey.asBuffer();
   const feedStore = await FeedStore.create(ram, { feedOptions: { valueEncoding: 'utf8' } });
   const feed = await feedStore.openFeed(`/topic/${topic}/writable`, { metadata: { topic } });
   const append = pify(feed.append.bind(feed));
 
-  // TODO(dboreham): abstract or remove outer wrapping.
-  const credentials = Buffer.from(codec.encode({
-    payload: keyring.sign({
-      __type_url: 'dxos.credentials.auth.Auth',
-      partyKey: partyKey.asBuffer(),
-      deviceKey: peerId,
-      identityKey: peerId
-    }, [keyring.findKey(Keyring.signingFilter({ type: KeyType.DEVICE }))!])
-  })).toString('base64');
+  const credentials = Buffer.from(codec.encode(
+    codecLoop(createAuthMessage(keyring, partyKey, identityKey!, deviceKey!))
+  )).toString('base64');
 
   const auth = new AuthPlugin(peerId, authenticator, [Replicator.extension]);
   const authPromise = new Promise((resolve) => {

@@ -11,7 +11,8 @@ import { randomBytes } from '@dxos/crypto';
 
 import { createGreetingClaimMessage } from '../greet';
 import { PartyInvitationClaimHandler } from '../greet/party-invitation-claim-handler';
-import { Filter, Keyring, KeyType } from '../keys';
+import { Filter, Keyring } from '../keys';
+import { KeyType } from '../proto';
 import { Party } from './party';
 import {
   createKeyAdmitMessage, createPartyGenesisMessage,
@@ -24,8 +25,10 @@ const log = debug('dxos:creds:party:test');
 const createPartyKeyrings = async () => {
   // This Keyring has all the keypairs, so it is the initial source of things.
   const keyring = new Keyring();
-  for (const type of Object.keys(KeyType)) {
-    await keyring.createKeyRecord({ type: KeyType[type] });
+  for (const type of Object.values(KeyType)) {
+    if (typeof type === 'string') {
+      await keyring.createKeyRecord({ type: KeyType[type] });
+    }
   }
 
   const partyKey = keyring.findKey(Filter.matches({ type: KeyType.PARTY }));

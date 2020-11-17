@@ -1,11 +1,12 @@
-// TODO(marik-d): Workaround to avoid name colisions in generated files.
 //
 // Copyright 2020 DXOS.org
 //
 
 import { Schema as CodecSchema } from '@dxos/codec-protobuf';
+import { PublicKey } from '@dxos/crypto';
 
-import { DecodedAny } from './any';
+import { SecretKey } from '../keys';
+import { DecodedAny, KnownAny } from './any';
 
 export default {
   'google.protobuf.Any': {
@@ -17,7 +18,7 @@ export default {
         value: data
       };
     },
-    decode: (value: any, schema: CodecSchema<any>): DecodedAny => {
+    decode: (value: any, schema: CodecSchema<any>): KnownAny => {
       const codec = schema.tryGetCodecForType(value.type_url);
       const data = codec.decode(value.value);
       return {
@@ -25,5 +26,13 @@ export default {
         __type_url: value.type_url
       };
     }
+  },
+  'dxos.credentials.keys.PubKey': {
+    encode: (value: PublicKey) => ({ data: value.asUint8Array() }),
+    decode: (value: any) => PublicKey.from(value.data)
+  },
+  'dxos.credentials.keys.PrivKey': {
+    encode: (value: SecretKey) => ({ data: value }),
+    decode: (value: any) => Buffer.from(value.data)
   }
 };

@@ -6,11 +6,11 @@ import assert from 'assert';
 import debug from 'debug';
 import moment from 'moment';
 
-import { keyToString } from '@dxos/crypto';
+import { PublicKey } from '@dxos/crypto';
 
-import { Keyring, KeyType } from '../keys';
+import { Keyring } from '../keys';
 import { isSignedMessage, Party } from '../party';
-import { codec, Message } from '../proto';
+import { codec, KeyType, Message } from '../proto';
 
 const log = debug('dxos:creds:auth');
 
@@ -82,7 +82,7 @@ export class PartyAuthenticator extends Authenticator {
 
     const { created, payload } = credentials.signed || {};
     const { deviceKey, identityKey, partyKey, feedKey } = payload || {};
-    if (!created || !Buffer.isBuffer(deviceKey) || !Buffer.isBuffer(identityKey) || !Buffer.isBuffer(partyKey)) {
+    if (!created || !PublicKey.isPublicKey(deviceKey) || !PublicKey.isPublicKey(identityKey) || !PublicKey.isPublicKey(partyKey)) {
       log('Bad credentials:', credentials);
       return false;
     }
@@ -113,11 +113,11 @@ export class PartyAuthenticator extends Authenticator {
 
     // TODO(telackey): Find a better place to do this, since doing it here could be considered a side-effect.
     if (verified &&
-      Buffer.isBuffer(feedKey) &&
+      PublicKey.isPublicKey(feedKey) &&
       Keyring.signingKeys(credentials).find(key => key.equals(feedKey)) &&
       !this._party.memberFeeds.find(partyFeed => partyFeed.equals(feedKey))) {
-      log(`Auto-hinting feedKey: ${keyToString(feedKey)} for Device ` +
-        `${keyToString(deviceKey)} on Identity ${keyToString(identityKey)}`);
+      log(`Auto-hinting feedKey: ${feedKey.toHex()} for Device ` +
+        `${deviceKey.toHex()} on Identity ${identityKey.toHex()}`);
       await this._party.takeHints([{ publicKey: feedKey, type: KeyType.FEED }]);
     }
 

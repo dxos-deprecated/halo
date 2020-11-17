@@ -7,10 +7,10 @@
 import { randomBytes } from '@dxos/crypto';
 import { ERR_EXTENSION_RESPONSE_FAILED } from '@dxos/protocol';
 
-import { Filter, Keyring, KeyType } from '../keys';
+import { Filter, Keyring } from '../keys';
 import { createKeyRecord, stripSecrets } from '../keys/keyring-helpers';
 import { createKeyAdmitMessage, createPartyInvitationMessage } from '../party';
-import { validate } from '../proto';
+import { codecLoop, KeyType } from '../proto';
 import { Command } from './constants';
 import { Greeter } from './greeter';
 
@@ -50,7 +50,7 @@ test('Good invitation', async () => {
   // The `BEGIN` command informs the Greeter the Invitee has connected. This gives the Greeter an opportunity
   // to do things like create a passphrase on-demand rather than in advance.
   {
-    const message = validate({
+    const message = codecLoop({
       payload: {
         __type_url: 'dxos.credentials.greet.Command',
         command: Command.Type.BEGIN
@@ -65,7 +65,7 @@ test('Good invitation', async () => {
   // of the target Party.
   let nonce;
   {
-    const message = validate({
+    const message = codecLoop({
       payload: {
         __type_url: 'dxos.credentials.greet.Command',
         command: Command.Type.HANDSHAKE,
@@ -107,7 +107,7 @@ test('Good invitation', async () => {
 
     // The `FINISH` command informs the Greeter the Invitee is done.
     {
-      const message = validate({
+      const message = codecLoop({
         payload: {
           __type_url: 'dxos.credentials.greet.Command',
           command: Command.Type.FINISH,
@@ -133,7 +133,7 @@ test('Bad invitation secret', async (done) => {
 
   // Normal `BEGIN` command.
   {
-    const message = validate({
+    const message = codecLoop({
       payload: {
         __type_url: 'dxos.credentials.greet.Command',
         command: Command.Type.BEGIN
@@ -145,7 +145,7 @@ test('Bad invitation secret', async (done) => {
 
   // Bad secret in the `HANDSHAKE` command.
   {
-    const message = validate({
+    const message = codecLoop({
       payload: {
         __type_url: 'dxos.credentials.greet.Command',
         command: Command.Type.HANDSHAKE,
@@ -171,7 +171,7 @@ test('Attempt to re-use invitation', async (done) => {
   );
 
   {
-    const message = validate({
+    const message = codecLoop({
       payload: {
         __type_url: 'dxos.credentials.greet.Command',
         command: Command.Type.BEGIN
@@ -183,7 +183,7 @@ test('Attempt to re-use invitation', async (done) => {
 
   let nonce;
   {
-    const message = validate({
+    const message = codecLoop({
       payload: {
         __type_url: 'dxos.credentials.greet.Command',
         command: Command.Type.HANDSHAKE,
@@ -242,14 +242,14 @@ test('Create Invitation message ', async () => {
   const issuerKey = keyring.findKey(Filter.matches({ type: KeyType.IDENTITY }));
   const inviteeKey = stripSecrets(createKeyRecord({ type: KeyType.IDENTITY }));
 
-  const message = validate(createPartyInvitationMessage(keyring, partyKey.publicKey, inviteeKey.publicKey, issuerKey));
+  const message = codecLoop(createPartyInvitationMessage(keyring, partyKey.publicKey, inviteeKey.publicKey, issuerKey));
   expect(keyring.verify(message.payload)).toBe(true);
 });
 
 test('WellKnownType params - BytesValue', async () => {
   const value = randomBytes();
 
-  const command = validate({
+  const command = codecLoop({
     __type_url: 'dxos.credentials.Message',
     payload: {
       __type_url: 'dxos.credentials.greet.Command',
