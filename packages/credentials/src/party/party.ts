@@ -244,7 +244,7 @@ export class Party extends EventEmitter {
     }
 
     const { type } = message.signed.payload;
-    const innerSignedBy = Keyring.signingKeys(message);
+    const innerSignedBy = Keyring.signingKeys(message, { deep: false, validate: false });
     switch (type) {
       case PartyCredential.Type.KEY_ADMIT: {
         const { admitKey } = message.signed.payload.keyAdmit;
@@ -461,7 +461,7 @@ export class Party extends EventEmitter {
           throw new Error(`Invalid message: ${message}`);
         }
 
-        if (!Keyring.signingKeys(message).find(k => k.equals(this._publicKey))) {
+        if (!Keyring.signingKeys(message, { deep: false, validate: false }).find(k => k.equals(this._publicKey))) {
           throw new Error(`Invalid message, Genesis not signed by party key: ${message}`);
         }
         break;
@@ -561,7 +561,7 @@ export class Party extends EventEmitter {
       return this._publicKey;
     }
 
-    const signingKeys = Keyring.signingKeys(message);
+    const signingKeys = Keyring.signingKeys(message, { validate: false });
     for (const key of signingKeys) {
       if (!key.equals(publicKey)) {
         if (this.isMemberKey(key)) {

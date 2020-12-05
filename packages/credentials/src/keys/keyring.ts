@@ -5,8 +5,9 @@
 import assert from 'assert';
 import debug from 'debug';
 import memdown from 'memdown';
+import StackTrace from 'stacktrace-js';
 
-import { PublicKey, PublicKeyLike, KeyPair, keyToBuffer, sign, verify } from '@dxos/crypto';
+import { PublicKey, PublicKeyLike, KeyPair, keyToBuffer, sign as hypersign, verify as hyperverify } from '@dxos/crypto';
 
 import { KeyChain, KeyRecord, KeyRecordList, KeyType, Message, SignedMessage } from '../proto';
 import { RawSignature } from '../typedefs';
@@ -17,12 +18,13 @@ import {
   assertNoSecrets,
   assertValidKeyPair,
   assertValidPublicKey,
-  signMessage,
+  signMessage as realSignMessage,
   stripSecrets,
   isKeyChain,
   checkAndNormalizeKeyRecord, isSignedMessage
 } from './keyring-helpers';
 import { KeyStore } from './keystore';
+import {WithTypeUrl} from "../proto/any";
 
 const log = debug('dxos:creds:keys'); // eslint-disable-line @typescript-eslint/no-unused-vars
 
@@ -33,11 +35,91 @@ const unwrapMessage = (message: any): SignedMessage => {
   return message;
 };
 
+class Invocation {
+  private _stackCounts = new Map<string, number>();
+  private _fnCounts = new Map<string, number>();
+  private _enabled = false;
+
+  public enable () {
+    this._enabled = true;
+  }
+
+  public count () {
+    if (this._enabled) {
+      const stack = StackTrace.getSync();
+      const stackKey = stack.toString();
+      const stackCount = this._stackCounts.get(stackKey) || 0;
+      const fnKey = stack[1].toString();
+      const fnCount = this._fnCounts.get(fnKey) || 0;
+      this._fnCounts.set(fnKey, fnCount + 1);
+      this._stackCounts.set(stackKey, stackCount + 1);
+    }
+  }
+
+  public report () {
+    const stacks = Array.from(this._stackCounts.entries());
+    stacks.sort(([, a], [, b]) => b - a);
+    const fns = Array.from(this._fnCounts.entries());
+    fns.sort(([, a], [, b]) => b - a);
+    return { stacks, fns };
+  }
+}
+
+const invoc = new Invocation();
+const verify = (message: Buffer, signature: Buffer, key: Buffer) => {
+  invoc.count();
+  return hyperverify(message, signature, key);
+};
+
+const sign = (message: Buffer, key: Buffer) => {
+  invoc.count();
+  return hypersign(message, key);
+};
+const signMessage = (message: any,
+               keys: KeyRecord[],
+               keyChainMap: Map<string, KeyChain>,
+               nonce?: Buffer,
+               created?: string): WithTypeUrl<SignedMessage> => {
+  invoc.count();
+  return realSignMessage(message, keys, keyChainMap, sign, nonce, created);
+}
+/**
+ * A simple helper class for caching signature validation results.
+ * Any change to the object will invalidates the cache entry for that object.
+ */
+class SignatureValidationCache {
+  private readonly _cache = new WeakMap<any, { valid: boolean, sig: Buffer, key: PublicKey, stringy: string }[]>();
+
+  public set (obj: any, sig: RawSignature, key: PublicKeyLike, valid: boolean) {
+    let sigResults = this._cache.get(obj);
+    if (!sigResults) {
+      sigResults = [];
+      this._cache.set(obj, sigResults);
+    }
+    sigResults.push({ valid, sig: Buffer.from(sig), key: PublicKey.from(key), stringy: canonicalStringify(obj) });
+  }
+
+  public get (obj: any, sig: RawSignature, key: PublicKeyLike) {
+    const sigResults = this._cache.get(obj) || [];
+    if (sigResults.length) {
+      const stringy = canonicalStringify(obj);
+      for (const result of sigResults) {
+        if (result.sig.equals(sig) && result.key.equals(key) && result.stringy === stringy) {
+          return result.valid;
+        }
+      }
+    }
+    return undefined;
+  }
+}
+
 /**
  * A class for generating and managing keys, signing and verifying messages with them.
  * NOTE: This implements a write-through cache.
  */
 export class Keyring {
+  static _signatureValidationCache = new SignatureValidationCache();
+
   /**
    * Builds up a KeyChain for `publicKey` from the supplied SignedMessages. The message map should be indexed
    * by the hexlified PublicKeyLike. If a single message admits more than one key, it should have a map entry for each.
@@ -47,6 +129,7 @@ export class Keyring {
    * building up a chain for a DEVICE.
    */
   static buildKeyChain (publicKey: PublicKeyLike, signedMessageMap: Map<string, Message|SignedMessage>, exclude: PublicKey[] = []): KeyChain {
+    invoc.count();
     publicKey = PublicKey.from(publicKey);
 
     const message = unwrapMessage(signedMessageMap.get(publicKey.toHex()));
@@ -72,7 +155,7 @@ export class Keyring {
     for (const signer of signedBy) {
       if (!signer.equals(publicKey) && !exclude.find(key => key.equals(signer))) {
         const parent = Keyring.buildKeyChain(signer, signedMessageMap, [...signedBy, ...exclude]);
-        if (parent) {
+        if (parent && parent.message !== message) {
           chain.parents!.push(parent);
         }
       }
@@ -85,14 +168,16 @@ export class Keyring {
    * What keys were used to sign this message?
    * @param message
    * @param deep Whether to check for nested messages.
+   * @param validate Whether or not to validate the signatures.
    */
-  static signingKeys (message: Message | SignedMessage, deep = true): PublicKey[] {
+  static signingKeys (message: Message | SignedMessage, { deep = true, validate = true } = {}): PublicKey[] {
+    invoc.count();
     const all = new Set<string>();
 
     if (isSignedMessage(message)) {
       const { signed, signatures = [] } = message;
       for (const signature of signatures) {
-        if (Keyring.validateSignature(signed, signature.signature, signature.key.asBuffer())) {
+        if (!validate || Keyring.validateSignature(signed, signature.signature, signature.key.asBuffer())) {
           all.add(PublicKey.from(signature.key).toHex());
         }
       }
@@ -102,7 +187,7 @@ export class Keyring {
       for (const property of Object.getOwnPropertyNames(message)) {
         const value = (message as any)[property];
         if (typeof value === 'object') {
-          const keys = Keyring.signingKeys(value, deep);
+          const keys = Keyring.signingKeys(value, { deep, validate });
           for (const key of keys) {
             all.add(key.toHex());
           }
@@ -118,10 +203,11 @@ export class Keyring {
    * This does not check that the keys are trusted, only that the signatures are valid.
    */
   static validateSignatures (message: Message | SignedMessage): boolean {
-    message = unwrapMessage(message);
-    assert(Array.isArray(message.signatures));
+    invoc.count();
+    const unwrapped = unwrapMessage(message);
+    assert(Array.isArray(unwrapped.signatures));
 
-    const { signed, signatures } = message;
+    const { signed, signatures } = unwrapped;
 
     for (const sig of signatures) {
       if (!Keyring.validateSignature(signed, sig.signature, sig.key)) {
@@ -137,14 +223,18 @@ export class Keyring {
    * This does not check that the key is trusted, only that the signature is valid.
    */
   static validateSignature (message: any, signature: RawSignature, key: PublicKeyLike): boolean { // eslint-disable-line class-methods-use-this
+    invoc.count();
     assertValidPublicKey(key);
+    assert(typeof message === 'object');
 
-    assert(typeof message === 'object' || typeof message === 'string');
-    if (typeof message === 'object') {
-      message = canonicalStringify(message);
+    let result = this._signatureValidationCache.get(message, signature, key);
+    if (result === undefined) {
+      const stringy = canonicalStringify(message);
+      result = verify(Buffer.from(stringy), Buffer.from(signature), PublicKey.from(key).asBuffer());
+      this._signatureValidationCache.set(message, signature, key, result);
     }
 
-    return verify(Buffer.from(message), Buffer.from(signature), PublicKey.from(key).asBuffer());
+    return result;
   }
 
   /**
@@ -163,7 +253,8 @@ export class Keyring {
 
   private readonly _keystore: KeyStore;
 
-  private readonly _cache = new Map<string, any>();
+  private readonly _keyCache = new Map<string, any>();
+  private readonly _findTrustedCache = new Map<string, PublicKeyLike>();
 
   /**
    * If no KeyStore is supplied, in-memory key storage will be used.
@@ -186,7 +277,7 @@ export class Keyring {
     const entries = await this._keystore.getRecordsWithKey();
     for (const entry of entries) {
       const [key, value] = entry;
-      this._cache.set(key, value);
+      this._keyCache.set(key, value);
     }
 
     return this;
@@ -196,7 +287,7 @@ export class Keyring {
    * Delete every keyRecord. Safe to continue to use the object.
    */
   async deleteAllKeyRecords () {
-    this._cache.clear();
+    this._keyCache.clear();
     const allKeys = await this._keystore.getKeys();
     const promises = [];
     for (const key of allKeys) {
@@ -246,7 +337,7 @@ export class Keyring {
     }
 
     await this._keystore.setRecord(copy.publicKey.toHex(), copy);
-    this._cache.set(copy.publicKey.toHex(), copy);
+    this._keyCache.set(copy.publicKey.toHex(), copy);
 
     return stripSecrets(copy);
   }
@@ -268,7 +359,7 @@ export class Keyring {
       }
     }
 
-    this._cache.set(copy.publicKey.toHex(), copy);
+    this._keyCache.set(copy.publicKey.toHex(), copy);
 
     return stripSecrets(copy);
   }
@@ -310,7 +401,7 @@ export class Keyring {
     if (existing) {
       const cleaned = stripSecrets(existing);
       await this._keystore.setRecord(cleaned.publicKey.toHex(), cleaned);
-      this._cache.set(cleaned.publicKey.toHex(), cleaned);
+      this._keyCache.set(cleaned.publicKey.toHex(), cleaned);
     }
   }
 
@@ -373,7 +464,7 @@ export class Keyring {
    * Find all keys matching the indicated criteria: 'key', 'type', 'own', etc.
    */
   private _findFullKeys (...filters: FilterFuntion[]): KeyRecord[] {
-    return Filter.filter(this._cache.values(), Filter.and(...filters));
+    return Filter.filter(this._keyCache.values(), Filter.and(...filters));
   }
 
   /**
@@ -498,6 +589,7 @@ export class Keyring {
     assert(typeof message === 'object');
     assert(keys);
     assert(Array.isArray(keys));
+    invoc.count();
 
     const chains = new Map();
     const fullKeys: KeyRecord[] = [];
@@ -539,6 +631,7 @@ export class Keyring {
    * @returns {boolean}
    */
   verify (message: SignedMessage, { requireAllKeysBeTrusted = false, allowKeyChains = true } = {}) {
+    invoc.count();
     assert(typeof message === 'object');
     assert(message.signed);
     assert(Array.isArray(message.signatures));
@@ -576,34 +669,41 @@ export class Keyring {
    * @return {Promise<KeyRecord>}
    */
   findTrusted (chain: KeyChain) {
-    // `messages` contains internal state, and should not be passed in from outside.
-    const walkChain = (chain: KeyChain, messages: SignedMessage[] = []): KeyRecord | undefined => {
-      // Check that the signatures are valid.
-      if (!Keyring.validateSignatures(chain.message)) {
-        throw new Error('Invalid signature.');
-      }
+    invoc.count();
+    const cached = this._findTrustedCache.get(chain.publicKey.toHex());
+    if (cached && this.hasKey(cached)) {
+      console.log('TCTCTCTC');
+      return this.getKey(cached);
+    }
 
+    // `messages` contains internal state, and should not be passed in from outside.
+    const messages: SignedMessage[] = [];
+
+    const walkChain = (chain: KeyChain): KeyRecord | undefined => {
+      const signingKeys = Keyring.signingKeys(chain.message, { validate: false });
       // Check that the message is truly signed by the indicated key.
-      if (!Keyring.signingKeys(chain.message).find(key => key.equals(chain.publicKey))) {
+      if (!signingKeys.find(key => key.equals(chain.publicKey))) {
         throw new Error('Message not signed by indicated key.');
       }
-
-      const key = this.getKey(chain.publicKey);
       messages.push(chain.message);
 
+      const knownKey = this.hasKey(chain.publicKey) ? chain.publicKey : signingKeys.find(key => this.hasKey(key));
+
       // Do we have the key?
-      if (key) {
+      if (knownKey) {
+        const key = this.getKey(knownKey)!;
         // If we do, but don't trust it, that is very bad.
         if (!key.trusted) {
           throw new Error('Untrusted key found in chain.');
         }
         // At this point, we should be able to verify the message with our true keyring.
-        if (this.verify(chain.message)) {
-          // If the key is directly trusted, then we are done.
-          if (messages.length === 1) {
+        // If the key is directly trusted, then we are done.
+        if (messages.length === 1) {
+          if (this.verify(messages[0])) {
             return key;
           }
-
+          throw new Error('Unable to verify message, though key is trusted.');
+        } else {
           // Otherwise we need to make sure the messages form a valid hierarchy, starting from the trusted key.
           messages.reverse();
           const tmpKeys = new Keyring();
@@ -631,10 +731,9 @@ export class Keyring {
           // If all of the above checks out, we have the right key.
           return key;
         }
-        throw new Error('Unable to verify message, though key is trusted.');
       } else if (Array.isArray(chain.parents)) {
         for (const parent of chain.parents) {
-          const trusted = walkChain(parent, messages);
+          const trusted = walkChain(parent);
           if (trusted) {
             return trusted;
           }
@@ -644,6 +743,19 @@ export class Keyring {
       return undefined;
     };
 
-    return walkChain(chain);
+    this.instrument();
+    const trusted = walkChain(chain);
+    if (trusted) {
+      this._findTrustedCache.set(chain.publicKey.toHex(), trusted.publicKey);
+    }
+    return trusted;
+  }
+
+  public instrument () {
+    invoc.enable();
+  }
+
+  public report () {
+    return invoc.report();
   }
 }

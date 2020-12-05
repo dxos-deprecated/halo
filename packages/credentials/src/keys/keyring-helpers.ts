@@ -156,6 +156,7 @@ export const canonicalStringify = (obj: any) => {
 export const signMessage = (message: any,
   keys: KeyRecord[],
   keyChainMap: Map<string, KeyChain>,
+  signX: any,
   nonce?: Buffer,
   created?: string): WithTypeUrl<SignedMessage> => {
   assert(typeof message === 'object');
@@ -188,7 +189,7 @@ export const signMessage = (message: any,
     // TODO(burdon): Already tested above?
     assertValidSecretKey(secretKey);
     signatures.push({
-      signature: sign(buffer, Buffer.from(secretKey)),
+      signature: signX(buffer, Buffer.from(secretKey)),
       key: publicKey,
       keyChain: keyChainMap.get(publicKey.toHex())
     });

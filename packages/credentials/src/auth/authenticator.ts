@@ -114,7 +114,7 @@ export class PartyAuthenticator extends Authenticator {
     // TODO(telackey): Find a better place to do this, since doing it here could be considered a side-effect.
     if (verified &&
       PublicKey.isPublicKey(feedKey) &&
-      Keyring.signingKeys(credentials).find(key => key.equals(feedKey)) &&
+      Keyring.signingKeys(credentials, { deep: false, validate: false }).find(key => key.equals(feedKey)) &&
       !this._party.memberFeeds.find(partyFeed => partyFeed.equals(feedKey))) {
       log(`Auto-hinting feedKey: ${feedKey.toHex()} for Device ` +
         `${deviceKey.toHex()} on Identity ${identityKey.toHex()}`);
