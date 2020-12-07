@@ -9,11 +9,11 @@
 
 import assert from 'assert';
 import stableStringify from 'json-stable-stringify';
+import performanceNow from 'performance-now';
 
-import { createKeyPair, KeyPair, randomBytes, sign, PublicKey, PublicKeyLike } from '@dxos/crypto';
+import { createKeyPair, KeyPair, PublicKey, PublicKeyLike } from '@dxos/crypto';
 
 import { KeyChain, KeyRecord, KeyType, SignedMessage } from '../proto';
-import { WithTypeUrl } from '../proto/any';
 import { createDateTimeString } from '../proto/datetime';
 import { MakeOptional } from '../typedefs';
 import { SecretKey } from './keytype';
@@ -25,7 +25,8 @@ export function isValidPublicKey (key: PublicKeyLike): key is PublicKeyLike {
   try {
     PublicKey.from(key);
     return true;
-  } catch (e) {}
+  } catch (e) {
+  }
   return false;
 }
 
@@ -147,62 +148,6 @@ export const canonicalStringify = (obj: any) => {
 };
 
 /**
- * Sign the message with the indicated key or keys. The returned signed object will be of the form:
- * {
- *   signed: { ... }, // The message as signed, including timestamp and nonce.
- *   signatures: []   // An array with signature and publicKey of each signing key.
- * }
- */
-export const signMessage = (message: any,
-  keys: KeyRecord[],
-  keyChainMap: Map<string, KeyChain>,
-  signX: any,
-  nonce?: Buffer,
-  created?: string): WithTypeUrl<SignedMessage> => {
-  assert(typeof message === 'object');
-  for (const key of keys) {
-    assertValidKeyPair(key);
-  }
-
-  if (!keyChainMap) {
-    keyChainMap = new Map();
-  }
-
-  // If signing a string, wrap it in an object.
-  if (typeof message === 'string') {
-    message = { message };
-  }
-
-  // Check every key passed is suitable for signing.
-  keys.forEach(keyRecord => assertValidKeyPair(keyRecord));
-
-  const signed = {
-    created: created || createDateTimeString(),
-    nonce: nonce || randomBytes(32),
-    payload: message
-  };
-
-  // Sign with each key, adding to the signatures list.
-  const signatures: SignedMessage.Signature[] = [];
-  const buffer = Buffer.from(canonicalStringify(signed));
-  keys.forEach(({ publicKey, secretKey }) => {
-    // TODO(burdon): Already tested above?
-    assertValidSecretKey(secretKey);
-    signatures.push({
-      signature: signX(buffer, Buffer.from(secretKey)),
-      key: publicKey,
-      keyChain: keyChainMap.get(publicKey.toHex())
-    });
-  });
-
-  return {
-    __type_url: 'dxos.credentials.SignedMessage',
-    signed,
-    signatures
-  };
-};
-
-/**
  * Is object `key` a KeyChain?
  */
 export const isKeyChain = (key: any = {}): key is KeyChain => {
@@ -242,4 +187,65 @@ export const checkAndNormalizeKeyRecord = (keyRecord: Omit<KeyRecord, 'key'>) =>
     publicKey: PublicKey.from(publicKey).asBuffer(),
     secretKey: secretKey ? Buffer.from(secretKey) : undefined
   });
+};
+
+export const unwrapMessage = (message: any): SignedMessage => {
+  if (message && message.payload && !message.signed && !Array.isArray(message.signatures)) {
+    return message.payload;
+  }
+  return message;
+};
+
+export class SimpleMetrics {
+  private readonly _created = performanceNow();
+  private readonly _counts = new Map<string, number>();
+  private readonly _times = new Map<string, number>();
+
+  inc (title: string) {
+    let value = this._counts.get(title) ?? 0;
+    this._counts.set(title, ++value);
+    return value;
+  }
+
+  time (title: string) {
+    const start = performanceNow();
+    this.inc(title);
+    return () => {
+      const stop = performanceNow() - start;
+      const value = this._times.get(title) ?? 0;
+      this._times.set(title, value + stop);
+      return stop;
+    };
+  }
+
+  toString () {
+    const counts = Array.from(this._counts.entries());
+    counts.sort((a, b) => a[1] - b[1]);
+    const countsStr = counts.map(([k, v]) => `${k}: ${v}`).join('\n ');
+
+    const times = Array.from(this._times.entries());
+    times.sort((a, b) => a[1] - b[1]);
+    const timesStr = times.map(([k, v]) => `${k}: ${v.toFixed(2)}`).join('\n ');
+
+    const elapsed = performanceNow() - this._created;
+
+    return `COUNTS:\n ${countsStr}\n\nTIME (ms):\n ${timesStr}\n\nELAPSED (ms): ${elapsed.toFixed(2)}`;
+  }
+}
+
+// Decorator for collecting metrics.
+export const createMeter = (metrics: SimpleMetrics) => {
+  return (target: any, propertyName: string, descriptor: TypedPropertyDescriptor<(...args: any) => any>) => {
+    const method = descriptor.value!;
+    descriptor.value = function (this: any, ...args: any) {
+      const stop = metrics.time(method.name);
+      const result = method.apply(this, args);
+      if (!result || !result.finally) {
+        stop();
+        return result;
+      } else {
+        return result.finally(stop);
+      }
+    };
+  };
 };
