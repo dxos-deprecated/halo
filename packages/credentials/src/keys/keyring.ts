@@ -27,8 +27,9 @@ import {
   isKeyChain,
   checkAndNormalizeKeyRecord,
   isSignedMessage,
+  createMeter,
   unwrapMessage,
-  createMeter, assertValidSecretKey
+  assertValidSecretKey
 } from './keyring-helpers';
 import { KeyStore } from './keystore';
 

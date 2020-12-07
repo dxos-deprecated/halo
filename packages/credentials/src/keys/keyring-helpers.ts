@@ -189,6 +189,9 @@ export const checkAndNormalizeKeyRecord = (keyRecord: Omit<KeyRecord, 'key'>) =>
   });
 };
 
+/**
+ * Unwraps (if necessary) a Message to its SignedMessage contents
+ */
 export const unwrapMessage = (message: any): SignedMessage => {
   if (message && message.payload && !message.signed && !Array.isArray(message.signatures)) {
     return message.payload;
@@ -196,6 +199,9 @@ export const unwrapMessage = (message: any): SignedMessage => {
   return message;
 };
 
+/**
+ * A simple class for keeping track of invocations and processing time.
+ */
 export class SimpleMetrics {
   private readonly _created = performanceNow();
   private readonly _counts = new Map<string, number>();
@@ -233,7 +239,10 @@ export class SimpleMetrics {
   }
 }
 
-// Decorator for collecting metrics.
+/**
+ * A decorator for collecting metrics on methods.
+ * @param metrics
+ */
 export const createMeter = (metrics: SimpleMetrics) => {
   return (target: any, propertyName: string, descriptor: TypedPropertyDescriptor<(...args: any) => any>) => {
     const method = descriptor.value!;
