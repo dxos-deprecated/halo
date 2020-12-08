@@ -1,5 +1,12 @@
 # Changelog
 
+### [2.1.13](https://www.github.com/dxos/halo/compare/v2.1.12...v2.1.13) (2020-12-08)
+
+
+### Bug Fixes
+
+* message signature validation performance improvements ([#116](https://www.github.com/dxos/halo/issues/116)) ([d219a8a](https://www.github.com/dxos/halo/commit/d219a8ab6f2e1ce7ff9b9c4cb1454a3339c41805))
+
 ### [2.1.12](https://www.github.com/dxos/halo/compare/v2.1.11...v2.1.12) (2020-11-17)
 
 
