@@ -81,13 +81,6 @@ class SignatureValidationCache {
 export class Keyring {
   static _signatureValidationCache = new SignatureValidationCache();
 
-  /**
-   * Application-wide Keyring metrics.
-   */
-  static metrics () {
-    return metrics;
-  }
-
   @meter
   static cryptoVerify (message: Buffer, signature: Buffer, publicKey: Buffer) {
     return cryptoVerify(message, signature, publicKey);
@@ -800,5 +793,12 @@ export class Keyring {
       this._findTrustedCache.set(chain.publicKey.toHex(), trusted.publicKey);
     }
     return trusted;
+  }
+
+  /**
+   * Application-wide Keyring metrics.
+   */
+  metrics () {
+    return { keyring: metrics, sigCache: cacheMetrics };
   }
 }
