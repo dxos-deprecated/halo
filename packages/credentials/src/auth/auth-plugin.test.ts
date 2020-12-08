@@ -83,7 +83,7 @@ const createProtocol = async (partyKey: PublicKey, authenticator: Authenticator,
   const authPromise = new Promise((resolve) => {
     auth.on('authenticated', (incomingPeerId) => {
       log(`Authenticated ${keyToString(incomingPeerId)} on ${keyToString(peerId)}`);
-      resolve();
+      resolve(true);
     });
   });
 
