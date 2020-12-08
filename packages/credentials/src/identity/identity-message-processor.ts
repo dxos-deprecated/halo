@@ -123,7 +123,7 @@ export class IdentityMessageProcessor extends EventEmitter {
     }
 
     // Check the inner message signature.
-    if (!Keyring.signingKeys(signedIdentityInfo).find(key => key.equals(identityKey))) {
+    if (!Keyring.signingKeys(signedIdentityInfo, { deep: false }).find(key => key.equals(identityKey))) {
       throw new Error(`Invalid IdentityInfo, not signed by Identity key: ${JSON.stringify(signedIdentityInfo)}`);
     }
 
