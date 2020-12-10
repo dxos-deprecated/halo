@@ -1,5 +1,12 @@
 # Changelog
 
+### [2.1.16](https://www.github.com/dxos/halo/compare/v2.1.15...v2.1.16) (2020-12-10)
+
+
+### Bug Fixes
+
+* bump crypto version ([9752326](https://www.github.com/dxos/halo/commit/975232698ed330c5c6a1baad42888bab16c84214))
+
 ### [2.1.15](https://www.github.com/dxos/halo/compare/v2.1.14...v2.1.15) (2020-12-10)
 
 
