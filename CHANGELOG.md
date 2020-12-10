@@ -1,5 +1,12 @@
 # Changelog
 
+### [2.1.15](https://www.github.com/dxos/halo/compare/v2.1.14...v2.1.15) (2020-12-10)
+
+
+### Bug Fixes
+
+* add logging for [#118](https://www.github.com/dxos/halo/issues/118) ([#121](https://www.github.com/dxos/halo/issues/121)) ([2f05e24](https://www.github.com/dxos/halo/commit/2f05e246d0b83b73de40bb01ba02c1ba40b01da4))
+
 ### [2.1.14](https://www.github.com/dxos/halo/compare/v2.1.13...v2.1.14) (2020-12-10)
 
 
