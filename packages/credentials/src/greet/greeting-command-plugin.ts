@@ -26,12 +26,7 @@ export type GreetingCommandMessageHandler = (message: any, remotePeerId: Buffer,
 
 const getPeerId = (protocol: any) => {
   const { peerId = undefined } = protocol && protocol.getSession ? protocol.getSession() : {};
-  assert(Buffer.isBuffer(peerId));
-
-  return {
-    peerId,
-    peerIdStr: peerId && keyToString(peerId)
-  };
+  return peerId;
 };
 
 /**
@@ -165,8 +160,9 @@ export class GreetingCommandPlugin extends EventEmitter {
       throw new ERR_EXTENSION_RESPONSE_FAILED(ERR_GREET_GENERAL, 'Missing message handler.');
     }
 
-    // peerId is a Buffer, but here we only need its string form.
-    const { peerId, peerIdStr } = getPeerId(protocol);
+    const peerId = getPeerId(protocol);
+    assert(Buffer.isBuffer(peerId), 'peerId missing');
+    const peerIdStr = peerId.toString('hex');
     const decoded = codec.decode(data.data);
 
     log('Received request from %s: %o', peerIdStr, decoded.payload);
@@ -180,7 +176,9 @@ export class GreetingCommandPlugin extends EventEmitter {
   }
 
   _addPeer (protocol: any) {
-    const { peerId, peerIdStr } = getPeerId(protocol);
+    const peerId = getPeerId(protocol);
+    assert(Buffer.isBuffer(peerId), 'peerId missing');
+    const peerIdStr = peerId.toString('hex');
     if (this._peers.has(peerIdStr)) {
       return;
     }
@@ -191,14 +189,20 @@ export class GreetingCommandPlugin extends EventEmitter {
   }
 
   _removePeer (protocol: any, error: Error | any) {
-    const { peerId, peerIdStr } = getPeerId(protocol);
+    const peerId = getPeerId(protocol);
 
     if (error) {
-      log('Error', error);
+      log('ERROR: peer:exited', error);
     }
 
-    this._peers.delete(peerIdStr);
-    log('peer:exited', peerIdStr);
-    this.emit('peer:exited', peerId);
+    if (peerId) {
+      assert(Buffer.isBuffer(peerId), 'peerId is not a Buffer');
+      const peerIdStr = peerId.toString('hex');
+      this._peers.delete(peerIdStr);
+      log('peer:exited', peerIdStr);
+      this.emit('peer:exited', peerId);
+    } else {
+      log('WARN: peer:exited, but no peerId available.', protocol);
+    }
   }
 }
