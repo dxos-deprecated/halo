@@ -1,5 +1,12 @@
 # Changelog
 
+### [2.1.14](https://www.github.com/dxos/halo/compare/v2.1.13...v2.1.14) (2020-12-10)
+
+
+### Bug Fixes
+
+* Trigger publish ([6b943d1](https://www.github.com/dxos/halo/commit/6b943d1d15b689153a76a7facefa6335042b2ab9))
+
 ### [2.1.13](https://www.github.com/dxos/halo/compare/v2.1.12...v2.1.13) (2020-12-08)
 
 
