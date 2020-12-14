@@ -302,7 +302,7 @@
   dependencies:
     protobufjs "^6.10.1"
 
-"@dxos/crypto@^1.0.7":
+"@dxos/crypto@1.0.7":
   version "1.0.7"
   resolved "https://registry.yarnpkg.com/@dxos/crypto/-/crypto-1.0.7.tgz#7f80f2712302037e0a29bb1f6d023fdab899c14b"
   integrity sha512-ED+AChA9N8hIMgTcuopNhe81xICykEAP0dKILiTJpBCqiEXyzRClLBkdIY4n6UJUpBmVvrnBLRxw8IU/+jVijg==
