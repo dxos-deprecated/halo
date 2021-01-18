@@ -16,7 +16,7 @@ Query results
 include address (e.g. IPFS hash) of the Bot's packaged code (e.g. fetched as a file in npm format or some other
 suitable software distribution package type such as [gx](https://github.com/whyrusleeping/gx)).
 ````javascript
-query: type="wrn:bot" & protocol.id="QmdeazkS38aCrqG6qKwaio2fQnShE6RGpmNdqStLkkZcQN"
+query: type="dxn:bot" & protocol.id="QmdeazkS38aCrqG6qKwaio2fQnShE6RGpmNdqStLkkZcQN"
 
 result:
   {
@@ -29,7 +29,7 @@ result:
     "package": {
       "ipfs": "QmXoypiejW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6ytr"
      },
-     "type": "wrn:bot",
+     "type": "dxn:bot",
      "version": "2.0.96"
   }
 ````

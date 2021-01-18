@@ -21,6 +21,6 @@
 # Milestones
 
 - Local dashboard (deploy Bot factory)
-- Local WNS
+- Local Registry
 - Deploy bot from Registry/IPFS?
 - App credentials
