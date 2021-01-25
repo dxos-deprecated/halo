@@ -359,27 +359,27 @@
     chalk "^4.1.0"
     read-pkg "^5.2.0"
 
-"@dxos/protocol-plugin-replicator@1.1.0-beta.21":
-  version "1.1.0-beta.21"
-  resolved "https://registry.npmjs.org/@dxos/protocol-plugin-replicator/-/protocol-plugin-replicator-1.1.0-beta.21.tgz#e0b35f504c8b5e675fe0545789bbb4cc25a027bc"
-  integrity sha512-8r2BZL7+O63v8zM0N4ybZdEBQ6mrIfStnHeV9PAR8xUWRTB5ADBZ0uf1rwkcc4sPDore1O5eXAYigXuWTPrpRA==
+"@dxos/protocol-plugin-replicator@~1.0.8":
+  version "1.0.8"
+  resolved "https://registry.npmjs.org/@dxos/protocol-plugin-replicator/-/protocol-plugin-replicator-1.0.8.tgz#4f429745f058ace9d665332a1104cfdd18c461d5"
+  integrity sha512-U0vW3v3tnAbTHrIC5RvSjTlrmxgvp+7EIJU+EcmV7X5f8s81wgtn1uql6eW5DqgxvKSlbeAjI0+VbhGPHjcaTg==
   dependencies:
     "@dxos/codec-protobuf" "1.1.0-beta.10"
-    "@dxos/protocol" "^1.1.0-beta.21"
+    "@dxos/protocol" "1.0.8"
     buffer-json-encoding "^1.0.2"
     debug "^4.1.1"
     source-map-support "^0.5.12"
 
-"@dxos/protocol@1.1.0-beta.21", "@dxos/protocol@^1.1.0-beta.21":
-  version "1.1.0-beta.21"
-  resolved "https://registry.npmjs.org/@dxos/protocol/-/protocol-1.1.0-beta.21.tgz#f408b1dc1b62f22d1e1622ff2cae07bbf903948a"
-  integrity sha512-6Yfem13SddgRtWmgO5TjPPO/gJR7oPeGaGwU9fiFPPugyo+gY/kiOF+nbJ8ATQLy+V9uTZKUq8d4IoAUH/S6xw==
+"@dxos/protocol@1.0.8", "@dxos/protocol@~1.0.8":
+  version "1.0.8"
+  resolved "https://registry.npmjs.org/@dxos/protocol/-/protocol-1.0.8.tgz#080161006fae43adfe8cdb3b0318345ac883e956"
+  integrity sha512-A5yvU+7aDVM7tzz0/Vesr5H8pqpzfg/X5KwSbWj24oO7xLRml27S7Or5I2EJoj2tcgMlSRMqe2cJCSJ+JZ1Mog==
   dependencies:
     "@dxos/codec-protobuf" "1.1.0-beta.10"
     assert "^2.0.0"
     buffer-json-encoding "^1.0.2"
     debug "^4.1.1"
-    end-of-stream "^1.4.1"
+    end-of-stream "^1.4.4"
     humanhash "^1.0.4"
     hypercore-protocol "^6.11.1"
     nanoerror "^1.2.1"
