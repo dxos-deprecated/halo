@@ -1,5 +1,12 @@
 # Changelog
 
+### [2.1.17](https://www.github.com/dxos/halo/compare/v2.1.16...v2.1.17) (2021-01-25)
+
+
+### Bug Fixes
+
+* Trigger publish ([29ea1dc](https://www.github.com/dxos/halo/commit/29ea1dc4fc3abde7e900cec4abf6238a7ca02866))
+
 ### [2.1.16](https://www.github.com/dxos/halo/compare/v2.1.15...v2.1.16) (2020-12-10)
 
 
